@@ -1,0 +1,22 @@
+class ApiEndpoints {
+  // Point this at your Laravel host. Use 10.0.2.2 for Android emulator -> localhost.
+  static const String baseUrl = 'http://192.168.1.127/athar/public/api';
+
+  static const String register = '/auth/register';
+  static const String login = '/auth/login';
+  static const String logout = '/auth/logout';
+  static const String fcmToken = '/auth/fcm-token';
+  static const String location = '/user/location';
+
+  static const String prayersToday = '/prayers/today';
+  static const String markPrayer = '/prayers/mark';
+
+  static const String friends = '/friends';
+  static const String addFriend = '/friends/add';
+  static const String respondFriend = '/friends/respond';
+  static const String nudge = '/friends/nudge';
+
+  static const String stats = '/stats';
+  static const String leaderboard = '/leaderboard';
+  static const String randomQuote = '/quotes/random';
+}

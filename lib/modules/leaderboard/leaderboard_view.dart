@@ -1,0 +1,75 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/localization/localization_controller.dart';
+import '../../data/models/leaderboard_model.dart';
+import 'leaderboard_controller.dart';
+
+class LeaderboardView extends GetView<LeaderboardController> {
+  const LeaderboardView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isAr = Get.find<LocalizationController>().isRtl;
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: SafeArea(
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text('leaderboard'.tr,
+                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          ),
+          Obx(() => Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _tabBtn('points', 'points_tab'.tr),
+                  _tabBtn('streak', 'streaks_tab'.tr),
+                ],
+              )),
+          Expanded(
+            child: Obx(() => controller.loading.value
+                ? const Center(child: CircularProgressIndicator())
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: controller.rankings.length,
+                    itemBuilder: (_, i) =>
+                        _row(controller.rankings[i], controller.tab.value, isAr),
+                  )),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _tabBtn(String key, String label) {
+    final selected = controller.tab.value == key;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: ChoiceChip(
+        selected: selected,
+        label: Text(label),
+        selectedColor: AppColors.primary,
+        labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
+        onSelected: (_) => controller.switchTab(key),
+      ),
+    );
+  }
+
+  Widget _row(LeaderboardEntry e, String tab, bool isAr) {
+    final metric = tab == 'streak' ? '🔥 ${e.currentStreak}' : '${e.totalPoints}';
+    final title = e.level == null ? '' : (isAr ? e.level!.titleAr : e.level!.titleEn);
+    return Card(
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: e.rank <= 3 ? AppColors.accent : AppColors.primary,
+          child: Text('${e.rank}', style: const TextStyle(color: Colors.white)),
+        ),
+        title: Text(e.name),
+        subtitle: Text(title),
+        trailing: Text(metric,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+      ),
+    );
+  }
+}

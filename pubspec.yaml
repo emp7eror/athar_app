@@ -1,0 +1,29 @@
+name: athar
+description: "Athar (أثر) — offline-first bilingual prayer habit tracker."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.10.7 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  get:
+  get_storage:
+  dio:
+  adhan:
+  intl:
+  fl_chart:
+  flutter_local_notifications:
+  workmanager:
+  firebase_core:
+  firebase_messaging:
+
+dev_dependencies:
+  flutter_lints:
+
+flutter:
+  uses-material-design: true

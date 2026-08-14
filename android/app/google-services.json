@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "686705336396",
+    "project_id": "athar-30fad",
+    "storage_bucket": "athar-30fad.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:686705336396:android:443eeb5391ed10051d94e9",
+        "android_client_info": {
+          "package_name": "com.empire.tech.athar.athar"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCUEstnPQfeGrb9Ye31kTL35wK8AE4uAEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
