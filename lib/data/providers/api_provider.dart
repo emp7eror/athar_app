@@ -25,51 +25,51 @@ class ApiProvider {
   }
 
   // --- Auth ---
-  Future<Map<String, dynamic>> register(Map<String, dynamic> body) async =>
-      _unwrap(await _dio.post(ApiEndpoints.register, data: body));
+  Future<Map<String, dynamic>> register(Map<String, dynamic> body) async => _unwrap(await _dio.post(ApiEndpoints.register, data: body));
 
   Future<Map<String, dynamic>> login(String email, String password) async =>
       _unwrap(await _dio.post(ApiEndpoints.login, data: {'email': email, 'password': password}));
 
   Future<void> logout() async => _dio.post(ApiEndpoints.logout);
 
-  Future<void> updateFcmToken(String token) async =>
-      _dio.post(ApiEndpoints.fcmToken, data: {'fcm_token': token});
+  Future<void> updateFcmToken(String token) async => _dio.post(ApiEndpoints.fcmToken, data: {'fcm_token': token});
 
   Future<Map<String, dynamic>> updateLocation(double lat, double lng) async =>
       _unwrap(await _dio.post(ApiEndpoints.location, data: {'lat': lat, 'lng': lng}));
 
   // --- Prayers ---
-  Future<Map<String, dynamic>> todayPrayers(String tz) async =>
-      _unwrap(await _dio.get(ApiEndpoints.prayersToday, queryParameters: {'timezone': tz}));
+  Future<Map<String, dynamic>> todayPrayers(String tz) async => _unwrap(await _dio.get(ApiEndpoints.prayersToday, queryParameters: {'timezone': tz}));
 
-  Future<Map<String, dynamic>> markPrayer(String prayer, {bool completed = true, String? tz}) async =>
-      _unwrap(await _dio.post(ApiEndpoints.markPrayer, data: {
-        'prayer_name': prayer,
-        'is_completed': completed,
-        if (tz != null) 'timezone': tz,
-      }));
+  Future<Map<String, dynamic>> markPrayer(String prayer, {bool completed = true, String? tz, String? difficulty, String? mood, String? note}) async =>
+      _unwrap(
+        await _dio.post(
+          ApiEndpoints.markPrayer,
+          data: {
+            'prayer_name': prayer,
+            'is_completed': completed,
+            if (tz != null) 'timezone': tz,
+            if (difficulty != null) 'difficulty': difficulty,
+            if (mood != null) 'mood': mood,
+            if (note != null && note.isNotEmpty) 'note': note,
+          },
+        ),
+      );
 
   // --- Friends ---
   Future<Map<String, dynamic>> friends() async => _unwrap(await _dio.get(ApiEndpoints.friends));
 
-  Future<Map<String, dynamic>> addFriend(String code) async =>
-      _unwrap(await _dio.post(ApiEndpoints.addFriend, data: {'user_code': code}));
+  Future<Map<String, dynamic>> addFriend(String code) async => _unwrap(await _dio.post(ApiEndpoints.addFriend, data: {'user_code': code}));
 
   Future<Map<String, dynamic>> respond(int friendshipId, String action) async =>
-      _unwrap(await _dio.post(ApiEndpoints.respondFriend,
-          data: {'friendship_id': friendshipId, 'action': action}));
+      _unwrap(await _dio.post(ApiEndpoints.respondFriend, data: {'friendship_id': friendshipId, 'action': action}));
 
-  Future<void> nudge(int friendId) async =>
-      _dio.post(ApiEndpoints.nudge, data: {'friend_id': friendId});
+  Future<void> nudge(int friendId) async => _dio.post(ApiEndpoints.nudge, data: {'friend_id': friendId});
 
   // --- Analytics ---
-  Future<Map<String, dynamic>> stats(String tz) async =>
-      _unwrap(await _dio.get(ApiEndpoints.stats, queryParameters: {'timezone': tz}));
+  Future<Map<String, dynamic>> stats(String tz) async => _unwrap(await _dio.get(ApiEndpoints.stats, queryParameters: {'timezone': tz}));
 
   Future<Map<String, dynamic>> leaderboard({String tab = 'points', String scope = 'global'}) async =>
       _unwrap(await _dio.get(ApiEndpoints.leaderboard, queryParameters: {'tab': tab, 'scope': scope}));
 
-  Future<Map<String, dynamic>> randomQuote() async =>
-      _unwrap(await _dio.get(ApiEndpoints.randomQuote));
+  Future<Map<String, dynamic>> randomQuote() async => _unwrap(await _dio.get(ApiEndpoints.randomQuote));
 }

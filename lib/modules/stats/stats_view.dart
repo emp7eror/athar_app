@@ -19,15 +19,15 @@ class StatsView extends GetView<StatsController> {
                 const SizedBox(height: 16),
                 Row(children: [
                   _stat(context, '🔥', '${controller.currentStreak.value}', 'streak'.tr),
-                  _stat(context, '🏆', '${controller.maxStreak.value}', 'max'),
+                  _stat(context, '🏆', '${controller.maxStreak.value}', 'max_streak'.tr),
                   _stat(context, '⭐', '${controller.totalPoints.value}', 'points'.tr),
                 ]),
                 const SizedBox(height: 24),
-                const Text('Last 7 days', style: TextStyle(fontWeight: FontWeight.w600)),
+                 Text('last_7_days'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 12),
                 SizedBox(height: 200, child: _weeklyChart()),
                 const SizedBox(height: 24),
-                const Text('30-day per-prayer', style: TextStyle(fontWeight: FontWeight.w600)),
+                 Text('thirty_day_per_prayer'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                 const SizedBox(height: 8),
                 ...controller.monthly.map((m) => Padding(
                       padding: const EdgeInsets.symmetric(vertical: 4),

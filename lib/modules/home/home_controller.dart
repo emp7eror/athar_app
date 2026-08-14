@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:adhan/adhan.dart';
+import 'package:athar/modules/home/prayer_confirm_dialog.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
 
@@ -80,21 +81,33 @@ class HomeController extends GetxController {
   }
 
   Future<void> mark(PrayerChecklistItem item) async {
-    if (item.isCompleted) return; // one-way completion from the UI
+    if (item.isCompleted) return;
     if (!isActive(item.prayerName)) {
-      AppSnackbar.error('app_name'.tr, 'window_closed'.tr, position: SnackPosition.BOTTOM);
+      AppSnackbar.error('app_name'.tr, 'window_closed'.tr);
       return;
     }
+
+    // ── اعرض الـ dialog أولاً ──
+    final result = await PrayerConfirmDialog.show(item.prayerName, item.points);
+    if (result == null) return; // المستخدم ألغى
+
     marking.value = item.prayerName;
     try {
       final timezone = await _tz;
-      final res = await _api.markPrayer(item.prayerName, completed: true, tz:timezone );
+      final res = await _api.markPrayer(
+        item.prayerName,
+        completed: true,
+        tz: timezone,
+        difficulty: result.difficulty.name,  // 'easy' | 'medium' | 'hard'
+        mood:       result.mood.name,        // 'focused' | 'peaceful' | 'distracted' | 'tired'
+        note:       result.note.isEmpty ? null : result.note,
+      );
       totalPoints.value = res['total_points'] ?? totalPoints.value;
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
       await _loadToday();
-      AppSnackbar.show('+${item.points}', 'points'.tr, position: SnackPosition.BOTTOM);
+      AppSnackbar.show('+${item.points} ${'points'.tr}', 'prayer_recorded'.tr);
     } on ApiException catch (e) {
-      AppSnackbar.error('app_name'.tr, e.message, position: SnackPosition.BOTTOM);
+      AppSnackbar.error('app_name'.tr, e.message);
     } finally {
       marking.value = '';
     }
