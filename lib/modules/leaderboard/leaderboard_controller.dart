@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/models/leaderboard_model.dart';
 
@@ -30,7 +31,7 @@ class LeaderboardController extends GetxController {
           (res['rankings'] as List).map((e) => LeaderboardEntry.fromJson(e)).toList();
       me.value = res['me'] is Map ? LeaderboardEntry.fromJson(res['me']) : null;
     } on ApiException catch (e) {
-      Get.snackbar('leaderboard'.tr, e.message);
+      AppSnackbar.error('leaderboard'.tr, e.message);
     } finally {
       loading.value = false;
     }

@@ -8,6 +8,8 @@ class StorageProvider extends GetxService {
   static const _kToken = 'token';
   static const _kLat = 'lat';
   static const _kLng = 'lng';
+  static const _kCityAr = 'cityAr';
+  static const _kCityEn = 'cityEn';
   static const _kUser = 'user';
   static const _kSeenOnboarding = 'seen_onboarding';
   static const _kDarkMode = 'dark_mode';
@@ -23,9 +25,17 @@ class StorageProvider extends GetxService {
 
   double? get lat => _box.read(_kLat);
   double? get lng => _box.read(_kLng);
+  String? get cityAr => _box.read(_kCityAr);
+  String? get cityEn => _box.read(_kCityEn);
+
   void saveCoords(double lat, double lng) {
     _box.write(_kLat, lat);
     _box.write(_kLng, lng);
+  }
+
+  void saveCity(String? nameAr, String? nameEn) {
+    if (nameAr != null) _box.write(_kCityAr, nameAr);
+    if (nameEn != null) _box.write(_kCityEn, nameEn);
   }
 
   Map<String, dynamic>? get cachedUser => _box.read(_kUser);

@@ -277,9 +277,9 @@ abstract final class AppTheme {
     final body = GoogleFonts.tajawalTextTheme(base);
     return body
         .copyWith(
-          displayLarge: GoogleFonts.amiri(fontSize: 40, fontWeight: FontWeight.w700),
-          displayMedium: GoogleFonts.amiri(fontSize: 32, fontWeight: FontWeight.w700),
-          headlineMedium: GoogleFonts.amiri(fontSize: 26, fontWeight: FontWeight.w700),
+          displayLarge: GoogleFonts.tajawal(fontSize: 40, fontWeight: FontWeight.w700),
+          displayMedium: GoogleFonts.tajawal(fontSize: 32, fontWeight: FontWeight.w700),
+          headlineMedium: GoogleFonts.tajawal(fontSize: 26, fontWeight: FontWeight.w700),
           titleLarge: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.w700),
           titleMedium: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.w700),
           bodyLarge: GoogleFonts.tajawal(fontSize: 16, height: 1.5),

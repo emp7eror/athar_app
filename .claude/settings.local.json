@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls assets *)",
+      "Bash(ls assets/images)",
+      "Bash(flutter analyze *)"
+    ]
+  }
+}

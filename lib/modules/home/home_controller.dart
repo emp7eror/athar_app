@@ -1,11 +1,15 @@
 import 'dart:async';
+
 import 'package:adhan/adhan.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
+
 import '../../core/services/adhan_service.dart';
 import '../../core/services/location_service.dart';
-import '../../data/providers/api_provider.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
+import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 
 class HomeController extends GetxController {
@@ -28,7 +32,11 @@ class HomeController extends GetxController {
   final updatingLocation = false.obs;
 
   Timer? _ticker;
-  String get _tz => DateTime.now().timeZoneName;
+
+  Future<String> get _tz async {
+    final timezone = await FlutterTimezone.getLocalTimezone();
+    return timezone.identifier;
+  }
 
   @override
   void onInit() {
@@ -46,13 +54,12 @@ class HomeController extends GetxController {
 
   Future<void> _loadToday() async {
     try {
-      final res = await _api.todayPrayers(_tz);
-      checklist.value = (res['checklist'] as List)
-          .map((e) => PrayerChecklistItem.fromJson(e))
-          .toList();
+      final timezone = await _tz;
+      final res = await _api.todayPrayers(await timezone);
+      checklist.value = (res['checklist'] as List).map((e) => PrayerChecklistItem.fromJson(e)).toList();
       pointsToday.value = res['points_today'] ?? 0;
     } on ApiException catch (e) {
-      Get.snackbar('app_name'.tr, e.message);
+      AppSnackbar.error('app_name'.tr, e.message);
     }
   }
 
@@ -61,7 +68,9 @@ class HomeController extends GetxController {
       final q = await _api.randomQuote();
       quote.value = q['text'] ?? '';
       quoteSource.value = q['source'] ?? '';
-    } catch (_) {/* non-critical */}
+    } catch (_) {
+      /* non-critical */
+    }
   }
 
   /// Local window check gates the checkbox before we ever hit the API.
@@ -73,19 +82,19 @@ class HomeController extends GetxController {
   Future<void> mark(PrayerChecklistItem item) async {
     if (item.isCompleted) return; // one-way completion from the UI
     if (!isActive(item.prayerName)) {
-      Get.snackbar('app_name'.tr, 'window_closed'.tr, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('app_name'.tr, 'window_closed'.tr, position: SnackPosition.BOTTOM);
       return;
     }
     marking.value = item.prayerName;
     try {
-      final res = await _api.markPrayer(item.prayerName, completed: true, tz: _tz);
+      final timezone = await _tz;
+      final res = await _api.markPrayer(item.prayerName, completed: true, tz:timezone );
       totalPoints.value = res['total_points'] ?? totalPoints.value;
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
       await _loadToday();
-      Get.snackbar('+${item.points}', 'points'.tr,
-          snackPosition: SnackPosition.BOTTOM, duration: const Duration(seconds: 1));
+      AppSnackbar.show('+${item.points}', 'points'.tr, position: SnackPosition.BOTTOM);
     } on ApiException catch (e) {
-      Get.snackbar('app_name'.tr, e.message, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('app_name'.tr, e.message, position: SnackPosition.BOTTOM);
     } finally {
       marking.value = '';
     }
@@ -96,11 +105,11 @@ class HomeController extends GetxController {
     try {
       await _location.refreshFromDevice();
       _refreshLocationLabel();
-      await refreshAll();          // re-pull today with the new coords
-      _startCountdown();           // restart the next-prayer ticker
-      Get.snackbar('app_name'.tr, 'location_updated'.tr);
+      await refreshAll(); // re-pull today with the new coords
+      _startCountdown(); // restart the next-prayer ticker
+      AppSnackbar.show('app_name'.tr, 'location_updated'.tr);
     } catch (key) {
-      Get.snackbar('app_name'.tr, (key is String ? key : 'location_error').tr);
+      AppSnackbar.error('app_name'.tr, (key is String ? key : 'location_error').tr);
     } finally {
       updatingLocation.value = false;
     }
@@ -125,7 +134,11 @@ class HomeController extends GetxController {
 
   void _refreshLocationLabel() {
     final s = Get.find<StorageProvider>();
-    if (s.lat != null && s.lng != null) {
+    final isAr = Get.locale?.languageCode == 'ar';
+    final city = isAr ? s.cityAr : s.cityEn;
+    if (city != null && city.isNotEmpty) {
+      locationLabel.value = city;                       // "مكة المكرمة" or "Makkah"
+    } else if (s.lat != null && s.lng != null) {
       locationLabel.value =
       '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
     }

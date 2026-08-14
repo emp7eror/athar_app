@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../data/providers/storage_provider.dart';
-
 /// Visual motif rendered on each onboarding page.
 enum OnboardingMotif { ripple, streak, heart, journal, logo }
 
@@ -50,11 +48,12 @@ class OnboardingController extends GetxController {
 
   void skip() => finish();
 
-  /// Marks onboarding complete and routes into the app.
+  /// Routes into the blocking permission gate, which resolves Location +
+  /// Notifications and then advances to auth/home. `seenOnboarding` is persisted
+  /// there once the gate is cleared, so a user who quits mid-permissions still
+  /// sees onboarding again rather than getting stuck.
   void finish() {
-    final storage = Get.find<StorageProvider>();
-    storage.seenOnboarding = true;
-    Get.offAllNamed(storage.isLoggedIn ? '/home' : '/auth');
+    Get.offAllNamed('/permissions');
   }
 
   @override

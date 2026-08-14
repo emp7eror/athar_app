@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 
 class WeeklyPoint {
@@ -40,7 +41,7 @@ class StatsController extends GetxController {
       maxStreak.value = s['max_streak'] ?? 0;
       totalPoints.value = s['total_points'] ?? 0;
     } on ApiException catch (e) {
-      Get.snackbar('stats'.tr, e.message);
+      AppSnackbar.error('stats'.tr, e.message);
     } finally {
       loading.value = false;
     }

@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/location_service.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../data/models/user_model.dart';
@@ -44,7 +45,7 @@ class AuthController extends GetxController {
       
       Get.offAllNamed('/home');
     } on ApiException catch (e) {
-      Get.snackbar('app_name'.tr, e.message, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('app_name'.tr, e.message, position: SnackPosition.BOTTOM);
     } finally {
       loading.value = false;
     }

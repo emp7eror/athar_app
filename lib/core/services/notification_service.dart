@@ -13,6 +13,9 @@ class NotificationService extends GetxService {
   Future<NotificationService> init() async {
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     final ios = DarwinInitializationSettings(
+      // Don't request at init — the permission gate asks contextually so we
+      // avoid a blind prompt the moment the app launches.
+      // feras pernmsison to false
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
@@ -43,10 +46,10 @@ class NotificationService extends GetxService {
           importance: Importance.high,
         ));
 
-    // Android 13+ runtime notification permission.
-    await _plugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+    // NOTE: We deliberately do NOT request the Android 13+ runtime
+    // notification permission here. Requesting at launch is blind and causes
+    // the "prompt every start" problem. The permission gate
+    // (PermissionController) requests it contextually with an explanation.
 
     return this;
   }

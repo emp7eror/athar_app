@@ -30,13 +30,22 @@ class LocationService extends GetxService {
         perm == LocationPermission.deniedForever) {
       throw 'location_permission_denied';
     }
-    return Geolocator.getCurrentPosition();
+    final Position position = await Geolocator.getCurrentPosition().timeout(
+      const Duration(seconds: 10),
+    );
+
+    return position;
   }
 
   Future<void> saveCoordinates(double lat, double lng) async {
-    Get.find<StorageProvider>().saveCoords(lat, lng);
+      final storage = Get.find<StorageProvider>();
+    storage.saveCoords(lat, lng);
     try {
-      await _api.updateLocation(lat, lng);
+      final res = await _api.updateLocation(lat, lng);
+      final city = res['city'] as Map<String, dynamic>?;
+      if (city != null) {
+        storage.saveCity(city['name_ar'] as String?, city['name_en'] as String?);
+      }
     } catch (_) {
       // Offline-first: coords are cached locally regardless of sync success.
     }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/models/friend_model.dart';
 
@@ -25,7 +26,7 @@ class FriendsController extends GetxController {
       pending.value =
           (res['pending_incoming'] as List).map((e) => PendingRequest.fromJson(e)).toList();
     } on ApiException catch (e) {
-      Get.snackbar('friends'.tr, e.message);
+      AppSnackbar.error('friends'.tr, e.message);
     } finally {
       loading.value = false;
     }
@@ -37,10 +38,10 @@ class FriendsController extends GetxController {
     try {
       await _api.addFriend(code);
       codeInput.clear();
-      Get.snackbar('friends'.tr, 'add_friend'.tr, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.show('friends'.tr, 'add_friend'.tr, position: SnackPosition.BOTTOM);
       await load();
     } on ApiException catch (e) {
-      Get.snackbar('friends'.tr, e.message, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('friends'.tr, e.message, position: SnackPosition.BOTTOM);
     }
   }
 
@@ -49,16 +50,16 @@ class FriendsController extends GetxController {
       await _api.respond(friendshipId, action);
       await load();
     } on ApiException catch (e) {
-      Get.snackbar('friends'.tr, e.message);
+      AppSnackbar.error('friends'.tr, e.message);
     }
   }
 
   Future<void> nudge(FriendModel f) async {
     try {
       await _api.nudge(f.id);
-      Get.snackbar('nudge'.tr, f.name, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.show('nudge'.tr, f.name, position: SnackPosition.BOTTOM);
     } on ApiException catch (e) {
-      Get.snackbar('nudge'.tr, e.message, snackPosition: SnackPosition.BOTTOM);
+      AppSnackbar.error('nudge'.tr, e.message, position: SnackPosition.BOTTOM);
     }
   }
 

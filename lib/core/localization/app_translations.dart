@@ -46,6 +46,27 @@ class AppTranslations extends Translations {
           'ob5_title': 'ابْدَأْ أَثَرِكَ اليَوْم',
           'ob5_sub':
               'انضم إلى مجتمع يسعى للسكينة والارتقاء الروحي. ابدأ خطوتك الأولى الآن.',
+          // ── Permissions ─────────────────────────────────────────
+          'perm_location_title': 'السماح بالوصول إلى الموقع',
+          'perm_location_msg':
+              'نحتاج إلى إذن الموقع لتوفير الميزات التي تعتمد على موقعك ومساعدتك على استخدام التطبيق بشكل أفضل.',
+          'perm_location_cta': 'السماح بالوصول',
+          'perm_notif_title': 'السماح بالإشعارات',
+          'perm_notif_msg':
+              'اسمح لنا بإرسال التنبيهات المهمة ومواعيد الصلاة والتذكيرات لمساعدتك على المحافظة على صلاتك.',
+          'perm_notif_cta': 'السماح بالإشعارات',
+          'perm_try_again': 'إعادة المحاولة',
+          'perm_open_settings': 'فتح الإعدادات',
+          'perm_required_note': 'هذا الإذن مطلوب لمتابعة استخدام التطبيق.',
+          'perm_denied_note':
+              'لم يتم منح الإذن. يرجى السماح به للمتابعة.',
+          'perm_permanent_note':
+              'تم رفض الإذن نهائياً. يرجى تفعيله يدوياً من إعدادات النظام للمتابعة.',
+          'perm_restricted_note':
+              'هذا الإذن مقيّد على هذا الجهاز ولا يمكن تفعيله.',
+          'perm_service_off_note':
+              'خدمة الموقع غير مُفعّلة على جهازك. يرجى تفعيلها للمتابعة.',
+          'perm_step': 'الخطوة @current من @total',
         },
         'en': {
           'app_name': 'Athar',
@@ -90,6 +111,26 @@ class AppTranslations extends Translations {
           'ob5_title': 'Start Your Journey Today',
           'ob5_sub':
               'Join a mindful community striving for spiritual growth and peace. Take your first step now.',
+          // ── Permissions ─────────────────────────────────────────
+          'perm_location_title': 'Allow Location Access',
+          'perm_location_msg':
+              'We need location permission to provide features that depend on your location and help you use the app better.',
+          'perm_location_cta': 'Allow Access',
+          'perm_notif_title': 'Allow Notifications',
+          'perm_notif_msg':
+              'Let us send important alerts, prayer times, and reminders to help you stay consistent with your prayers.',
+          'perm_notif_cta': 'Allow Notifications',
+          'perm_try_again': 'Try Again',
+          'perm_open_settings': 'Open Settings',
+          'perm_required_note': 'This permission is required to continue using the app.',
+          'perm_denied_note': 'Permission was not granted. Please allow it to continue.',
+          'perm_permanent_note':
+              'Permission was permanently denied. Please enable it manually from system settings to continue.',
+          'perm_restricted_note':
+              'This permission is restricted on this device and cannot be enabled.',
+          'perm_service_off_note':
+              'Location services are turned off on your device. Please enable them to continue.',
+          'perm_step': 'Step @current of @total',
         }
       };
 }
