@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/services/location_service.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../data/models/user_model.dart';
@@ -34,6 +35,12 @@ class AuthController extends GetxController {
       _storage.token = res['token'];
       _storage.cachedUser = res['user'];
       await _registerFcmToken();
+      // Best-effort: grab location so prayer times are correct on first load.
+      try {
+        await Get.find<LocationService>().refreshFromDevice();
+      } catch (_) {
+        // Non-fatal — user can set it from Home; Adhan falls back to Makkah.
+      }
       
       Get.offAllNamed('/home');
     } on ApiException catch (e) {

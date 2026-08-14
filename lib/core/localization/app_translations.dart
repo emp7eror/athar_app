@@ -21,6 +21,12 @@ class AppTranslations extends Translations {
           'name': 'الاسم', 'age': 'العمر', 'logout': 'تسجيل الخروج',
           'your_code': 'رمزك', 'daily_progress': 'تقدم اليوم',
           'window_closed': 'خارج وقت الصلاة',
+          'location_not_set': 'لم يتم تحديد الموقع',
+          'location_updated': 'تم تحديث الموقع',
+          'update_location': 'تحديث الموقع',
+          'location_error': 'تعذّر تحديد الموقع',
+          'location_services_disabled': 'خدمة الموقع غير مُفعّلة',
+          'location_permission_denied': 'تم رفض إذن الوصول إلى الموقع',
         },
         'en': {
           'app_name': 'Athar',
@@ -40,6 +46,12 @@ class AppTranslations extends Translations {
           'name': 'Name', 'age': 'Age', 'logout': 'Log out',
           'your_code': 'Your code', 'daily_progress': "Today's progress",
           'window_closed': 'Outside prayer window',
+          'location_not_set': 'Location not set',
+          'location_updated': 'Location updated',
+          'update_location': 'Update location',
+          'location_error': 'Could not get location',
+          'location_services_disabled': 'Location services are off',
+          'location_permission_denied': 'Location permission denied',
         }
       };
 }

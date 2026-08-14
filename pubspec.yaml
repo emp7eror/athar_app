@@ -21,6 +21,8 @@ dependencies:
   workmanager:
   firebase_core:
   firebase_messaging:
+  geolocator:
+  permission_handler:
 
 dev_dependencies:
   flutter_lints:

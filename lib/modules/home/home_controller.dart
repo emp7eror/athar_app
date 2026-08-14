@@ -2,13 +2,16 @@ import 'dart:async';
 import 'package:adhan/adhan.dart';
 import 'package:get/get.dart';
 import '../../core/services/adhan_service.dart';
+import '../../core/services/location_service.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
+import '../../data/providers/storage_provider.dart';
 
 class HomeController extends GetxController {
   final _api = Get.find<ApiProvider>();
   final _adhan = Get.find<AdhanService>();
+  final _location = Get.find<LocationService>();
 
   final checklist = <PrayerChecklistItem>[].obs;
   final pointsToday = 0.obs;
@@ -21,6 +24,8 @@ class HomeController extends GetxController {
   final countdown = '00:00:00'.obs;
   final loading = true.obs;
   final marking = ''.obs; // prayer currently being toggled
+  final locationLabel = 'location_not_set'.obs;
+  final updatingLocation = false.obs;
 
   Timer? _ticker;
   String get _tz => DateTime.now().timeZoneName;
@@ -28,6 +33,7 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _refreshLocationLabel();
     _startCountdown();
     refreshAll();
   }
@@ -85,6 +91,21 @@ class HomeController extends GetxController {
     }
   }
 
+  Future<void> updateLocation() async {
+    updatingLocation.value = true;
+    try {
+      await _location.refreshFromDevice();
+      _refreshLocationLabel();
+      await refreshAll();          // re-pull today with the new coords
+      _startCountdown();           // restart the next-prayer ticker
+      Get.snackbar('app_name'.tr, 'location_updated'.tr);
+    } catch (key) {
+      Get.snackbar('app_name'.tr, (key is String ? key : 'location_error').tr);
+    } finally {
+      updatingLocation.value = false;
+    }
+  }
+
   void _startCountdown() {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       final next = _adhan.nextPrayer();
@@ -100,5 +121,13 @@ class HomeController extends GetxController {
   void onClose() {
     _ticker?.cancel();
     super.onClose();
+  }
+
+  void _refreshLocationLabel() {
+    final s = Get.find<StorageProvider>();
+    if (s.lat != null && s.lng != null) {
+      locationLabel.value =
+      '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
+    }
   }
 }

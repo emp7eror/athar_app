@@ -32,6 +32,24 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ],
                   ),
+                  Obx(() => Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 18),
+                      const SizedBox(width: 4),
+                      Expanded(child: Text(controller.locationLabel.value)),
+                      controller.updatingLocation.value
+                          ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                          : TextButton.icon(
+                        onPressed: controller.updateLocation,
+                        icon: const Icon(Icons.my_location, size: 18),
+                        label: Text('update_location'.tr),
+                      ),
+                    ],
+                  )),
+                  const SizedBox(height: 8),
                   _nextPrayerCard(),
                   const SizedBox(height: 16),
                   if (controller.quote.isNotEmpty) _quoteCard(),
