@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../core/localization/localization_controller.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_controller.dart';
 import '../../data/models/prayer_log_model.dart';
 import 'home_controller.dart';
 
@@ -77,6 +78,13 @@ class _TopBar extends StatelessWidget {
         Row(
           children: [
             _CircleIconButton(
+              icon: Get.find<ThemeController>().isDark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              onTap: Get.find<ThemeController>().toggle,
+            ),
+            const SizedBox(width: 10),
+            _CircleIconButton(
               icon: Icons.language_outlined,
               onTap: Get.find<LocalizationController>().toggle,
             ),
@@ -101,7 +109,7 @@ class _CircleIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: Colors.white,
+      color: context.athar.card,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -368,10 +376,10 @@ class _PrayerTile extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: done ? athar.sage.withValues(alpha: 0.22) : Colors.white,
+          color: done ? athar.sage.withValues(alpha: 0.22) : athar.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: done ? athar.success.withValues(alpha: 0.4) : const Color(0xFFEDE4D4),
+            color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline,
           ),
         ),
         child: Row(

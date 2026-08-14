@@ -10,7 +10,6 @@ class StatsView extends GetView<StatsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Obx(() => controller.loading.value
             ? const Center(child: CircularProgressIndicator())
@@ -19,9 +18,9 @@ class StatsView extends GetView<StatsController> {
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
                 Row(children: [
-                  _stat('🔥', '${controller.currentStreak.value}', 'streak'.tr),
-                  _stat('🏆', '${controller.maxStreak.value}', 'max'),
-                  _stat('⭐', '${controller.totalPoints.value}', 'points'.tr),
+                  _stat(context, '🔥', '${controller.currentStreak.value}', 'streak'.tr),
+                  _stat(context, '🏆', '${controller.maxStreak.value}', 'max'),
+                  _stat(context, '⭐', '${controller.totalPoints.value}', 'points'.tr),
                 ]),
                 const SizedBox(height: 24),
                 const Text('Last 7 days', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -40,8 +39,8 @@ class StatsView extends GetView<StatsController> {
                             child: LinearProgressIndicator(
                               value: ((m['avg_percent'] ?? 0) as num) / 100,
                               minHeight: 10,
-                              backgroundColor: AppColors.card,
-                              color: AppColors.primary,
+                              backgroundColor: Theme.of(context).colorScheme.outline,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
                           ),
                         ),
@@ -54,12 +53,13 @@ class StatsView extends GetView<StatsController> {
     );
   }
 
-  Widget _stat(String icon, String value, String label) => Expanded(
+  Widget _stat(BuildContext context, String icon, String value, String label) => Expanded(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 4),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration:
-              BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(14)),
           child: Column(children: [
             Text(icon, style: const TextStyle(fontSize: 22)),
             Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),

@@ -10,7 +10,6 @@ class AuthView extends GetView<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -26,8 +25,8 @@ class AuthView extends GetView<AuthController> {
                   ),
                 ),
                 Text('app_name'.tr,
-                    style: const TextStyle(
-                        fontSize: 40, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                    style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                        color: Theme.of(context).colorScheme.primary)),
                 const SizedBox(height: 32),
                 Obx(() => Column(children: [
                       if (controller.isRegister.value) ...[
@@ -73,13 +72,7 @@ class AuthView extends GetView<AuthController> {
         controller: c,
         obscureText: obscure,
         keyboardType: number ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(
-          hintText: hint,
-          filled: true,
-          fillColor: AppColors.card,
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        ),
+        decoration: InputDecoration(hintText: hint),
       ),
     );
   }

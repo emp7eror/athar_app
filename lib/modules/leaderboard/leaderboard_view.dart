@@ -12,7 +12,6 @@ class LeaderboardView extends GetView<LeaderboardController> {
   Widget build(BuildContext context) {
     final isAr = Get.find<LocalizationController>().isRtl;
     return Scaffold(
-      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(children: [
           Padding(
@@ -23,8 +22,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
           Obx(() => Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _tabBtn('points', 'points_tab'.tr),
-                  _tabBtn('streak', 'streaks_tab'.tr),
+                  _tabBtn(context, 'points', 'points_tab'.tr),
+                  _tabBtn(context, 'streak', 'streaks_tab'.tr),
                 ],
               )),
           Expanded(
@@ -42,7 +41,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  Widget _tabBtn(String key, String label) {
+  Widget _tabBtn(BuildContext context, String key, String label) {
     final selected = controller.tab.value == key;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 6),
@@ -50,7 +49,8 @@ class LeaderboardView extends GetView<LeaderboardController> {
         selected: selected,
         label: Text(label),
         selectedColor: AppColors.primary,
-        labelStyle: TextStyle(color: selected ? Colors.white : AppColors.textDark),
+        labelStyle: TextStyle(
+            color: selected ? Colors.white : Theme.of(context).colorScheme.onSurface),
         onSelected: (_) => controller.switchTab(key),
       ),
     );

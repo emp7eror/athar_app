@@ -27,6 +27,25 @@ class AppTranslations extends Translations {
           'location_error': 'تعذّر تحديد الموقع',
           'location_services_disabled': 'خدمة الموقع غير مُفعّلة',
           'location_permission_denied': 'تم رفض إذن الوصول إلى الموقع',
+          // ── Onboarding ──────────────────────────────────────────
+          'skip': 'تخطّي',
+          'next': 'التالي',
+          'begin_journey': 'ابدأ رحلتك',
+          'ob1_title': 'لِكُلِّ صَلَاةٍ.. أَثَر',
+          'ob1_sub':
+              'الصلاة ليست مجرد روتين، بل هي نقطة التحول التي تمنح يومك السكينة والبركة.',
+          'ob2_title': 'أدومُها وإن قلّ',
+          'ob2_sub':
+              'نساعدك على بناء عادة الصلاة وتتبع أثرها الإيجابي خطوة بخطوة دون ضغط أو إرهاق.',
+          'ob3_title': 'سَكِينَةٌ وَسَطَ صَخَبِ الحَيَاة',
+          'ob3_sub':
+              'استرجع صفاء ذهنك، واجعل مواقيت الصلاة محطات متجددة للراحة والتأمل الروحي.',
+          'ob4_title': 'شَاهِدْ أثَرَ صَلَاتِكَ',
+          'ob4_sub':
+              'سجل مشاعرك وانعكاس الصلاة على سلوكك ويومك لترى كيف تتغير حياتك للأفضل.',
+          'ob5_title': 'ابْدَأْ أَثَرِكَ اليَوْم',
+          'ob5_sub':
+              'انضم إلى مجتمع يسعى للسكينة والارتقاء الروحي. ابدأ خطوتك الأولى الآن.',
         },
         'en': {
           'app_name': 'Athar',
@@ -52,6 +71,25 @@ class AppTranslations extends Translations {
           'location_error': 'Could not get location',
           'location_services_disabled': 'Location services are off',
           'location_permission_denied': 'Location permission denied',
+          // ── Onboarding ──────────────────────────────────────────
+          'skip': 'Skip',
+          'next': 'Next',
+          'begin_journey': 'Begin Journey',
+          'ob1_title': 'Every Prayer Leaves an Impact',
+          'ob1_sub':
+              'Prayer isn\'t just a routine—it\'s the turning point that fills your day with peace and purpose.',
+          'ob2_title': 'Consistency Over Perfection',
+          'ob2_sub':
+              'Build a lasting prayer habit step by step, tracking your spiritual progress effortlessly.',
+          'ob3_title': 'Tranquility in a Busy World',
+          'ob3_sub':
+              'Pause the noise. Turn your prayer times into refreshing moments of clarity and reflection.',
+          'ob4_title': 'Witness Your Growth',
+          'ob4_sub':
+              'Reflect on your daily journey and see how spiritual mindfulness enriches your everyday actions.',
+          'ob5_title': 'Start Your Journey Today',
+          'ob5_sub':
+              'Join a mindful community striving for spiritual growth and peace. Take your first step now.',
         }
       };
 }

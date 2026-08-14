@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/theme/app_theme.dart';
 import '../home/home_view.dart';
 import '../home/home_binding.dart';
 import '../friends/friends_view.dart';
@@ -62,11 +63,11 @@ class _FloatingNavBar extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).extension<AtharPalette>()!.card,
             borderRadius: BorderRadius.circular(28),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
+                color: Colors.black.withValues(alpha: 0.16),
                 blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
@@ -106,6 +107,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final muted = Theme.of(context).extension<AtharPalette>()!.textMuted;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(22),
@@ -119,7 +121,7 @@ class _NavItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: selected ? Colors.white : const Color(0xFF9A9A9A)),
+            Icon(icon, size: 22, color: selected ? Colors.white : muted),
             if (selected) ...[
               const SizedBox(width: 8),
               Text(

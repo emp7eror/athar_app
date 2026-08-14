@@ -9,10 +9,13 @@ import 'core/bindings/initial_binding.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'data/providers/storage_provider.dart';
 import 'firebase_options.dart';
 import 'modules/auth/auth_view.dart';
 import 'modules/auth/auth_binding.dart';
+import 'modules/onboarding/onboarding_view.dart';
+import 'modules/onboarding/onboarding_binding.dart';
 import 'modules/shell/shell_view.dart';
 
 @pragma('vm:entry-point')
@@ -40,6 +43,7 @@ class AtharApp extends StatelessWidget {
     InitialBinding().dependencies();
     final lang = Get.find<LocalizationController>();
     final storage = Get.find<StorageProvider>();
+    final themeCtrl = Get.find<ThemeController>();
 
     return GetMaterialApp(
       title: 'Athar',
@@ -54,11 +58,23 @@ class AtharApp extends StatelessWidget {
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
       theme: AppTheme.light,
-      initialRoute: storage.isLoggedIn ? '/home' : '/auth',
+      darkTheme: AppTheme.dark,
+      themeMode: themeCtrl.mode,
+      initialRoute: _initialRoute(storage),
       getPages: [
+        GetPage(
+          name: '/onboarding',
+          page: () => const OnboardingView(),
+          binding: OnboardingBinding(),
+        ),
         GetPage(name: '/auth', page: () => const AuthView(), binding: AuthBinding()),
         GetPage(name: '/home', page: () => const ShellView()),
       ],
     );
+  }
+
+  static String _initialRoute(StorageProvider s) {
+    if (!s.seenOnboarding) return '/onboarding';
+    return s.isLoggedIn ? '/home' : '/auth';
   }
 }

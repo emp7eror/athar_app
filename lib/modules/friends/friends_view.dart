@@ -10,7 +10,6 @@ class FriendsView extends GetView<FriendsController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Obx(() => ListView(padding: const EdgeInsets.all(16), children: [
               Text('friends'.tr,
@@ -25,11 +24,6 @@ class FriendsView extends GetView<FriendsController> {
                     decoration: InputDecoration(
                       counterText: '',
                       hintText: 'enter_code'.tr,
-                      filled: true,
-                      fillColor: AppColors.card,
-                      border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none),
                     ),
                   ),
                 ),
@@ -47,7 +41,7 @@ class FriendsView extends GetView<FriendsController> {
                 ...controller.pending.map(_pendingTile),
                 const SizedBox(height: 16),
               ],
-              ...controller.friends.map(_friendTile),
+              ...controller.friends.map((f) => _friendTile(context, f)),
             ])),
       ),
     );
@@ -68,11 +62,12 @@ class FriendsView extends GetView<FriendsController> {
         ),
       );
 
-  Widget _friendTile(FriendModel f) => Container(
+  Widget _friendTile(BuildContext context, FriendModel f) => Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(14),
-        decoration:
-            BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(14)),
+        decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(14)),
         child: Column(children: [
           Row(children: [
             CircleAvatar(
@@ -99,7 +94,7 @@ class FriendsView extends GetView<FriendsController> {
             child: LinearProgressIndicator(
               value: f.todayProgress.clamp(0, 1),
               minHeight: 6,
-              backgroundColor: AppColors.bg,
+              backgroundColor: Theme.of(context).colorScheme.outline,
               color: AppColors.accent,
             ),
           ),
