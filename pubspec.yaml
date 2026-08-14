@@ -23,6 +23,7 @@ dependencies:
   firebase_messaging:
   geolocator:
   permission_handler:
+  google_fonts:
 
 dev_dependencies:
   flutter_lints:

@@ -6,9 +6,9 @@ import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 
 import 'core/bindings/initial_binding.dart';
-import 'core/constants/app_colors.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
+import 'core/theme/app_theme.dart';
 import 'data/providers/storage_provider.dart';
 import 'firebase_options.dart';
 import 'modules/auth/auth_view.dart';
@@ -53,12 +53,7 @@ class AtharApp extends StatelessWidget {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.bg,
-        colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary),
-        fontFamily: 'Cairo', // add the font to pubspec assets for full RTL polish
-      ),
+      theme: AppTheme.light,
       initialRoute: storage.isLoggedIn ? '/home' : '/auth',
       getPages: [
         GetPage(name: '/auth', page: () => const AuthView(), binding: AuthBinding()),
