@@ -49,77 +49,44 @@ class HomeView extends GetView<HomeController> {
                         const SizedBox(width: 10),
                         Text(name,
                             style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
                       ]);
                     }),
                   ),
                   const Spacer(),
                   // أيقونة الإعدادات → ينقل لصفحة الإعدادات
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined, color: AppColors.textMuted),
-                    onPressed: () => Get.find<ShellController>().index.value = 5,
+                  _CircleIconButton(
+                    icon: Icons.settings_outlined,
+                    onTap: () => Get.find<ShellController>().index.value = 5,
                   ),
+                  const SizedBox(width: 10),
+                  _CircleIconButton(
+                    icon: Icons.notifications_none_rounded,
+                    onTap: () {},
+                  )
                 ],
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 10),
               const _LocationChip(),
-              const SizedBox(height: 20),
+              const SizedBox(height: 10),
               const _NextPrayerCard(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 15),
               _SectionHeader('today'.tr),
               const SizedBox(height: 12),
               Obx(() => Column(
                 children: controller.checklist
                     .map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
+                  padding: const EdgeInsets.only(bottom: 5),
                   child: _PrayerTile(item: item),
                 ))
                     .toList(),
               )),
-              const SizedBox(height: 8),
               const _QuoteCard(),
             ],
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// Top bar: brand wordmark + notification / language actions
-// ─────────────────────────────────────────────────────────────────────────
-class _TopBar extends StatelessWidget {
-  const _TopBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('app_name'.tr, style: context.text.displayMedium?.copyWith(color: context.colors.primary, height: 1.0)),
-            const SizedBox(height: 2),
-            Text('daily_progress'.tr, style: context.text.bodySmall?.copyWith(color: context.athar.textMuted)),
-          ],
-        ),
-        Row(
-          children: [
-            _CircleIconButton(
-              icon: Get.find<ThemeController>().isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-              onTap: Get.find<ThemeController>().toggle,
-            ),
-            const SizedBox(width: 10),
-            _CircleIconButton(icon: Icons.language_outlined, onTap: Get.find<LocalizationController>().toggle),
-            const SizedBox(width: 10),
-            _CircleIconButton(icon: Icons.notifications_none_rounded, onTap: () {}),
-          ],
-        ),
-      ],
     );
   }
 }
@@ -225,24 +192,30 @@ class _NextPrayerCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              Obx(
-                () => Text(
-                  controller.nextPrayerKey.value.isEmpty ? '—' : controller.nextPrayerKey.value.tr,
-                  style: context.text.headlineMedium?.copyWith(color: Colors.white),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                mainAxisSize: MainAxisSize.max,
+                children: [
+                  Obx(
+                    () => Text(
+                      controller.nextPrayerKey.value.isEmpty ? '—' : controller.nextPrayerKey.value.tr,
+                      style: context.text.headlineMedium?.copyWith(color: Colors.white),
+                    ),
+                  ),
+                  Obx(
+                        () => Text(
+                      controller.countdown.value,
+                      style: context.text.displayMedium?.copyWith(
+                        color: athar.gold,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                        letterSpacing: 2,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 6),
-              Obx(
-                () => Text(
-                  controller.countdown.value,
-                  style: context.text.displayMedium?.copyWith(
-                    color: athar.gold,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    letterSpacing: 2,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 18),
+
               const _DailyProgressBar(),
             ],
           ),
@@ -362,40 +335,35 @@ class _PrayerTile extends StatelessWidget {
       final active = controller.isActive(item.prayerName);
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),  // ← أقل
         decoration: BoxDecoration(
           color: done ? athar.sage.withValues(alpha: 0.22) : athar.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline),
+          border: Border.all(
+              color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline),
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: done ? athar.success.withValues(alpha: 0.18) : context.colors.primary.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.mosque_outlined, size: 20, color: done ? athar.success : context.colors.primary),
+            Row(
+              children: [
+                _TrailingState(busy: busy, done: done, active: active, item: item),
+                SizedBox(width: 50,),
+                Text(
+                  '${item.prayerName.tr}',
+                  style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(item.prayerName.tr, style: context.text.titleMedium),
-                  const SizedBox(height: 2),
-                  Text('+${item.points} ${'points'.tr}', style: context.text.bodySmall?.copyWith(color: athar.textMuted)),
-                ],
-              ),
+
+
+            Text(
+              '+${item.points}  ${'point'.tr}',
+              style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
             ),
-            _TrailingState(busy: busy, done: done, active: active, item: item),
           ],
         ),
-      );
-    });
+      );    });
   }
 }
 
@@ -440,8 +408,8 @@ class _QuoteCard extends StatelessWidget {
     return Obx(() {
       if (controller.quote.value.isEmpty) return const SizedBox.shrink();
       return Container(
-        margin: const EdgeInsets.only(top: 16),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
