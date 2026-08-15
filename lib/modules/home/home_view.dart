@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/constants/app_colors.dart';
 import '../../core/localization/localization_controller.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../data/models/prayer_log_model.dart';
+import '../shell/shell_view.dart';
 import 'home_controller.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -20,8 +22,47 @@ class HomeView extends GetView<HomeController> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
             children: [
-              const _TopBar(),
-              const SizedBox(height: 12),
+
+              // ── الهيدر: صورة + اسم + أيقونة الإعدادات ──
+              Row(
+                children: [
+                  // الصورة والاسم → ينقل لصفحة الملف الشخصي
+                  GestureDetector(
+                    onTap: () => Get.find<ShellController>().index.value = 4,
+                    child: Obx(() {
+                      final name      = controller.userName.value;
+                      final avatarUrl = controller.avatarUrl.value;
+                      return Row(children: [
+                        avatarUrl.isNotEmpty
+                            ? CircleAvatar(
+                            radius: 22,
+                            backgroundImage: NetworkImage(avatarUrl),
+                            backgroundColor: AppColors.primary)
+                            : CircleAvatar(
+                            radius: 22,
+                            backgroundColor: AppColors.primary,
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : '?',
+                              style: const TextStyle(
+                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                            )),
+                        const SizedBox(width: 10),
+                        Text(name,
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textDark)),
+                      ]);
+                    }),
+                  ),
+                  const Spacer(),
+                  // أيقونة الإعدادات → ينقل لصفحة الإعدادات
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined, color: AppColors.textMuted),
+                    onPressed: () => Get.find<ShellController>().index.value = 5,
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
               const _LocationChip(),
               const SizedBox(height: 20),
               const _NextPrayerCard(),
@@ -29,13 +70,13 @@ class HomeView extends GetView<HomeController> {
               _SectionHeader('today'.tr),
               const SizedBox(height: 12),
               Obx(() => Column(
-                    children: controller.checklist
-                        .map((item) => Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: _PrayerTile(item: item),
-                            ))
-                        .toList(),
-                  )),
+                children: controller.checklist
+                    .map((item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: _PrayerTile(item: item),
+                ))
+                    .toList(),
+              )),
               const SizedBox(height: 8),
               const _QuoteCard(),
             ],
@@ -61,38 +102,21 @@ class _TopBar extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'app_name'.tr,
-              style: context.text.displayMedium?.copyWith(
-                color: context.colors.primary,
-                height: 1.0,
-              ),
-            ),
+            Text('app_name'.tr, style: context.text.displayMedium?.copyWith(color: context.colors.primary, height: 1.0)),
             const SizedBox(height: 2),
-            Text(
-              'daily_progress'.tr,
-              style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
-            ),
+            Text('daily_progress'.tr, style: context.text.bodySmall?.copyWith(color: context.athar.textMuted)),
           ],
         ),
         Row(
           children: [
             _CircleIconButton(
-              icon: Get.find<ThemeController>().isDark
-                  ? Icons.light_mode_outlined
-                  : Icons.dark_mode_outlined,
+              icon: Get.find<ThemeController>().isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
               onTap: Get.find<ThemeController>().toggle,
             ),
             const SizedBox(width: 10),
-            _CircleIconButton(
-              icon: Icons.language_outlined,
-              onTap: Get.find<LocalizationController>().toggle,
-            ),
+            _CircleIconButton(icon: Icons.language_outlined, onTap: Get.find<LocalizationController>().toggle),
             const SizedBox(width: 10),
-            _CircleIconButton(
-              icon: Icons.notifications_none_rounded,
-              onTap: () {},
-            ),
+            _CircleIconButton(icon: Icons.notifications_none_rounded, onTap: () {}),
           ],
         ),
       ],
@@ -132,50 +156,38 @@ class _LocationChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
-    return Obx(() => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color: context.athar.beige,
-            borderRadius: BorderRadius.circular(30),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.location_on_outlined, size: 18, color: context.colors.primary),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  controller.locationLabel.value,
-                  style: context.text.bodySmall,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              if (controller.updatingLocation.value)
-                const SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              else
-                InkWell(
-                  onTap: controller.updateLocation,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    child: Row(
-                      children: [
-                        Icon(Icons.my_location, size: 16, color: context.colors.primary),
-                        const SizedBox(width: 4),
-                        Text(
-                          'update_location'.tr,
-                          style: context.text.labelSmall?.copyWith(color: context.colors.primary),
-                        ),
-                      ],
-                    ),
+    return Obx(
+      () => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(30)),
+        child: Row(
+          children: [
+            Icon(Icons.location_on_outlined, size: 18, color: context.colors.primary),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(controller.locationLabel.value, style: context.text.bodySmall, overflow: TextOverflow.ellipsis),
+            ),
+            if (controller.updatingLocation.value)
+              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+            else
+              InkWell(
+                onTap: controller.updateLocation,
+                borderRadius: BorderRadius.circular(20),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  child: Row(
+                    children: [
+                      Icon(Icons.my_location, size: 16, color: context.colors.primary),
+                      const SizedBox(width: 4),
+                      Text('update_location'.tr, style: context.text.labelSmall?.copyWith(color: context.colors.primary)),
+                    ],
                   ),
                 ),
-            ],
-          ),
-        ));
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -195,23 +207,13 @@ class _NextPrayerCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: athar.heroGradient,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: context.colors.primary.withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: context.colors.primary.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 12))],
       ),
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           // Decorative ripple rings echoing the brand moodboard.
-          Positioned(
-            top: -60,
-            right: -40,
-            child: _RippleRings(color: Colors.white.withValues(alpha: 0.06)),
-          ),
+          Positioned(top: -60, right: -40, child: _RippleRings(color: Colors.white.withValues(alpha: 0.06))),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -219,30 +221,27 @@ class _NextPrayerCard extends StatelessWidget {
                 children: [
                   Icon(Icons.mosque_outlined, size: 18, color: athar.gold),
                   const SizedBox(width: 6),
-                  Text(
-                    'next_prayer'.tr,
-                    style: context.text.labelLarge?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                  ),
+                  Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
                 ],
               ),
               const SizedBox(height: 10),
-              Obx(() => Text(
-                    controller.nextPrayerKey.value.isEmpty
-                        ? '—'
-                        : controller.nextPrayerKey.value.tr,
-                    style: context.text.headlineMedium?.copyWith(color: Colors.white),
-                  )),
+              Obx(
+                () => Text(
+                  controller.nextPrayerKey.value.isEmpty ? '—' : controller.nextPrayerKey.value.tr,
+                  style: context.text.headlineMedium?.copyWith(color: Colors.white),
+                ),
+              ),
               const SizedBox(height: 6),
-              Obx(() => Text(
-                    controller.countdown.value,
-                    style: context.text.displayMedium?.copyWith(
-                      color: athar.gold,
-                      fontFeatures: const [FontFeature.tabularFigures()],
-                      letterSpacing: 2,
-                    ),
-                  )),
+              Obx(
+                () => Text(
+                  controller.countdown.value,
+                  style: context.text.displayMedium?.copyWith(
+                    color: athar.gold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
               const SizedBox(height: 18),
               const _DailyProgressBar(),
             ],
@@ -272,16 +271,8 @@ class _DailyProgressBar extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'daily_progress'.tr,
-                style: context.text.bodySmall?.copyWith(
-                  color: Colors.white.withValues(alpha: 0.85),
-                ),
-              ),
-              Text(
-                '$pts / $_maxPoints',
-                style: context.text.labelLarge?.copyWith(color: athar.gold),
-              ),
+              Text('daily_progress'.tr, style: context.text.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+              Text('$pts / $_maxPoints', style: context.text.labelLarge?.copyWith(color: athar.gold)),
             ],
           ),
           const SizedBox(height: 8),
@@ -343,10 +334,7 @@ class _SectionHeader extends StatelessWidget {
         Container(
           width: 4,
           height: 20,
-          decoration: BoxDecoration(
-            color: context.athar.gold,
-            borderRadius: BorderRadius.circular(2),
-          ),
+          decoration: BoxDecoration(color: context.athar.gold, borderRadius: BorderRadius.circular(2)),
         ),
         const SizedBox(width: 8),
         Text(title, style: context.text.titleLarge),
@@ -378,9 +366,7 @@ class _PrayerTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: done ? athar.sage.withValues(alpha: 0.22) : athar.card,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline,
-          ),
+          border: Border.all(color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline),
         ),
         child: Row(
           children: [
@@ -388,17 +374,11 @@ class _PrayerTile extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: done
-                    ? athar.success.withValues(alpha: 0.18)
-                    : context.colors.primary.withValues(alpha: 0.08),
+                color: done ? athar.success.withValues(alpha: 0.18) : context.colors.primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
-              child: Icon(
-                Icons.mosque_outlined,
-                size: 20,
-                color: done ? athar.success : context.colors.primary,
-              ),
+              child: Icon(Icons.mosque_outlined, size: 20, color: done ? athar.success : context.colors.primary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -407,10 +387,7 @@ class _PrayerTile extends StatelessWidget {
                 children: [
                   Text(item.prayerName.tr, style: context.text.titleMedium),
                   const SizedBox(height: 2),
-                  Text(
-                    '+${item.points} ${'points'.tr}',
-                    style: context.text.bodySmall?.copyWith(color: athar.textMuted),
-                  ),
+                  Text('+${item.points} ${'points'.tr}', style: context.text.bodySmall?.copyWith(color: athar.textMuted)),
                 ],
               ),
             ),
@@ -423,12 +400,7 @@ class _PrayerTile extends StatelessWidget {
 }
 
 class _TrailingState extends StatelessWidget {
-  const _TrailingState({
-    required this.busy,
-    required this.done,
-    required this.active,
-    required this.item,
-  });
+  const _TrailingState({required this.busy, required this.done, required this.active, required this.item});
 
   final bool busy;
   final bool done;
@@ -438,11 +410,7 @@ class _TrailingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (busy) {
-      return const SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2),
-      );
+      return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
     }
     if (done) {
       return Icon(Icons.check_circle_rounded, color: context.athar.success, size: 30);
@@ -474,27 +442,18 @@ class _QuoteCard extends StatelessWidget {
       return Container(
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: context.athar.beige,
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.format_quote_rounded, color: context.athar.gold, size: 28),
             const SizedBox(height: 8),
-            Text(
-              controller.quote.value,
-              style: context.text.bodyLarge?.copyWith(height: 1.6),
-            ),
+            Text(controller.quote.value, style: context.text.bodyLarge?.copyWith(height: 1.6)),
             if (controller.quoteSource.value.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
                 '— ${controller.quoteSource.value}',
-                style: context.text.bodySmall?.copyWith(
-                  color: context.athar.textMuted,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: context.text.bodySmall?.copyWith(color: context.athar.textMuted, fontWeight: FontWeight.w700),
               ),
             ],
           ],

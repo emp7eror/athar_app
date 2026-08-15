@@ -31,6 +31,8 @@ class HomeController extends GetxController {
   final marking = ''.obs; // prayer currently being toggled
   final locationLabel = 'location_not_set'.obs;
   final updatingLocation = false.obs;
+  final userName   = ''.obs;
+  final avatarUrl  = ''.obs;
 
   Timer? _ticker;
 
@@ -42,6 +44,7 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    _loadUserInfo();  
     _refreshLocationLabel();
     _startCountdown();
     refreshAll();
@@ -156,4 +159,9 @@ class HomeController extends GetxController {
       '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
     }
   }
-}
+
+  void _loadUserInfo() {
+    final u = Get.find<StorageProvider>().cachedUser;
+    userName.value  = (u?['name'] as String?) ?? '';
+    avatarUrl.value = (u?['avatar_url'] as String?) ?? '';
+  }}

@@ -32,6 +32,22 @@ class ApiProvider {
 
   Future<void> logout() async => _dio.post(ApiEndpoints.logout);
 
+  Future<Map<String, dynamic>> getProfile() async =>
+      _unwrap(await _dio.get('/profile'));
+
+  Future<Map<String, dynamic>> updateProfile({String? name, int? age}) async =>
+      _unwrap(await _dio.post('/profile', data: {
+        if (name != null) 'name': name,
+        if (age != null)  'age':  age,
+      }));
+
+  Future<Map<String, dynamic>> updateAvatar(String filePath) async {
+    final form = FormData.fromMap({
+      'avatar': await MultipartFile.fromFile(filePath, filename: 'avatar.jpg'),
+    });
+    return _unwrap(await _dio.post('/profile/avatar', data: form));
+  }
+
   Future<void> updateFcmToken(String token) async => _dio.post(ApiEndpoints.fcmToken, data: {'fcm_token': token});
 
   Future<Map<String, dynamic>> updateLocation(double lat, double lng) async =>

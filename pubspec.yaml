@@ -25,6 +25,8 @@ dependencies:
   permission_handler:
   google_fonts:
   flutter_timezone:
+  share_plus:
+  image_picker:
 
 dev_dependencies:
   flutter_lints:

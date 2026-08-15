@@ -7,6 +7,9 @@ import '../friends/friends_view.dart';
 import '../friends/friends_binding.dart';
 import '../leaderboard/leaderboard_view.dart';
 import '../leaderboard/leaderboard_binding.dart';
+import '../profile/profile_binding.dart';
+import '../profile/profile_view.dart';
+import '../settings/settings_view.dart';
 import '../stats/stats_view.dart';
 import '../stats/stats_binding.dart';
 
@@ -24,9 +27,11 @@ class ShellView extends StatelessWidget {
     FriendsBinding().dependencies();
     LeaderboardBinding().dependencies();
     StatsBinding().dependencies();
+    ProfileBinding().dependencies();
     final c = Get.put(ShellController());
 
-    const pages = [HomeView(), FriendsView(), LeaderboardView(), StatsView()];
+    const pages = [HomeView(), FriendsView(), LeaderboardView(), StatsView(), ProfileView(),
+      SettingsView()];
 
     return Obx(() => Scaffold(
           extendBody: true,
@@ -54,6 +59,7 @@ class _FloatingNavBar extends StatelessWidget {
       (Icons.people_alt_rounded, 'friends'.tr),
       (Icons.leaderboard_rounded, 'leaderboard'.tr),
       (Icons.bar_chart_rounded, 'stats'.tr),
+      (Icons.person_outline, 'profile'.tr),
     ];
 
     return SafeArea(

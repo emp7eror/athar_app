@@ -14,5 +14,6 @@ class ThemeController extends GetxController {
   void toggle() {
     _storage.darkMode = !_storage.darkMode;
     Get.changeThemeMode(mode); // rebuilds the whole GetMaterialApp tree
+    update();
   }
 }

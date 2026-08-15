@@ -162,7 +162,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
               controller: _noteCtrl,
               maxLines: 2,
               maxLength: 120,
-              style: const TextStyle(fontSize: 14),
+              style: const TextStyle(fontSize: 14,color: AppColors.textDark,),
               decoration: InputDecoration(
                 hintText: 'prayer_note_hint'.tr,
                 hintStyle: const TextStyle(color: AppColors.textMuted),
