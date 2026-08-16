@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 
 import '../../core/services/adhan_service.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/prayer_notification_scheduler.dart';
+import '../../core/services/sound_service.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
@@ -17,6 +19,8 @@ class HomeController extends GetxController {
   final _api = Get.find<ApiProvider>();
   final _adhan = Get.find<AdhanService>();
   final _location = Get.find<LocationService>();
+  final _sound = Get.find<SoundService>();
+  final _scheduler = Get.find<PrayerNotificationScheduler>();
 
   final checklist = <PrayerChecklistItem>[].obs;
   final pointsToday = 0.obs;
@@ -107,6 +111,7 @@ class HomeController extends GetxController {
       );
       totalPoints.value = res['total_points'] ?? totalPoints.value;
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
+      await _sound.playPrayerDone(); // completion chime
       await _loadToday();
       AppSnackbar.show('+${item.points} ${'points'.tr}', 'prayer_recorded'.tr);
     } on ApiException catch (e) {
@@ -123,6 +128,7 @@ class HomeController extends GetxController {
       _refreshLocationLabel();
       await refreshAll(); // re-pull today with the new coords
       _startCountdown(); // restart the next-prayer ticker
+      await _scheduler.reschedule(); // prayer times changed → rebuild alarms
       AppSnackbar.show('app_name'.tr, 'location_updated'.tr);
     } catch (key) {
       AppSnackbar.error('app_name'.tr, (key is String ? key : 'location_error').tr);

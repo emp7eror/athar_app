@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/localization/localization_controller.dart';
 import '../../core/theme/theme_controller.dart';
-import '../../core/utils/snackbar.dart';
+import 'notification_settings_view.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -75,7 +75,7 @@ class SettingsView extends StatelessWidget {
               icon: Icons.notifications_outlined,
               title: 'prayer_reminders'.tr,
               trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
-              onTap: () => AppSnackbar.show('settings'.tr, 'coming_soon'.tr),
+              onTap: () => Get.to(() => const NotificationSettingsView()),
             ),
 
             const SizedBox(height: 24),

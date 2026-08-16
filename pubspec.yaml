@@ -25,6 +25,8 @@ dependencies:
   permission_handler:
   google_fonts:
   flutter_timezone:
+  timezone:
+  audioplayers:
   share_plus:
   image_picker:
 
@@ -35,3 +37,4 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/audio/

@@ -49,21 +49,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
   @override
   void dispose() { _noteCtrl.dispose(); super.dispose(); }
 
-  // ── ترجمة الخيارات ─────────────────────────────────────────
-  String get _difficultyLabel => switch (_difficulty) {
-    PrayerDifficulty.easy   => 'difficulty_easy'.tr,
-    PrayerDifficulty.medium => 'difficulty_medium'.tr,
-    PrayerDifficulty.hard   => 'difficulty_hard'.tr,
-  };
 
-  String get _moodLabel => switch (_mood) {
-    PrayerMood.focused    => 'mood_focused'.tr,
-    PrayerMood.distracted => 'mood_distracted'.tr,
-    PrayerMood.tired      => 'mood_tired'.tr,
-    PrayerMood.peaceful   => 'mood_peaceful'.tr,
-  };
-
-  // ── بناء الواجهة ────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
     return Dialog(

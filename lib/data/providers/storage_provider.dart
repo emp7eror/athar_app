@@ -14,6 +14,13 @@ class StorageProvider extends GetxService {
   static const _kSeenOnboarding = 'seen_onboarding';
   static const _kDarkMode = 'dark_mode';
 
+  // ── Notification preferences ──
+  static const _kNotifPrayer = 'notif_prayer_enabled';
+  static const _kNotifPostPrayer = 'notif_post_prayer_enabled';
+  static const _kNotifUpcoming = 'notif_upcoming_enabled';
+  static const _kPrayerSound = 'notif_prayer_sound';
+  static const _kReminderSound = 'notif_reminder_sound';
+
   String? get token => _box.read(_kToken);
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
 
@@ -22,6 +29,22 @@ class StorageProvider extends GetxService {
 
   bool get darkMode => _box.read(_kDarkMode) ?? false;
   set darkMode(bool v) => _box.write(_kDarkMode, v);
+
+  // ── Notification preferences (default: all reminder types on) ──
+  bool get notifPrayerEnabled => _box.read(_kNotifPrayer) ?? true;
+  set notifPrayerEnabled(bool v) => _box.write(_kNotifPrayer, v);
+
+  bool get notifPostPrayerEnabled => _box.read(_kNotifPostPrayer) ?? true;
+  set notifPostPrayerEnabled(bool v) => _box.write(_kNotifPostPrayer, v);
+
+  bool get notifUpcomingEnabled => _box.read(_kNotifUpcoming) ?? true;
+  set notifUpcomingEnabled(bool v) => _box.write(_kNotifUpcoming, v);
+
+  String get prayerSoundId => _box.read(_kPrayerSound) ?? 'athan1';
+  set prayerSoundId(String v) => _box.write(_kPrayerSound, v);
+
+  String get reminderSoundId => _box.read(_kReminderSound) ?? 'athan_reminder_1';
+  set reminderSoundId(String v) => _box.write(_kReminderSound, v);
 
   double? get lat => _box.read(_kLat);
   double? get lng => _box.read(_kLng);

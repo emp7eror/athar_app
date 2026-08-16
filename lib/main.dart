@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -8,6 +10,7 @@ import 'package:get_storage/get_storage.dart';
 import 'core/bindings/initial_binding.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
+import 'core/services/prayer_notification_scheduler.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'firebase_options.dart';
@@ -34,16 +37,52 @@ Future<void> main() async {
   FirebaseMessaging.onBackgroundMessage(_bgHandler);
 
   await GetStorage.init();
+
+  // Register singletons before the first frame so language/session/services
+  // are ready. Async services (notifications, timezone, audio) are awaited so
+  // the scheduler can safely use them.
+  InitialBinding().dependencies();
+  await InitialBinding.initAsync();
+
+  // Lay out the first batch of prayer notifications. Self-guards on
+  // permission, so it's safe even before the user grants it.
+  unawaited(Get.find<PrayerNotificationScheduler>().reschedule());
+
   runApp(const AtharApp());
 }
 
-class AtharApp extends StatelessWidget {
+class AtharApp extends StatefulWidget {
   const AtharApp({super.key});
 
   @override
+  State<AtharApp> createState() => _AtharAppState();
+}
+
+class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Top up the multi-day schedule (and pick up any prayer-time drift /
+    // timezone change) every time the app returns to the foreground.
+    if (state == AppLifecycleState.resumed &&
+        Get.isRegistered<PrayerNotificationScheduler>()) {
+      Get.find<PrayerNotificationScheduler>().reschedule();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // InitialBinding must run before we read persisted language/session.
-    InitialBinding().dependencies();
     final lang = Get.find<LocalizationController>();
     final themeCtrl = Get.find<ThemeController>();
 

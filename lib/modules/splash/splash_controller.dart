@@ -6,8 +6,6 @@ import '../../data/providers/storage_provider.dart';
 /// everyone else proceeds straight to the permission gate. Auth is resolved
 /// only *after* required permissions are handled (see PermissionController).
 class SplashController extends GetxController {
-  final StorageProvider _storage = Get.find<StorageProvider>();
-
   @override
   void onReady() {
     super.onReady();

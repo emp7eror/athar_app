@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/services/permission_service.dart';
+import '../../core/services/prayer_notification_scheduler.dart';
 import '../../data/providers/storage_provider.dart';
 
 /// Which required permission the gate is currently resolving.
@@ -108,6 +109,11 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
 
   void _finish() {
     _storage.seenOnboarding = true; // reached the app; onboarding is done
+    // Notification permission was just resolved — (re)build the prayer schedule
+    // now instead of waiting for the next foreground resume.
+    if (Get.isRegistered<PrayerNotificationScheduler>()) {
+      Get.find<PrayerNotificationScheduler>().reschedule();
+    }
     Get.offAllNamed(_storage.isLoggedIn ? '/home' : '/auth');
   }
 }

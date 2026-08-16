@@ -8,8 +8,14 @@ import '../services/adhan_service.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
 import '../services/permission_service.dart';
+import '../services/prayer_notification_scheduler.dart';
+import '../services/sound_service.dart';
 
-/// Registered once at app start (main.dart initialBinding).
+/// Registered once at app start (from `main()`, before `runApp`).
+///
+/// Split into a synchronous part (plain singletons) and [initAsync] for the
+/// services that must finish their `init()` — notifications/timezone and the
+/// audio player — before anything (scheduler, settings screen) uses them.
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
@@ -22,6 +28,13 @@ class InitialBinding extends Bindings {
     Get.put(AdhanService(), permanent: true);
     Get.put(PermissionService(), permanent: true);
     Get.put(LocationService(), permanent: true);
-    Get.putAsync(() => NotificationService().init(), permanent: true);
+  }
+
+  /// Awaited in `main()` so downstream code can safely `Get.find` these.
+  static Future<void> initAsync() async {
+    await Get.putAsync(() => NotificationService().init(), permanent: true);
+    await Get.putAsync(() => SoundService().init(), permanent: true);
+    // Scheduler depends on NotificationService + AdhanService being ready.
+    Get.put(PrayerNotificationScheduler(), permanent: true);
   }
 }

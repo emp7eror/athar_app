@@ -3,7 +3,11 @@
     "allow": [
       "Bash(ls assets *)",
       "Bash(ls assets/images)",
-      "Bash(flutter analyze *)"
+      "Bash(flutter analyze *)",
+      "Bash(python -c ' *)",
+      "Bash(cd \"C:/Users/Feras/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-22.3.0/lib\" && grep -rn \"Future<void> zonedSchedule\" . ; echo \"===CANCEL===\"; grep -rn \"Future<void> cancel\\\\b\\\\|Future<void> cancelAll\\\\|pendingNotificationRequests\" src/flutter_local_notifications_plugin.dart | head)",
+      "Bash(flutter pub *)",
+      "Bash(cd \"C:/Users/Feras/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-22.3.0\" && find android -name \"*.java\" -o -name \"*.kt\" | head; echo \"===\"; grep -rn \"getIdentifier\\\\|RawRes\\\\|makeSound\\\\|retrieveSoundResourceUri\\\\|NotFoundException\" android/src/main/ 2>/dev/null | head -20)"
     ]
   }
 }

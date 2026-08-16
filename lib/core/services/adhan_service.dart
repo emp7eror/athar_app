@@ -6,15 +6,39 @@ import 'package:get_storage/get_storage.dart';
 class AdhanService extends GetxService {
   final _box = GetStorage();
 
-  PrayerTimes getTodayPrayerTimes() {
+  Coordinates get _coordinates {
     final lat = (_box.read('lat') as num?)?.toDouble() ?? 21.4225; // Makkah default
     final lng = (_box.read('lng') as num?)?.toDouble() ?? 39.8262;
+    return Coordinates(lat, lng);
+  }
 
-    final coordinates = Coordinates(lat, lng);
+  CalculationParameters get _params {
     final params = CalculationMethod.egyptian.getParameters();
     params.madhab = Madhab.shafi;
+    return params;
+  }
 
-    return PrayerTimes.today(coordinates, params);
+  PrayerTimes getTodayPrayerTimes() =>
+      PrayerTimes.today(_coordinates, _params);
+
+  /// Prayer times for an arbitrary calendar date (same coordinates / method).
+  /// Used by the scheduler to lay out several days of notifications ahead.
+  PrayerTimes prayerTimesForDate(DateTime date) => PrayerTimes(
+        _coordinates,
+        DateComponents.from(date),
+        _params,
+      );
+
+  /// The five daily prayers as ordered (key, time) pairs for a given date.
+  List<({String key, DateTime time})> orderedTimes(DateTime date) {
+    final t = prayerTimesForDate(date);
+    return [
+      (key: 'fajr', time: t.fajr),
+      (key: 'dhuhr', time: t.dhuhr),
+      (key: 'asr', time: t.asr),
+      (key: 'maghrib', time: t.maghrib),
+      (key: 'isha', time: t.isha),
+    ];
   }
 
   /// Enforces the Prayer Time Availability Window locally:

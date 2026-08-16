@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/constants/app_colors.dart';
-import '../../core/localization/localization_controller.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/theme/theme_controller.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
