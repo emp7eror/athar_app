@@ -54,19 +54,32 @@ class ApiProvider {
       _unwrap(await _dio.post(ApiEndpoints.location, data: {'lat': lat, 'lng': lng}));
 
   // --- Prayers ---
-  Future<Map<String, dynamic>> todayPrayers(String tz) async => _unwrap(await _dio.get(ApiEndpoints.prayersToday, queryParameters: {'timezone': tz}));
+  Future<Map<String, dynamic>> todayPrayers(String tz, {String? date}) async =>
+      _unwrap(await _dio.get(ApiEndpoints.prayersToday, queryParameters: {
+        'timezone': tz,
+        if (date != null) 'date': date,
+      }));
 
-  Future<Map<String, dynamic>> markPrayer(String prayer, {bool completed = true, String? tz, String? difficulty, String? mood, String? note}) async =>
+  Future<Map<String, dynamic>> markPrayer(
+      String prayer, {
+        bool completed = true,
+        String? tz,
+        String? prayerDate,
+        String? difficulty,
+        String? mood,
+        String? note,
+      }) async =>
       _unwrap(
         await _dio.post(
           ApiEndpoints.markPrayer,
           data: {
-            'prayer_name': prayer,
+            'prayer_name':  prayer,
             'is_completed': completed,
-            if (tz != null) 'timezone': tz,
-            if (difficulty != null) 'difficulty': difficulty,
-            if (mood != null) 'mood': mood,
-            if (note != null && note.isNotEmpty) 'note': note,
+            if (tz != null)                          'timezone':    tz,
+            if (prayerDate != null)                  'prayer_date': prayerDate,
+            if (difficulty != null)                  'difficulty':  difficulty,
+            if (mood != null)                        'mood':        mood,
+            if (note != null && note.isNotEmpty)     'note':        note,
           },
         ),
       );

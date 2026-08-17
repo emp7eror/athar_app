@@ -255,6 +255,8 @@ abstract final class AppTheme {
         filled: true,
         fillColor: palette.card,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        hintStyle: TextStyle(color: scheme.onSurfaceVariant),   // ← أضف
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),  // ← أضف
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: scheme.outline),

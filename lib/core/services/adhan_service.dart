@@ -18,16 +18,23 @@ class AdhanService extends GetxService {
     return params;
   }
 
-  PrayerTimes getTodayPrayerTimes() =>
-      PrayerTimes.today(_coordinates, _params);
+  PrayerTimes getTodayPrayerTimes({DateTime? date}) {
+    final lat = (_box.read('lat') as num?)?.toDouble() ?? 21.4225;
+    final lng = (_box.read('lng') as num?)?.toDouble() ?? 39.8262;
+    final coordinates = Coordinates(lat, lng);
+    final params = CalculationMethod.egyptian.getParameters();
+    params.madhab = Madhab.hanafi;
+
+    if (date != null) {
+      final c = DateComponents(date.year, date.month, date.day);
+      return PrayerTimes(coordinates, c, params);
+    }
+    return PrayerTimes.today(coordinates, params);
+  }
 
   /// Prayer times for an arbitrary calendar date (same coordinates / method).
   /// Used by the scheduler to lay out several days of notifications ahead.
-  PrayerTimes prayerTimesForDate(DateTime date) => PrayerTimes(
-        _coordinates,
-        DateComponents.from(date),
-        _params,
-      );
+  PrayerTimes prayerTimesForDate(DateTime date) => PrayerTimes(_coordinates, DateComponents.from(date), _params);
 
   /// The five daily prayers as ordered (key, time) pairs for a given date.
   List<({String key, DateTime time})> orderedTimes(DateTime date) {
@@ -44,12 +51,19 @@ class AdhanService extends GetxService {
   /// Enforces the Prayer Time Availability Window locally:
   /// start <= now < next_start, with Fajr bounded by sunrise (Shuruq).
   bool isPrayerTimeActive(Prayer prayer) {
-    final t = getTodayPrayerTimes();
-    final now = DateTime.now();
+    final now         = DateTime.now();
+    final todayTimes  = getTodayPrayerTimes();
+    final isBeforeFajr = now.isBefore(todayTimes.fajr);
+
+    // قبل الفجر نتعامل مع يوم أمس (نفس قاعدة العرض والتسجيل)
+    final t = isBeforeFajr
+        ? getTodayPrayerTimes(date: now.subtract(const Duration(days: 1)))
+        : todayTimes;
 
     switch (prayer) {
       case Prayer.fajr:
-        return now.isAfter(t.fajr) && now.isBefore(t.sunrise);
+      // الفجر يبقى مرتبطاً باليوم الحالي دائماً
+        return now.isAfter(todayTimes.fajr) && now.isBefore(todayTimes.sunrise);
       case Prayer.dhuhr:
         return now.isAfter(t.dhuhr) && now.isBefore(t.asr);
       case Prayer.asr:
@@ -57,7 +71,11 @@ class AdhanService extends GetxService {
       case Prayer.maghrib:
         return now.isAfter(t.maghrib) && now.isBefore(t.isha);
       case Prayer.isha:
-        return now.isAfter(t.isha);
+      // نشط من العشاء حتى فجر اليوم التالي
+        final nextFajr = isBeforeFajr
+            ? todayTimes.fajr   // اليوم الحالي هو "غد" أمس
+            : getTodayPrayerTimes(date: now.add(const Duration(days: 1))).fajr;
+        return now.isAfter(t.isha) && now.isBefore(nextFajr);
       default:
         return false;
     }
@@ -66,12 +84,18 @@ class AdhanService extends GetxService {
   DateTime timeFor(Prayer p) {
     final t = getTodayPrayerTimes();
     switch (p) {
-      case Prayer.fajr: return t.fajr;
-      case Prayer.dhuhr: return t.dhuhr;
-      case Prayer.asr: return t.asr;
-      case Prayer.maghrib: return t.maghrib;
-      case Prayer.isha: return t.isha;
-      default: return t.fajr;
+      case Prayer.fajr:
+        return t.fajr;
+      case Prayer.dhuhr:
+        return t.dhuhr;
+      case Prayer.asr:
+        return t.asr;
+      case Prayer.maghrib:
+        return t.maghrib;
+      case Prayer.isha:
+        return t.isha;
+      default:
+        return t.fajr;
     }
   }
 
@@ -79,13 +103,7 @@ class AdhanService extends GetxService {
   ({Prayer prayer, DateTime time}) nextPrayer() {
     final t = getTodayPrayerTimes();
     final now = DateTime.now();
-    final order = [
-      (Prayer.fajr, t.fajr),
-      (Prayer.dhuhr, t.dhuhr),
-      (Prayer.asr, t.asr),
-      (Prayer.maghrib, t.maghrib),
-      (Prayer.isha, t.isha),
-    ];
+    final order = [(Prayer.fajr, t.fajr), (Prayer.dhuhr, t.dhuhr), (Prayer.asr, t.asr), (Prayer.maghrib, t.maghrib), (Prayer.isha, t.isha)];
     for (final (p, time) in order) {
       if (time.isAfter(now)) return (prayer: p, time: time);
     }

@@ -48,9 +48,9 @@ class NotificationService extends GetxService {
         DarwinNotificationCategory(
           nudgeChannelId,
           actions: [
-            DarwinNotificationAction.plain('yes_prayed', 'Yes, I prayed'),
-            DarwinNotificationAction.plain('will_pray_soon', 'I will pray soon'),
-            DarwinNotificationAction.plain('will_not_pray', "I won't pray"),
+            DarwinNotificationAction.plain('yes_prayed',     'yes_prayed'.tr),
+            DarwinNotificationAction.plain('will_pray_soon',  'will_pray_soon'.tr),
+            DarwinNotificationAction.plain('will_not_pray',   'will_not_pray'.tr),
           ],
         ),
       ],
@@ -233,16 +233,16 @@ class NotificationService extends GetxService {
   /// Interactive friend "nudge" (also used for FCM foreground rendering).
   Future<void> showNudge(String title, String body) async {
     if (!await isReady) return; // respect the OS notification switch
-    const details = NotificationDetails(
+    final details = NotificationDetails(
       android: AndroidNotificationDetails(
         nudgeChannelId,
         'Prayer Nudges',
         importance: Importance.high,
         priority: Priority.high,
         actions: [
-          AndroidNotificationAction('yes_prayed', 'Yes, I prayed'),
-          AndroidNotificationAction('will_pray_soon', 'I will pray soon'),
-          AndroidNotificationAction('will_not_pray', "I won't pray"),
+          AndroidNotificationAction('yes_prayed',     'yes_prayed'.tr),
+          AndroidNotificationAction('will_pray_soon',  'will_pray_soon'.tr),
+          AndroidNotificationAction('will_not_pray',   'will_not_pray'.tr),
         ],
       ),
       iOS: DarwinNotificationDetails(categoryIdentifier: nudgeChannelId),

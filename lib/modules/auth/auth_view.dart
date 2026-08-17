@@ -66,13 +66,18 @@ class AuthView extends GetView<AuthController> {
 
   Widget _field(TextEditingController c, String hint,
       {bool obscure = false, bool number = false}) {
+    final colors = Theme.of(Get.context!).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: c,
         obscureText: obscure,
         keyboardType: number ? TextInputType.number : TextInputType.text,
-        decoration: InputDecoration(hintText: hint),
+        style: TextStyle(color: colors.onSurface),   // ← لون النص
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: colors.onSurfaceVariant),  // ← لون الـ hint
+        ),
       ),
     );
   }

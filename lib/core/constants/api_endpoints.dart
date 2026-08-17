@@ -1,6 +1,6 @@
 class ApiEndpoints {
   // Point this at your Laravel host. Use 10.0.2.2 for Android emulator -> localhost.
-  static const String baseUrl = 'http://192.168.1.127/athar/public/api';
+  static const String baseUrl = 'https://athar.ferasmelhem.com/api';
 
   static const String register = '/auth/register';
   static const String login = '/auth/login';
