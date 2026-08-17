@@ -35,8 +35,8 @@ class HomeController extends GetxController {
   final marking = ''.obs; // prayer currently being toggled
   final locationLabel = 'location_not_set'.obs;
   final updatingLocation = false.obs;
-  final userName   = ''.obs;
-  final avatarUrl  = ''.obs;
+  final userName = ''.obs;
+  final avatarUrl = ''.obs;
 
   Timer? _ticker;
 
@@ -48,7 +48,7 @@ class HomeController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _loadUserInfo();  
+    _loadUserInfo();
     _refreshLocationLabel();
     _startCountdown();
     refreshAll();
@@ -62,19 +62,15 @@ class HomeController extends GetxController {
 
   Future<void> _loadToday() async {
     try {
-      final tz           = await _tz;
-      final now          = DateTime.now();
+      final tz = await _tz;
+      final now = DateTime.now();
       final isBeforeFajr = now.isBefore(_adhan.getTodayPrayerTimes().fajr);
 
       // قبل الفجر → اجلب أمس، غير ذلك → اليوم
-      final date = isBeforeFajr
-          ? _formatDate(now.subtract(const Duration(days: 1)))
-          : null;
+      final date = isBeforeFajr ? _formatDate(now.subtract(const Duration(days: 1))) : null;
 
       final res = await _api.todayPrayers(tz, date: date);
-      checklist.value = (res['checklist'] as List)
-          .map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>))
-          .toList();
+      checklist.value = (res['checklist'] as List).map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>)).toList();
       pointsToday.value = res['points_today'] ?? 0;
     } on ApiException catch (e) {
       AppSnackbar.error('app_name'.tr, e.message);
@@ -113,17 +109,22 @@ class HomeController extends GetxController {
       final timezone = await _tz;
       final res = await _api.markPrayer(
         item.prayerName,
-        completed:  true,
-        tz:         timezone,
-        prayerDate: _prayerDate(item.prayerName),  // ← أضف
+        completed: true,
+        tz: timezone,
+        prayerDate: _prayerDate(item.prayerName),
+        // ← أضف
         difficulty: result.difficulty.name,
-        mood:       result.mood.name,
-        note:       result.note.isEmpty ? null : result.note,
+        mood: result.mood.name,
+        note: result.note.isEmpty ? null : result.note,
       );
 
       totalPoints.value = res['total_points'] ?? totalPoints.value;
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
-      await _sound.playPrayerDone(); // completion chime
+      try {
+        await _sound.playPrayerDone(); // completion chime
+      } catch (e) {
+        //
+      }
       await _loadToday();
       AppSnackbar.show('+${item.points} ${'points'.tr}', 'prayer_recorded'.tr);
     } on ApiException catch (e) {
@@ -171,27 +172,23 @@ class HomeController extends GetxController {
     final isAr = Get.locale?.languageCode == 'ar';
     final city = isAr ? s.cityAr : s.cityEn;
     if (city != null && city.isNotEmpty) {
-      locationLabel.value = city;                       // "مكة المكرمة" or "Makkah"
+      locationLabel.value = city; // "مكة المكرمة" or "Makkah"
     } else if (s.lat != null && s.lng != null) {
-      locationLabel.value =
-      '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
+      locationLabel.value = '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
     }
   }
 
   void _loadUserInfo() {
     final u = Get.find<StorageProvider>().cachedUser;
-    userName.value  = (u?['name'] as String?) ?? '';
+    userName.value = (u?['name'] as String?) ?? '';
     avatarUrl.value = (u?['avatar_url'] as String?) ?? '';
   }
 
-  String _formatDate(DateTime d) =>
-      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   String _prayerDate(String prayerName) {
     final now = DateTime.now();
     final isBeforeFajr = now.isBefore(_adhan.getTodayPrayerTimes().fajr);
-    return isBeforeFajr
-        ? _formatDate(now.subtract(const Duration(days: 1)))
-        : _formatDate(now);
+    return isBeforeFajr ? _formatDate(now.subtract(const Duration(days: 1))) : _formatDate(now);
   }
 }
