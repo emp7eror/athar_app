@@ -11,44 +11,47 @@ class StatsView extends GetView<StatsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Obx(() => controller.loading.value
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(padding: const EdgeInsets.all(16), children: [
-                Text('stats'.tr,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                Row(children: [
-                  _stat(context, '🔥', '${controller.currentStreak.value}', 'streak'.tr),
-                  _stat(context, '🏆', '${controller.maxStreak.value}', 'max_streak'.tr),
-                  _stat(context, '⭐', '${controller.totalPoints.value}', 'points'.tr),
-                ]),
-                const SizedBox(height: 24),
-                 Text('last_7_days'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 12),
-                SizedBox(height: 200, child: _weeklyChart()),
-                const SizedBox(height: 24),
-                 Text('thirty_day_per_prayer'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                ...controller.monthly.map((m) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Row(children: [
-                        SizedBox(width: 90, child: Text((m['prayer_name'] as String).tr)),
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: LinearProgressIndicator(
-                              value: ((m['avg_percent'] ?? 0) as num) / 100,
-                              minHeight: 10,
-                              backgroundColor: Theme.of(context).colorScheme.outline,
-                              color: Theme.of(context).colorScheme.primary,
+        child: RefreshIndicator(
+          onRefresh: controller.refreshAll,
+          child: Obx(() => controller.loading.value
+              ? const Center(child: CircularProgressIndicator())
+              : ListView(padding: const EdgeInsets.all(16), children: [
+                  Text('stats'.tr,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    _stat(context, '🔥', '${controller.currentStreak.value}', 'streak'.tr),
+                    _stat(context, '🏆', '${controller.maxStreak.value}', 'max_streak'.tr),
+                    _stat(context, '⭐', '${controller.totalPoints.value}', 'points'.tr),
+                  ]),
+                  const SizedBox(height: 24),
+                   Text('last_7_days'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  SizedBox(height: 200, child: _weeklyChart()),
+                  const SizedBox(height: 24),
+                   Text('thirty_day_per_prayer'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 8),
+                  ...controller.monthly.map((m) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(children: [
+                          SizedBox(width: 90, child: Text((m['prayer_name'] as String).tr)),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: LinearProgressIndicator(
+                                value: ((m['avg_percent'] ?? 0) as num) / 100,
+                                minHeight: 10,
+                                backgroundColor: Theme.of(context).colorScheme.outline,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text('${m['avg_percent']}%'),
-                      ]),
-                    )),
-              ])),
+                          const SizedBox(width: 8),
+                          Text('${m['avg_percent']}%'),
+                        ]),
+                      )),
+                ])),
+        ),
       ),
     );
   }

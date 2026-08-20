@@ -16,30 +16,33 @@ class LeaderboardView extends GetView<LeaderboardController> {
     final isAr = Get.find<LocalizationController>().isRtl;
     return Scaffold(
       body: SafeArea(
-        child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text('leaderboard'.tr,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-          ),
-          Obx(() => Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _tabBtn(context, 'points', 'points_tab'.tr),
-                  _tabBtn(context, 'streak', 'streaks_tab'.tr),
-                ],
-              )),
-          Expanded(
-            child: Obx(() => controller.loading.value
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: controller.rankings.length,
-                    itemBuilder: (_, i) =>
-                        _row(controller.rankings[i], controller.tab.value, isAr),
-                  )),
-          ),
-        ]),
+        child: RefreshIndicator(
+          onRefresh: controller.refreshAll,
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text('leaderboard'.tr,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            ),
+            Obx(() => Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _tabBtn(context, 'points', 'points_tab'.tr),
+                    _tabBtn(context, 'streak', 'streaks_tab'.tr),
+                  ],
+                )),
+            Expanded(
+              child: Obx(() => controller.loading.value
+                  ? const Center(child: CircularProgressIndicator())
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: controller.rankings.length,
+                      itemBuilder: (_, i) =>
+                          _row(controller.rankings[i], controller.tab.value, isAr),
+                    )),
+            ),
+          ]),
+        ),
       ),
     );
   }

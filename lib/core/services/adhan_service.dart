@@ -22,8 +22,8 @@ class AdhanService extends GetxService {
     final lat = (_box.read('lat') as num?)?.toDouble() ?? 21.4225;
     final lng = (_box.read('lng') as num?)?.toDouble() ?? 39.8262;
     final coordinates = Coordinates(lat, lng);
-    final params = CalculationMethod.egyptian.getParameters();
-    params.madhab = Madhab.hanafi;
+    final params = CalculationMethod.muslim_world_league.getParameters();
+    params.madhab = Madhab.shafi;
 
     if (date != null) {
       final c = DateComponents(date.year, date.month, date.day);

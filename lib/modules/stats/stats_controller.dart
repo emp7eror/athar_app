@@ -46,4 +46,7 @@ class StatsController extends GetxController {
       loading.value = false;
     }
   }
-}
+
+  Future<void> refreshAll() async {
+    await Future.wait([load()]);
+  }}

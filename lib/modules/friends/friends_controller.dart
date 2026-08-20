@@ -68,4 +68,8 @@ class FriendsController extends GetxController {
     codeInput.dispose();
     super.onClose();
   }
+
+  Future<void> refreshAll() async {
+    await Future.wait([load()]);
+  }
 }

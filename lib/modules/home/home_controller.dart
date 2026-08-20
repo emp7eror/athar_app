@@ -1,7 +1,9 @@
 import 'dart:async';
 
 import 'package:adhan/adhan.dart';
+import 'package:athar/modules/home/missed_prayer_dialog.dart';
 import 'package:athar/modules/home/prayer_confirm_dialog.dart';
+import 'package:athar/modules/home/prayer_done_dialog.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
 
@@ -21,6 +23,7 @@ class HomeController extends GetxController {
   final _location = Get.find<LocationService>();
   final _sound = Get.find<SoundService>();
   final _scheduler = Get.find<PrayerNotificationScheduler>();
+  final StorageProvider _storage = Get.find<StorageProvider>();
 
   final checklist = <PrayerChecklistItem>[].obs;
   final pointsToday = 0.obs;
@@ -68,9 +71,13 @@ class HomeController extends GetxController {
 
       // قبل الفجر → اجلب أمس، غير ذلك → اليوم
       final date = isBeforeFajr ? _formatDate(now.subtract(const Duration(days: 1))) : null;
+      final times = isBeforeFajr ? _adhan.getTodayPrayerTimes(date: now.subtract(const Duration(days: 1))) : _adhan.getTodayPrayerTimes();
 
       final res = await _api.todayPrayers(tz, date: date);
-      checklist.value = (res['checklist'] as List).map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>)).toList();
+      checklist.value = (res['checklist'] as List)
+          .map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>))
+          .map((item) => item.copyWith(time: _timeFor(item.prayerName, times))) // ← أضف الوقت
+          .toList();
       pointsToday.value = res['points_today'] ?? 0;
     } on ApiException catch (e) {
       AppSnackbar.error('app_name'.tr, e.message);
@@ -93,14 +100,19 @@ class HomeController extends GetxController {
     return _adhan.isPrayerTimeActive(p);
   }
 
+  /// Entry point from the tile tap. Already-completed prayers are a no-op;
+  /// active prayers use the normal on-time confirmation; anything else is
+  /// treated as a missed prayer and routed through [_markMissed].
   Future<void> mark(PrayerChecklistItem item) async {
     if (item.isCompleted) return;
-    if (!isActive(item.prayerName)) {
-      AppSnackbar.error('app_name'.tr, 'window_closed'.tr);
-      return;
+    if (isActive(item.prayerName)) {
+      await _markOnTime(item);
+    } else {
+      await _markMissed(item);
     }
+  }
 
-    // ── اعرض الـ dialog أولاً ──
+  Future<void> _markOnTime(PrayerChecklistItem item) async {
     final result = await PrayerConfirmDialog.show(item.prayerName, item.points);
     if (result == null) return; // المستخدم ألغى
 
@@ -112,7 +124,6 @@ class HomeController extends GetxController {
         completed: true,
         tz: timezone,
         prayerDate: _prayerDate(item.prayerName),
-        // ← أضف
         difficulty: result.difficulty.name,
         mood: result.mood.name,
         note: result.note.isEmpty ? null : result.note,
@@ -122,12 +133,45 @@ class HomeController extends GetxController {
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
       try {
         await _sound.playPrayerDone(); // completion chime
-      } catch (e) {
-        //
-      }
+      } catch (_) {}
       await _loadToday();
-      AppSnackbar.show('+${item.points} ${'points'.tr}', 'prayer_recorded'.tr);
+      // Motivational feedback shown only AFTER the API save + reload succeed.
+      await PrayerDoneDialog.showOnTime();
     } on ApiException catch (e) {
+      AppSnackbar.error('app_name'.tr, e.message);
+    } finally {
+      marking.value = '';
+    }
+  }
+
+  /// Logs a prayer whose scheduled window has closed. The reason is required
+  /// (dialog enforces it); the state is only updated after the API succeeds.
+  Future<void> _markMissed(PrayerChecklistItem item) async {
+    final result = await MissedPrayerDialog.show(item.prayerName);
+    if (result == null) return;
+
+    marking.value = item.prayerName;
+    try {
+      final timezone = await _tz;
+      final res = await _api.markPrayer(
+        item.prayerName,
+        completed: true,
+        tz: timezone,
+        prayerDate: _prayerDate(item.prayerName),
+        performedOutsideTime: true,
+        reason: result.reason.name,
+        note: result.note.isEmpty ? null : result.note,
+      );
+
+      totalPoints.value = res['total_points'] ?? totalPoints.value;
+      if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
+      try {
+        await _sound.playPrayerDone();
+      } catch (_) {}
+      await _loadToday(); // reactive checklist now shows it as done + outside-time
+      await PrayerDoneDialog.showOutsideTime();
+    } on ApiException catch (e) {
+      // Failure path: intentionally do NOT touch checklist / points state.
       AppSnackbar.error('app_name'.tr, e.message);
     } finally {
       marking.value = '';
@@ -142,6 +186,7 @@ class HomeController extends GetxController {
       await refreshAll(); // re-pull today with the new coords
       _startCountdown(); // restart the next-prayer ticker
       await _scheduler.reschedule(); // prayer times changed → rebuild alarms
+      _storage.locationSetBefore = true;
       AppSnackbar.show('app_name'.tr, 'location_updated'.tr);
     } catch (e) {
       AppSnackbar.error('app_name'.tr, (e is String ? e : 'location_error').tr);
@@ -190,5 +235,22 @@ class HomeController extends GetxController {
     final now = DateTime.now();
     final isBeforeFajr = now.isBefore(_adhan.getTodayPrayerTimes().fajr);
     return isBeforeFajr ? _formatDate(now.subtract(const Duration(days: 1))) : _formatDate(now);
+  }
+
+  DateTime? _timeFor(String prayerName, PrayerTimes t) {
+    switch (prayerName) {
+      case 'fajr':
+        return t.fajr;
+      case 'dhuhr':
+        return t.dhuhr;
+      case 'asr':
+        return t.asr;
+      case 'maghrib':
+        return t.maghrib;
+      case 'isha':
+        return t.isha;
+      default:
+        return null;
+    }
   }
 }

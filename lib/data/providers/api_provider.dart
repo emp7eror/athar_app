@@ -60,6 +60,10 @@ class ApiProvider {
         if (date != null) 'date': date,
       }));
 
+  /// Records a prayer as completed. Set [performedOutsideTime] = true (and
+  /// pass a non-empty [reason]) for a *missed* prayer being logged after its
+  /// scheduled window has closed. On-time completions leave those two null so
+  /// the API contract stays unchanged.
   Future<Map<String, dynamic>> markPrayer(
       String prayer, {
         bool completed = true,
@@ -68,6 +72,8 @@ class ApiProvider {
         String? difficulty,
         String? mood,
         String? note,
+        bool? performedOutsideTime,
+        String? reason,
       }) async =>
       _unwrap(
         await _dio.post(
@@ -80,6 +86,8 @@ class ApiProvider {
             if (difficulty != null)                  'difficulty':  difficulty,
             if (mood != null)                        'mood':        mood,
             if (note != null && note.isNotEmpty)     'note':        note,
+            if (performedOutsideTime == true)        'performed_outside_time': true,
+            if (reason != null && reason.isNotEmpty) 'reason':      reason,
           },
         ),
       );

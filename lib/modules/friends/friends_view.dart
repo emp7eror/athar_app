@@ -16,40 +16,43 @@ class FriendsView extends GetView<FriendsController> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Obx(
-          () => ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text('friends'.tr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              _myCodeCard(),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: controller.codeInput,
-                      textCapitalization: TextCapitalization.characters,
-                      maxLength: 6,
-                      decoration: InputDecoration(counterText: '', hintText: 'enter_code'.tr),
+        child: RefreshIndicator(
+          onRefresh: controller.refreshAll,
+          child: Obx(
+            () => ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                Text('friends'.tr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                _myCodeCard(),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: controller.codeInput,
+                        textCapitalization: TextCapitalization.characters,
+                        maxLength: 6,
+                        decoration: InputDecoration(counterText: '', hintText: 'enter_code'.tr),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                    onPressed: controller.add,
-                    child: Text('add_friend'.tr, style: const TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              if (controller.pending.isNotEmpty) ...[
-                const Text('Pending requests', style: TextStyle(fontWeight: FontWeight.w600)),
-                ...controller.pending.map(_pendingTile),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      onPressed: controller.add,
+                      child: Text('add_friend'.tr, style: const TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 16),
+                if (controller.pending.isNotEmpty) ...[
+                  const Text('Pending requests', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ...controller.pending.map(_pendingTile),
+                  const SizedBox(height: 16),
+                ],
+                ...controller.friends.map((f) => _friendTile(context, f)),
               ],
-              ...controller.friends.map((f) => _friendTile(context, f)),
-            ],
+            ),
           ),
         ),
       ),
@@ -122,11 +125,7 @@ class FriendsView extends GetView<FriendsController> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.primary, AppColors.primaryDark],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
         borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
@@ -134,8 +133,7 @@ class FriendsView extends GetView<FriendsController> {
         children: [
           Text(
             'my_code'.tr,
-            style: const TextStyle(
-                color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 10),
           Row(
@@ -144,12 +142,7 @@ class FriendsView extends GetView<FriendsController> {
               Expanded(
                 child: Text(
                   code.split('').join('  '),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 4,
-                  ),
+                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 4),
                 ),
               ),
               // زر النسخ
@@ -163,19 +156,14 @@ class FriendsView extends GetView<FriendsController> {
               ),
               // زر المشاركة
               IconButton(
-                onPressed: () => Share.share(
-                  '${'share_code_msg'.tr} $code',
-                ),
+                onPressed: () => Share.share('${'share_code_msg'.tr} $code'),
                 icon: const Icon(Icons.share_rounded, color: Colors.white70),
                 tooltip: 'share'.tr,
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text(
-            'share_code_hint'.tr,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
-          ),
+          Text('share_code_hint'.tr, style: const TextStyle(color: Colors.white54, fontSize: 12)),
         ],
       ),
     );

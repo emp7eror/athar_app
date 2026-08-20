@@ -54,7 +54,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: AppColors.card,
+      backgroundColor: AppColors.primaryDark,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -228,7 +228,7 @@ class _SectionLabel extends StatelessWidget {
     label,
     style: const TextStyle(
         fontSize: 14, fontWeight: FontWeight.w700,
-        color: AppColors.textMuted),
+        color: AppColors.secondary),
   );
 }
 

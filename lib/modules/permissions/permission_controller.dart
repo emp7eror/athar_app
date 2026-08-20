@@ -56,7 +56,8 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
     busy.value = true;
 
     final loc = await _perms.locationStatus();
-    if (!loc.isGranted) {
+
+    if (!loc.isGranted && !_storage.locationSetBefore) {
       step.value = PermStep.location;
       state.value = loc;
       busy.value = false;

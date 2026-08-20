@@ -12,6 +12,7 @@ class StorageProvider extends GetxService {
   static const _kCityEn = 'cityEn';
   static const _kUser = 'user';
   static const _kSeenOnboarding = 'seen_onboarding';
+  static const _kLocationSetBefore = 'location_set_before';
   static const _kDarkMode = 'dark_mode';
 
   // ── Notification preferences ──
@@ -26,6 +27,9 @@ class StorageProvider extends GetxService {
 
   bool get seenOnboarding => _box.read(_kSeenOnboarding) ?? false;
   set seenOnboarding(bool v) => _box.write(_kSeenOnboarding, v);
+
+  bool get locationSetBefore => _box.read(_kLocationSetBefore) ?? false;
+  set locationSetBefore(bool v) => _box.write(_kLocationSetBefore, v);
 
   bool get darkMode => _box.read(_kDarkMode) ?? false;
   set darkMode(bool v) => _box.write(_kDarkMode, v);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
@@ -331,65 +332,183 @@ class _PrayerTile extends StatelessWidget {
       final busy = controller.marking.value == item.prayerName;
       final done = item.isCompleted;
       final active = controller.isActive(item.prayerName);
+      final late = item.isLateCompleted;
+      // A prayer is "missed" (selectable but off-time) when it's not done and
+      // outside its scheduled window.
+      final missed = !done && !active;
+
+      // Late completions get a warm accent so they're visually distinct from
+      // on-time completions; missed (yet-to-log) prayers get a muted amber tint.
+      final Color borderColor;
+      final Color bgColor;
+      if (late) {
+        borderColor = athar.gold.withValues(alpha: 0.55);
+        bgColor = athar.gold.withValues(alpha: 0.10);
+      } else if (done) {
+        borderColor = athar.success.withValues(alpha: 0.4);
+        bgColor = athar.sage.withValues(alpha: 0.22);
+      } else if (missed) {
+        borderColor = athar.gold.withValues(alpha: 0.35);
+        bgColor = athar.card;
+      } else {
+        borderColor = context.colors.outline.withValues(alpha: 0.3);
+        bgColor = athar.card;
+      }
 
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),  // ← أقل
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: done ? athar.sage.withValues(alpha: 0.22) : athar.card,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: done ? athar.success.withValues(alpha: 0.4) : context.colors.outline),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: borderColor),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Row(
-              children: [
-                _TrailingState(busy: busy, done: done, active: active, item: item),
-                SizedBox(width: 50,),
-                Text(
-                  '${item.prayerName.tr}',
-                  style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ],
+            // ── حالة الصلاة ──
+            _TrailingState(
+              busy: busy,
+              done: done,
+              active: active,
+              missed: missed,
+              late: late,
+              item: item,
+            ),
+            const SizedBox(width: 12),
+
+            // ── اسم الصلاة (+ badge للصلاة خارج الوقت) ──
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.prayerName.tr,
+                    style: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: late
+                          ? athar.gold
+                          : (done ? athar.success : null),
+                    ),
+                  ),
+                  if (late) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'performed_outside_time'.tr,
+                      style: context.text.labelSmall?.copyWith(
+                        color: athar.gold,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ] else if (missed) ...[
+                    // const SizedBox(height: 2),
+                    // Text(
+                    //   'missed_tap_to_log'.tr,
+                    //   style: context.text.labelSmall?.copyWith(
+                    //     color: athar.gold,
+                    //     fontWeight: FontWeight.w600,
+                    //   ),
+                    // ),
+                  ],
+                ],
+              ),
             ),
 
+            // ── الوقت ──
+            if (item.time != null)
+              Expanded(
+                flex: 2,
+                child: Text(
+                  DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
+                  textAlign: TextAlign.center,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: active ? context.colors.primary : athar.textMuted,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
 
-            Text(
-              '+${item.points}  ${'point'.tr}',
-              style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            // ── النقاط ──
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: late
+                    ? athar.gold.withValues(alpha: 0.15)
+                    : (done
+                        ? athar.success.withValues(alpha: 0.12)
+                        : context.colors.primary.withValues(alpha: 0.08)),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '+${item.points}   ${'point'.tr}',
+                style: context.text.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: late
+                      ? athar.gold
+                      : (done ? athar.success : context.colors.primary),
+                ),
+              ),
             ),
           ],
         ),
-      );    });
+      );
+    });
   }
 }
 
 class _TrailingState extends StatelessWidget {
-  const _TrailingState({required this.busy, required this.done, required this.active, required this.item});
+  const _TrailingState({
+    required this.busy,
+    required this.done,
+    required this.active,
+    required this.missed,
+    required this.late,
+    required this.item,
+  });
 
   final bool busy;
   final bool done;
   final bool active;
+  final bool missed;
+  final bool late;
   final PrayerChecklistItem item;
 
   @override
   Widget build(BuildContext context) {
     if (busy) {
-      return const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
+      return const SizedBox(
+          width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
     }
     if (done) {
-      return Icon(Icons.check_circle_rounded, color: context.athar.success, size: 30);
+      // Late-completed prayers get the same check but in the "off-time" hue
+      // so the row visually signals both "done" and "outside window".
+      return Icon(
+        Icons.check_circle_rounded,
+        color: late ? context.athar.gold : context.athar.success,
+        size: 30,
+      );
     }
     final controller = Get.find<HomeController>();
-    return GestureDetector(
-      onTap: active ? () => controller.mark(item) : null,
-      child: Icon(
-        active ? Icons.radio_button_unchecked : Icons.lock_outline_rounded,
-        color: active ? context.colors.primary : context.athar.textMuted,
-        size: 30,
-      ),
-    );
+
+    // Both "active" and "missed" prayers are tappable — active opens the
+    // normal confirm dialog, missed opens the missed-prayer dialog. Only
+    // truly-unavailable prayers (shouldn't normally happen for today's list)
+    // fall through to the disabled lock.
+    if (active) {
+      return GestureDetector(
+        onTap: () => controller.mark(item),
+        child: Icon(Icons.radio_button_unchecked,
+            color: context.colors.primary, size: 30),
+      );
+    }
+    if (!done && missed) {
+      return GestureDetector(
+        onTap: () => controller.mark(item),
+        child: Icon(Icons.history_toggle_off_rounded,
+            color: context.athar.gold, size: 30),
+      );
+    }
+    return Icon(Icons.lock_outline_rounded,
+        color: context.athar.textMuted, size: 30);
   }
 }
 
