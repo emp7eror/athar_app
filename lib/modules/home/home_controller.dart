@@ -34,6 +34,27 @@ class HomeController extends GetxController {
 
   final nextPrayerKey = ''.obs;
   final countdown = '00:00:00'.obs;
+  // Per-second "wall clock" so tiles can reactively re-evaluate time-sensitive
+  // UI (on-time bonus countdown, window transitions) without each widget
+  // spinning its own Timer.
+  final now = DateTime.now().obs;
+
+  // On-time bonus display hints — MUST mirror the server's PointsService
+  // constants. Values displayed on the tile only; the actual award is decided
+  // by the API response.
+  static const onTimeBonusWindow = Duration(minutes: 30);
+  static const onTimeBonusPoints = 10;
+
+  /// Time remaining in the on-time bonus window for [prayerTime], or null if
+  /// the prayer hasn't started, is already past its 30-min window, or has no
+  /// known start time. Reactive on [now].
+  Duration? onTimeBonusRemaining(DateTime? prayerTime) {
+    if (prayerTime == null) return null;
+    final elapsed = now.value.difference(prayerTime);
+    if (elapsed.isNegative) return null; // not started
+    final left = onTimeBonusWindow - elapsed;
+    return left.isNegative ? null : left; // window closed
+  }
   final loading = true.obs;
   final marking = ''.obs; // prayer currently being toggled
   final locationLabel = 'location_not_set'.obs;
@@ -101,10 +122,19 @@ class HomeController extends GetxController {
   }
 
   /// Entry point from the tile tap. Already-completed prayers are a no-op;
-  /// active prayers use the normal on-time confirmation; anything else is
-  /// treated as a missed prayer and routed through [_markMissed].
+  /// active prayers use the normal on-time confirmation; a prayer whose start
+  /// time has passed but whose window has closed uses the missed flow.
+  /// Prayers that haven't reached their scheduled time yet are rejected — the
+  /// user can neither mark nor mute them until they actually start.
   Future<void> mark(PrayerChecklistItem item) async {
     if (item.isCompleted) return;
+
+    // Reject future prayers outright (defense-in-depth; the UI also locks them).
+    if (item.time != null && item.time!.isAfter(DateTime.now())) {
+      AppSnackbar.error('app_name'.tr, 'prayer_not_started_yet'.tr);
+      return;
+    }
+
     if (isActive(item.prayerName)) {
       await _markOnTime(item);
     } else {
@@ -124,6 +154,7 @@ class HomeController extends GetxController {
         completed: true,
         tz: timezone,
         prayerDate: _prayerDate(item.prayerName),
+        prayerTime: item.time?.toIso8601String(),
         difficulty: result.difficulty.name,
         mood: result.mood.name,
         note: result.note.isEmpty ? null : result.note,
@@ -158,6 +189,7 @@ class HomeController extends GetxController {
         completed: true,
         tz: timezone,
         prayerDate: _prayerDate(item.prayerName),
+        prayerTime: item.time?.toIso8601String(),
         performedOutsideTime: true,
         reason: result.reason.name,
         note: result.note.isEmpty ? null : result.note,
@@ -197,9 +229,10 @@ class HomeController extends GetxController {
 
   void _startCountdown() {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      now.value = DateTime.now();
       final next = _adhan.nextPrayer();
       nextPrayerKey.value = AdhanService.prayerKey(next.prayer);
-      final diff = next.time.difference(DateTime.now());
+      final diff = next.time.difference(now.value);
       final d = diff.isNegative ? Duration.zero : diff;
       String two(int n) => n.toString().padLeft(2, '0');
       countdown.value = '${two(d.inHours)}:${two(d.inMinutes % 60)}:${two(d.inSeconds % 60)}';

@@ -31,7 +31,7 @@ class LocationService extends GetxService {
       throw 'location_permission_denied';
     }
     final Position position = await Geolocator.getCurrentPosition().timeout(
-      const Duration(seconds: 10),
+      const Duration(seconds: 20),
     );
 
     return position;

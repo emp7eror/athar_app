@@ -64,11 +64,16 @@ class ApiProvider {
   /// pass a non-empty [reason]) for a *missed* prayer being logged after its
   /// scheduled window has closed. On-time completions leave those two null so
   /// the API contract stays unchanged.
+  /// Records a prayer as completed. [prayerTime] carries the device-computed
+  /// exact start time (ISO-8601) so the server can decide on-time-bonus
+  /// eligibility from the same clock the client used, rather than recomputing
+  /// prayer times from coordinates on the server.
   Future<Map<String, dynamic>> markPrayer(
       String prayer, {
         bool completed = true,
         String? tz,
         String? prayerDate,
+        String? prayerTime,
         String? difficulty,
         String? mood,
         String? note,
@@ -83,6 +88,7 @@ class ApiProvider {
             'is_completed': completed,
             if (tz != null)                          'timezone':    tz,
             if (prayerDate != null)                  'prayer_date': prayerDate,
+            if (prayerTime != null)                  'prayer_time': prayerTime,
             if (difficulty != null)                  'difficulty':  difficulty,
             if (mood != null)                        'mood':        mood,
             if (note != null && note.isNotEmpty)     'note':        note,

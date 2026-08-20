@@ -333,9 +333,17 @@ class _PrayerTile extends StatelessWidget {
       final done = item.isCompleted;
       final active = controller.isActive(item.prayerName);
       final late = item.isLateCompleted;
-      // A prayer is "missed" (selectable but off-time) when it's not done and
-      // outside its scheduled window.
-      final missed = !done && !active;
+      // A prayer is "missed" (tappable as an off-time log) only when its start
+      // time has ALREADY PASSED and its active window is over. Prayers whose
+      // scheduled time hasn't arrived yet must stay locked.
+      final hasStarted =
+          item.time != null && !item.time!.isAfter(controller.now.value);
+      final missed = !done && !active && hasStarted;
+
+      // On-time bonus is only meaningful for a not-yet-done, active prayer.
+      final bonusLeft = (!done && active)
+          ? controller.onTimeBonusRemaining(item.time)
+          : null;
 
       // Late completions get a warm accent so they're visually distinct from
       // on-time completions; missed (yet-to-log) prayers get a muted amber tint.
@@ -371,6 +379,7 @@ class _PrayerTile extends StatelessWidget {
               active: active,
               missed: missed,
               late: late,
+              bonusEligible: bonusLeft != null,
               item: item,
             ),
             const SizedBox(width: 12),
@@ -399,7 +408,7 @@ class _PrayerTile extends StatelessWidget {
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ] else if (missed) ...[
+                  ]  else if (missed) ...[
                     // const SizedBox(height: 2),
                     // Text(
                     //   'missed_tap_to_log'.tr,
@@ -434,18 +443,45 @@ class _PrayerTile extends StatelessWidget {
                 color: late
                     ? athar.gold.withValues(alpha: 0.15)
                     : (done
-                        ? athar.success.withValues(alpha: 0.12)
-                        : context.colors.primary.withValues(alpha: 0.08)),
+                    ? athar.success.withValues(alpha: 0.12)
+                    : context.colors.primary.withValues(alpha: 0.08)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Text(
-                '+${item.points}   ${'point'.tr}',
-                style: context.text.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: late
-                      ? athar.gold
-                      : (done ? athar.success : context.colors.primary),
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '+${item.points}   ${'point'.tr}',
+                    style: context.text.bodySmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: late
+                          ? athar.gold
+                          : (done ? athar.success : context.colors.primary),
+                    ),
+                  ),
+                  if (bonusLeft != null) ...[
+                    const SizedBox(height: 2),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.bolt_rounded, size: 11, color: athar.gold),
+                        const SizedBox(width: 2),
+                        Text(
+                          'bonus_pill'.trParams({
+                            'points': '${HomeController.onTimeBonusPoints}',
+                            'time': _mmss(bonusLeft),
+                          }),
+                          style: context.text.labelSmall?.copyWith(
+                            color: athar.gold,
+                            fontWeight: FontWeight.w800,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
@@ -453,6 +489,10 @@ class _PrayerTile extends StatelessWidget {
       );
     });
   }
+
+  String _mmss(Duration d) =>
+      '${d.inMinutes.toString().padLeft(2, '0')}:'
+          '${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 }
 
 class _TrailingState extends StatelessWidget {
@@ -462,6 +502,7 @@ class _TrailingState extends StatelessWidget {
     required this.active,
     required this.missed,
     required this.late,
+    required this.bonusEligible,
     required this.item,
   });
 
@@ -470,6 +511,7 @@ class _TrailingState extends StatelessWidget {
   final bool active;
   final bool missed;
   final bool late;
+  final bool bonusEligible;
   final PrayerChecklistItem item;
 
   @override
@@ -496,8 +538,13 @@ class _TrailingState extends StatelessWidget {
     if (active) {
       return GestureDetector(
         onTap: () => controller.mark(item),
-        child: Icon(Icons.radio_button_unchecked,
-            color: context.colors.primary, size: 30),
+        child: Icon(
+          bonusEligible
+              ? Icons.auto_awesome_rounded
+              : Icons.radio_button_unchecked,
+          color: bonusEligible ? context.athar.gold : context.colors.primary,
+          size: 30,
+        ),
       );
     }
     if (!done && missed) {
@@ -545,5 +592,54 @@ class _QuoteCard extends StatelessWidget {
         ),
       );
     });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// On-time bonus badge
+// ─────────────────────────────────────────────────────────────────────────
+/// Encourages the user to pray in the first 30 min after Adhan. Shown only on
+/// active prayers whose bonus window is still open; ticks down every second
+/// via [HomeController.now].
+class _BonusBadge extends StatelessWidget {
+  const _BonusBadge({required this.remaining});
+
+  final Duration remaining;
+
+  String _mmss(Duration d) {
+    final m = d.inMinutes.toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final athar = context.athar;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: athar.gold.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: athar.gold.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.bolt_rounded, size: 12, color: athar.gold),
+          const SizedBox(width: 3),
+          Text(
+            'bonus_pill'.trParams({
+              'points': '${HomeController.onTimeBonusPoints}',
+              'time': _mmss(remaining),
+            }),
+            style: context.text.labelSmall?.copyWith(
+              color: athar.gold,
+              fontWeight: FontWeight.w800,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

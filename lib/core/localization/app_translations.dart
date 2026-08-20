@@ -153,6 +153,8 @@ class AppTranslations extends Translations {
           'missed_tap_to_log':       'اضغط لتسجيلها كصلاة فائتة',
           'performed_outside_time':  'أُدّيت خارج وقتها',
           'confirm':                 'تأكيد',
+          'prayer_not_started_yet':  'لم يدخل وقت هذه الصلاة بعد',
+          'bonus_pill':              '+@points • @time',
           // ── Post-completion feedback ───────────────────────────
           'prayer_done_ok':               'حسناً',
           'prayer_done_on_time_title':    'أحسنت! حافظت على صلاتك في وقتها 🤍',
@@ -312,6 +314,8 @@ class AppTranslations extends Translations {
           'missed_tap_to_log':       'Tap to log as missed',
           'performed_outside_time':  'Completed outside time',
           'confirm':                 'Confirm',
+          'prayer_not_started_yet':  'This prayer\'s time has not started yet',
+          'bonus_pill':              '+@points • @time',
           // ── Post-completion feedback ───────────────────────────
           'prayer_done_ok':               'OK',
           'prayer_done_on_time_title':    'Well done! You kept your prayer on time 🤍',
