@@ -447,40 +447,43 @@ class _PrayerTile extends StatelessWidget {
                     : context.colors.primary.withValues(alpha: 0.08)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
+              child:Row(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    '+${item.points}   ${'point'.tr}',
-                    style: context.text.bodySmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: late
-                          ? athar.gold
-                          : (done ? athar.success : context.colors.primary),
-                    ),
-                  ),
                   if (bonusLeft != null) ...[
-                    const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.bolt_rounded, size: 11, color: athar.gold),
-                        const SizedBox(width: 2),
+                    Icon(Icons.bolt_rounded, size: 22, color: athar.gold),
+                    const SizedBox(width: 4),
+                  ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '+${item.points}   ${'point'.tr}',
+                        style: context.text.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: late
+                              ? athar.gold
+                              : (done ? athar.success : context.colors.primary),
+                        ),
+                      ),
+                      if (bonusLeft != null) ...[
+                        const SizedBox(height: 2),
                         Text(
                           'bonus_pill'.trParams({
                             'points': '${HomeController.onTimeBonusPoints}',
                             'time': _mmss(bonusLeft),
                           }),
-                          style: context.text.labelSmall?.copyWith(
+                          style: context.text.bodySmall?.copyWith(
                             color: athar.gold,
                             fontWeight: FontWeight.w800,
                             fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
                       ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -592,54 +595,5 @@ class _QuoteCard extends StatelessWidget {
         ),
       );
     });
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
-// On-time bonus badge
-// ─────────────────────────────────────────────────────────────────────────
-/// Encourages the user to pray in the first 30 min after Adhan. Shown only on
-/// active prayers whose bonus window is still open; ticks down every second
-/// via [HomeController.now].
-class _BonusBadge extends StatelessWidget {
-  const _BonusBadge({required this.remaining});
-
-  final Duration remaining;
-
-  String _mmss(Duration d) {
-    final m = d.inMinutes.toString().padLeft(2, '0');
-    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
-    return '$m:$s';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final athar = context.athar;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: athar.gold.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: athar.gold.withValues(alpha: 0.5)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.bolt_rounded, size: 12, color: athar.gold),
-          const SizedBox(width: 3),
-          Text(
-            'bonus_pill'.trParams({
-              'points': '${HomeController.onTimeBonusPoints}',
-              'time': _mmss(remaining),
-            }),
-            style: context.text.labelSmall?.copyWith(
-              color: athar.gold,
-              fontWeight: FontWeight.w800,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
