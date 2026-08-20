@@ -1,7 +1,7 @@
 name: athar
 description: "Athar (أثر) — offline-first bilingual prayer habit tracker."
 publish_to: 'none'
-version: 1.0.2+2
+version: 1.0.3+3
 
 environment:
   sdk: ">=3.10.7 <4.0.0"
