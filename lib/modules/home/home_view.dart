@@ -7,6 +7,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
+import 'prayer_visual_theme.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -329,49 +330,45 @@ class _PrayerTile extends StatelessWidget {
     final athar = context.athar;
 
     return Obx(() {
-      final busy = controller.marking.value == item.prayerName;
-      final done = item.isCompleted;
+      // ── Source-of-truth booleans (do not duplicate this logic elsewhere) ──
+      final busy   = controller.marking.value == item.prayerName;
+      final done   = item.isCompleted;
       final active = controller.isActive(item.prayerName);
-      final late = item.isLateCompleted;
-      // A prayer is "missed" (tappable as an off-time log) only when its start
-      // time has ALREADY PASSED and its active window is over. Prayers whose
-      // scheduled time hasn't arrived yet must stay locked.
+      final late   = item.isLateCompleted;
       final hasStarted =
           item.time != null && !item.time!.isAfter(controller.now.value);
       final missed = !done && !active && hasStarted;
-
-      // On-time bonus is only meaningful for a not-yet-done, active prayer.
       final bonusLeft = (!done && active)
           ? controller.onTimeBonusRemaining(item.time)
           : null;
+      final bonusEarned = done && item.onTimeBonusAwarded;
+      final isNextUpcoming =
+          !done && controller.nextPrayerKey.value == item.prayerName;
+      // ── Resolve the single visual theme that drives every element ──
+      final theme = resolvePrayerVisualTheme(
+        done: done,
+        late: late,
+        bonusEarned: bonusEarned,
+        bonusAvailable: bonusLeft != null,
+        missed: missed,
+        active: active,
+        isNextUpcoming: isNextUpcoming,
+      );
+      final accent = theme.accent(context);
+      final displayPoints = done ? item.pointsEarned : item.points;
 
-      // Post-completion detection, read from the server's `pointsEarned` so
-      // the badge value/color never disagrees with what was actually credited.
-      final bonusEarned = done &&
-          !late &&
-          item.pointsEarned - item.points >= HomeController.onTimeBonusPoints;
+      // Row tint — neutral (distant future) tiles keep the default card look.
+      final borderColor = theme.tintsRow
+          ? AppColors.primary.withValues(alpha: 0.45)
+          : context.colors.outline.withValues(alpha: 0.3);
+      final bgColor = theme.tintsRow
+          ?  AppColors.primary.withValues(alpha: 0.10)
+          : athar.card;
 
-      // Row visuals — missed (late) completions read as a warm red/orange so
-      // the user sees at a glance the prayer was completed after its window.
-      // Everything else keeps the existing look.
-      final errorTint = context.colors.error;
-      final Color borderColor;
-      final Color bgColor;
-      if (late) {
-        borderColor = errorTint.withValues(alpha: 0.55);
-        bgColor = errorTint.withValues(alpha: 0.10);
-      } else if (done) {
-        borderColor = athar.success.withValues(alpha: 0.4);
-        bgColor = athar.sage.withValues(alpha: 0.22);
-      } else if (missed) {
-        // A missed prayer that hasn't been recorded YET — warn subtly with the
-        // same red/orange family so it primes the user for the late log.
-        borderColor = errorTint.withValues(alpha: 0.35);
-        bgColor = athar.card;
-      } else {
-        borderColor = context.colors.outline.withValues(alpha: 0.3);
-        bgColor = athar.card;
-      }
+      // Text color for name/time — themed when the tile is colored, otherwise
+      // fall back to the body default so distant-future tiles stay readable.
+      final Color? textColor = theme.tintsRow ? accent : null;
+      final timeColor = theme.tintsRow ? accent : athar.textMuted;
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -382,19 +379,19 @@ class _PrayerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // ── حالة الصلاة ──
+            // ── حالة الصلاة (action button/icon) ──
             _TrailingState(
               busy: busy,
+              late: late,
               done: done,
               active: active,
               missed: missed,
-              late: late,
-              bonusEligible: bonusLeft != null,
+              accent: accent,
               item: item,
             ),
             const SizedBox(width: 12),
 
-            // ── اسم الصلاة (+ badge للصلاة خارج الوقت) ──
+            // ── اسم الصلاة (+ label for late / missed sub-state) ──
             Expanded(
               flex: 3,
               child: Column(
@@ -404,9 +401,7 @@ class _PrayerTile extends StatelessWidget {
                     item.prayerName.tr,
                     style: context.text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: late || missed
-                          ? errorTint
-                          : (done ? athar.success : null),
+                      color: textColor,
                     ),
                   ),
                   if (late) ...[
@@ -414,20 +409,30 @@ class _PrayerTile extends StatelessWidget {
                     Text(
                       'performed_outside_time'.tr,
                       style: context.text.labelSmall?.copyWith(
-                        color: errorTint,
+                        color: accent,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ]  else if (missed) ...[
+                  ] else if (missed) ...[
                     const SizedBox(height: 2),
                     Text(
                       'missed_tap_to_log'.tr,
                       style: context.text.labelSmall?.copyWith(
-                        color:errorTint,
+                        color: accent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ] else if (bonusEarned) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      'performed_on_time'.tr,
+                      style: context.text.labelSmall?.copyWith(
+                        color: accent,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],
+
                 ],
               ),
             ),
@@ -440,82 +445,60 @@ class _PrayerTile extends StatelessWidget {
                   DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
                   textAlign: TextAlign.center,
                   style: context.text.bodyMedium?.copyWith(
-                    color: active ? context.colors.primary : athar.textMuted,
+                    color: timeColor,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
 
             // ── النقاط ──
-            // Single points badge — its VALUE and COLOR communicate the
-            // prayer's status, per spec:
-            //   • pending / active            → base `+item.points`, primary
-            //   • active + bonus available    → still base, GOLD (+ ⚡ mm:ss)
-            //   • done on-time (no bonus)     → `+pointsEarned`, green
-            //   • done on-time WITH +10 bonus → `+pointsEarned` (base+10), GOLD
-            //   • done late / Qada (÷2)       → `+pointsEarned` (halved), RED
-            () {
-              final Color pillColor;
-              if (done && late) {
-                pillColor = errorTint;
-              } else if (done && bonusEarned) {
-                pillColor = athar.gold;
-              } else if (done) {
-                pillColor = athar.success;
-              } else if (bonusLeft != null) {
-                pillColor = athar.gold;
-              } else {
-                pillColor = context.colors.primary;
-              }
-              // Show credited points once the server has decided them; the
-              // potential base until then.
-              final displayPoints = done ? item.pointsEarned : item.points;
-
-              return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: pillColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: pillColor.withValues(alpha: 0.35)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (bonusLeft != null) ...[
-                      Icon(Icons.bolt_rounded, size: 18, color: pillColor),
-                      const SizedBox(width: 4),
-                    ],
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
+            // Single points badge — value comes from `pointsEarned` once the
+            // server has credited it (base until then). Color follows the
+            // same [theme] as the row so everything moves together.
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: accent.withValues(alpha: 0.35)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (bonusLeft != null) ...[
+                    Icon(Icons.bolt_rounded, size: 18, color: accent),
+                    const SizedBox(width: 4),
+                  ],
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '+$displayPoints   ${'point'.tr}',
+                        style: context.text.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: accent,
+                        ),
+                      ),
+                      if (bonusLeft != null) ...[
+                        const SizedBox(height: 2),
                         Text(
-                          '+$displayPoints   ${'point'.tr}',
-                          style: context.text.bodySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: pillColor,
+                          'bonus_pill'.trParams({
+                            'points': '${HomeController.onTimeBonusPoints}',
+                            'time': _mmss(bonusLeft),
+                          }),
+                          style: context.text.labelSmall?.copyWith(
+                            color: accent,
+                            fontWeight: FontWeight.w800,
+                            fontFeatures: const [FontFeature.tabularFigures()],
                           ),
                         ),
-                        if (bonusLeft != null) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            'bonus_pill'.trParams({
-                              'points': '${HomeController.onTimeBonusPoints}',
-                              'time': _mmss(bonusLeft),
-                            }),
-                            style: context.text.labelSmall?.copyWith(
-                              color: pillColor,
-                              fontWeight: FontWeight.w800,
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                        ],
                       ],
-                    ),
-                  ],
-                ),
-              );
-            }(),
+                    ],
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -531,64 +514,67 @@ class _PrayerTile extends StatelessWidget {
 class _TrailingState extends StatelessWidget {
   const _TrailingState({
     required this.busy,
+    required this.late,
     required this.done,
     required this.active,
     required this.missed,
-    required this.late,
-    required this.bonusEligible,
+    required this.accent,
     required this.item,
   });
 
   final bool busy;
+  final bool late;
   final bool done;
   final bool active;
   final bool missed;
-  final bool late;
-  final bool bonusEligible;
+  final Color accent; // resolved by PrayerVisualTheme — drives every icon hue
   final PrayerChecklistItem item;
 
   @override
   Widget build(BuildContext context) {
     if (busy) {
-      return const SizedBox(
-          width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2));
-    }
-    if (done) {
-      // Late-completed prayers get the same check but in the "off-time" hue
-      // (red/orange) so the row visually signals both "done" and "outside window".
-      return Icon(
-        Icons.check_circle_rounded,
-        color: late ? Theme.of(context).colorScheme.error : context.athar.success,
-        size: 30,
+      return SizedBox(
+        width: 24,
+        height: 24,
+        child: CircularProgressIndicator(strokeWidth: 2, color: accent),
       );
+    }
+     if (done) {
+      // Completed check inherits the accent so on-time (green) vs bonus (gold)
+      // vs Qada (orange) is signalled by the very same icon color.
+      return Icon(Icons.check_circle_rounded, color: accent, size: 30);
+      return Icon(Icons.check_circle_rounded, color: accent, size: 30);
     }
     final controller = Get.find<HomeController>();
 
     // Both "active" and "missed" prayers are tappable — active opens the
-    // normal confirm dialog, missed opens the missed-prayer dialog. Only
-    // truly-unavailable prayers (shouldn't normally happen for today's list)
-    // fall through to the disabled lock.
+    // normal confirm dialog, missed opens the missed-prayer dialog. Truly
+    // future prayers fall through to the disabled lock (kept muted so the
+    // themed rows next to it read as the actionable ones).
     if (active) {
+      // Bonus preview surfaces a sparkle instead of the plain circle so the
+      // "act now to earn +10" affordance is unmistakable — accent is already
+      // gold in that case per the resolver.
+      final bonusPreview = controller.onTimeBonusRemaining(item.time) != null;
       return GestureDetector(
         onTap: () => controller.mark(item),
         child: Icon(
-          bonusEligible
+          bonusPreview
               ? Icons.auto_awesome_rounded
               : Icons.radio_button_unchecked,
-          color: bonusEligible ? context.athar.gold : context.colors.primary,
+          color: accent,
           size: 30,
         ),
       );
     }
-    if (!done && missed) {
+    if (missed) {
       return GestureDetector(
         onTap: () => controller.mark(item),
-        child: Icon(Icons.history_toggle_off_rounded,
-            color: Theme.of(context).colorScheme.error, size: 30),
+        child: Icon(Icons.history_toggle_off_rounded, color: accent, size: 30),
       );
     }
     return Icon(Icons.lock_outline_rounded,
-        color: context.athar.textMuted, size: 30);
+        color: context.athar.primaryDark, size: 30);
   }
 }
 

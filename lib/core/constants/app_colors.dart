@@ -18,6 +18,7 @@ class AppColors {
 
   // ── Semantic ─────────────────────────────────────────────────────
   static const Color success = Color(0xFF2F8F6B); // completed states
+  static const Color warning = Color(0xFFD18A3D); // warm amber — missed / Qada
   static const Color danger = Color(0xFFC0563B);
 
   // ── Legacy aliases (kept so existing views stay on-brand) ─────────
