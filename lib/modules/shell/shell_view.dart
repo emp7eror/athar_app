@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:upgrader/upgrader.dart';
+
 import '../../core/theme/app_theme.dart';
 import '../home/home_view.dart';
 import '../home/home_binding.dart';
@@ -15,6 +18,10 @@ import '../stats/stats_binding.dart';
 
 class ShellController extends GetxController {
   final index = 0.obs;
+
+  /// Index of the tab we consider "root" for the back-button contract.
+  /// Back from any other tab returns here first; a second back then exits.
+  static const homeTabIndex = 0;
 }
 
 class ShellView extends StatelessWidget {
@@ -33,14 +40,52 @@ class ShellView extends StatelessWidget {
     const pages = [HomeView(), FriendsView(), LeaderboardView(), StatsView(), ProfileView(),
       SettingsView()];
 
-    return Obx(() => Scaffold(
-          extendBody: true,
-          body: IndexedStack(index: c.index.value, children: pages),
-          bottomNavigationBar: _FloatingNavBar(
-            index: c.index.value,
-            onSelected: (i) => c.index.value = i,
+    return Obx(() {
+      // ── Android back-button contract ──
+      // A pushed detail route (e.g. NotificationSettings) is NOT this widget;
+      // Navigator pops it natively before this PopScope ever runs. So here we
+      // only handle the root case:
+      //   * non-home tab → switch to home tab (soft back)
+      //   * home tab     → exit the app
+      final onHome = c.index.value == ShellController.homeTabIndex;
+      return PopScope(
+        canPop: onHome, // let the system pop (→ app exit) only from home
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          if (!onHome) {
+            c.index.value = ShellController.homeTabIndex;
+          } else {
+            // Belt-and-suspenders: on some OEMs canPop:true isn't honored on
+            // the first invocation, so explicitly exit as well.
+            await SystemNavigator.pop();
+          }
+        },
+        // ── Store-based update check via `upgrader` ──
+        // Non-intrusive: dialog only appears when the store reports a newer
+        // version. Language flips with the app locale.
+        child: UpgradeAlert(
+          showIgnore: false,
+          showLater: false,
+          shouldPopScope: () => false,
+          upgrader: Upgrader(
+            messages: UpgraderMessages(
+              code: Get.locale?.languageCode == 'ar' ? 'ar' : 'en',
+            ),
+            // Respect a per-session dedup so we don't nag users who dismissed
+            // the dialog already this launch.
+            durationUntilAlertAgain: const Duration(days: 3),
           ),
-        ));
+          child: Scaffold(
+            extendBody: true,
+            body: IndexedStack(index: c.index.value, children: pages),
+            bottomNavigationBar: _FloatingNavBar(
+              index: c.index.value,
+              onSelected: (i) => c.index.value = i,
+            ),
+          ),
+        ),
+      );
+    });
   }
 }
 

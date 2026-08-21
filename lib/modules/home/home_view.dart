@@ -358,24 +358,28 @@ class _PrayerTile extends StatelessWidget {
       final displayPoints = done ? item.pointsEarned : item.points;
 
       // Row tint — neutral (distant future) tiles keep the default card look.
-      final borderColor = theme.tintsRow
-          ? AppColors.primary.withValues(alpha: 0.45)
-          : context.colors.outline.withValues(alpha: 0.3);
-      final bgColor = theme.tintsRow
-          ?  AppColors.primary.withValues(alpha: 0.10)
-          : athar.card;
+      final borderColor = AppColors.primary.withValues(alpha: 0.45);
+      final bgColor = athar.card;
 
       // Text color for name/time — themed when the tile is colored, otherwise
       // fall back to the body default so distant-future tiles stay readable.
       final Color? textColor = theme.tintsRow ? accent : null;
-      final timeColor = theme.tintsRow ? accent : athar.textMuted;
+      final timeColor = theme.tintsRow ? athar.success : athar.textMuted;
+
+      // The "current" prayer — the one that's in its active window OR the
+      // next up when none is active — earns a thicker, saturated border so
+      // the actionable row pops without relying on color alone.
+      final isCurrent = active;
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: borderColor),
+          border: Border.all(
+            color: isCurrent ? ( (bonusLeft!=null) ?accent: AppColors.primary.withValues(alpha: 0.9)) : borderColor,
+            width: isCurrent ? 2.2 : 1.0,
+          ),
         ),
         child: Row(
           children: [
@@ -401,7 +405,7 @@ class _PrayerTile extends StatelessWidget {
                     item.prayerName.tr,
                     style: context.text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: textColor,
+                      color: accent,
                     ),
                   ),
                   if (late) ...[
@@ -419,6 +423,7 @@ class _PrayerTile extends StatelessWidget {
                       'missed_tap_to_log'.tr,
                       style: context.text.labelSmall?.copyWith(
                         color: accent,
+
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -428,6 +433,7 @@ class _PrayerTile extends StatelessWidget {
                       'performed_on_time'.tr,
                       style: context.text.labelSmall?.copyWith(
                         color: accent,
+
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -445,7 +451,7 @@ class _PrayerTile extends StatelessWidget {
                   DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
                   textAlign: TextAlign.center,
                   style: context.text.bodyMedium?.copyWith(
-                    color: timeColor,
+                    color: accent,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -543,7 +549,6 @@ class _TrailingState extends StatelessWidget {
       // Completed check inherits the accent so on-time (green) vs bonus (gold)
       // vs Qada (orange) is signalled by the very same icon color.
       return Icon(Icons.check_circle_rounded, color: accent, size: 30);
-      return Icon(Icons.check_circle_rounded, color: accent, size: 30);
     }
     final controller = Get.find<HomeController>();
 
@@ -559,9 +564,7 @@ class _TrailingState extends StatelessWidget {
       return GestureDetector(
         onTap: () => controller.mark(item),
         child: Icon(
-          bonusPreview
-              ? Icons.auto_awesome_rounded
-              : Icons.radio_button_unchecked,
+           Icons.radio_button_unchecked,
           color: accent,
           size: 30,
         ),

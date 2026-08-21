@@ -28,6 +28,7 @@ dependencies:
   timezone:
   audioplayers:
   device_info_plus:
+  upgrader:
   share_plus:
   image_picker:
 
