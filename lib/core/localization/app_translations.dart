@@ -150,11 +150,28 @@ class AppTranslations extends Translations {
           'missed_note_label':       'ملاحظة',
           'missed_note_hint':        'أضف ما تشاء...',
           'missed_prayer_recorded':  'تم تسجيل الصلاة الفائتة',
-          'missed_tap_to_log':       'اضغط لتسجيلها كصلاة فائتة',
+          'missed_tap_to_log':       'هل قضيتها؟ سحلها كصلاة فائتة',
           'performed_outside_time':  'أُدّيت خارج وقتها',
           'confirm':                 'تأكيد',
           'prayer_not_started_yet':  'لم يدخل وقت هذه الصلاة بعد',
           'bonus_pill':              '+@points • @time',
+          // ── Leaderboard filters ────────────────────────────────
+          'leaderboard_friends':      'الاصدقاء',
+          'leaderboard_global':    'الكل',
+          // ── Remove friend ──────────────────────────────────────
+          'remove':                  'إزالة',
+          'remove_friend':           'إزالة الصديق',
+          'remove_friend_title':     'إزالة صديق',
+          'remove_friend_msg':       'هل تريد إزالة @name من قائمة أصدقائك؟',
+          'friend_removed':          'تمت إزالة الصديق',
+          // ── Points modifier badges ─────────────────────────────
+          'bonus_awarded_pill':      '+@points',
+          'qada_penalty_pill':       '÷2',
+          // ── Guest / anonymous auth ─────────────────────────────
+          'or':                       'أو',
+          'continue_as_guest':        'المتابعة كضيف',
+          'guest_device_id_error':    'تعذّر قراءة معرّف الجهاز',
+          'guest_login_failed':       'تعذّر الدخول كضيف',
           // ── Post-completion feedback ───────────────────────────
           'prayer_done_ok':               'حسناً',
           'prayer_done_on_time_title':    'أحسنت! حافظت على صلاتك في وقتها 🤍',
@@ -316,6 +333,24 @@ class AppTranslations extends Translations {
           'confirm':                 'Confirm',
           'prayer_not_started_yet':  'This prayer\'s time has not started yet',
           'bonus_pill':              '+@points • @time',
+          // ── Leaderboard filters ────────────────────────────────
+          'leaderboard_last_7':      'Last 7 days',
+          'leaderboard_last_30':     'Last 30 days',
+          'leaderboard_all_time':    'All time',
+          // ── Remove friend ──────────────────────────────────────
+          'remove':                  'Remove',
+          'remove_friend':           'Remove friend',
+          'remove_friend_title':     'Remove friend',
+          'remove_friend_msg':       'Remove @name from your friends?',
+          'friend_removed':          'Friend removed',
+          // ── Points modifier badges ─────────────────────────────
+          'bonus_awarded_pill':      '+@points',
+          'qada_penalty_pill':       '÷2',
+          // ── Guest / anonymous auth ─────────────────────────────
+          'or':                       'or',
+          'continue_as_guest':        'Continue as guest',
+          'guest_device_id_error':    'Could not read device id',
+          'guest_login_failed':       'Guest login failed',
           // ── Post-completion feedback ───────────────────────────
           'prayer_done_ok':               'OK',
           'prayer_done_on_time_title':    'Well done! You kept your prayer on time 🤍',

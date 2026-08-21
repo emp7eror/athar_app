@@ -102,6 +102,29 @@ class FriendsView extends GetView<FriendsController> {
               ),
             ),
             TextButton.icon(onPressed: () => controller.nudge(f), icon: const Icon(Icons.notifications_active, size: 18), label: Text('nudge'.tr)),
+            // Remove-friend affordance — tucked behind an overflow menu so
+            // it's discoverable without competing with the primary "Nudge"
+            // action visually.
+            PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
+              onSelected: (v) {
+                if (v == 'remove') controller.remove(f);
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'remove',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person_remove_outlined,
+                          color: AppColors.danger, size: 20),
+                      const SizedBox(width: 10),
+                      Text('remove_friend'.tr,
+                          style: const TextStyle(color: AppColors.danger)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -139,10 +162,12 @@ class FriendsView extends GetView<FriendsController> {
           Row(
             children: [
               // الكود بأحرف كبيرة مع مسافة بين كل حرف
-              Expanded(
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
                   code.split('').join('  '),
-                  style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 4),
+                  textDirection: TextDirection.ltr,
+                  style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w800, letterSpacing: 1),
                 ),
               ),
               // زر النسخ

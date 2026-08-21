@@ -63,7 +63,7 @@ class AdhanService extends GetxService {
     switch (prayer) {
       case Prayer.fajr:
       // الفجر يبقى مرتبطاً باليوم الحالي دائماً
-        return now.isAfter(todayTimes.fajr) && now.isBefore(todayTimes.sunrise);
+        return now.isAfter(todayTimes.fajr) && now.isBefore(todayTimes.dhuhr);
       case Prayer.dhuhr:
         return now.isAfter(t.dhuhr) && now.isBefore(t.asr);
       case Prayer.asr:

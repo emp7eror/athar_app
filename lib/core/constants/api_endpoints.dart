@@ -4,6 +4,7 @@ class ApiEndpoints {
 
   static const String register = '/auth/register';
   static const String login = '/auth/login';
+  static const String anonymousLogin = '/auth/anonymous';
   static const String logout = '/auth/logout';
   static const String fcmToken = '/auth/fcm-token';
   static const String location = '/user/location';
@@ -14,6 +15,7 @@ class ApiEndpoints {
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';
   static const String respondFriend = '/friends/respond';
+  static const String removeFriend = '/friends/remove';
   static const String nudge = '/friends/nudge';
 
   static const String stats = '/stats';

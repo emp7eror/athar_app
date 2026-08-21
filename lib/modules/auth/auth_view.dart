@@ -55,6 +55,43 @@ class AuthView extends GetView<AuthController> {
                         onPressed: controller.toggleMode,
                         child: Text(controller.isRegister.value ? 'login'.tr : 'register'.tr),
                       ),
+                      const SizedBox(height: 4),
+                      // ── Divider ──
+                      Row(
+                        children: [
+                          const Expanded(child: Divider()),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text('or'.tr,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                    fontSize: 12)),
+                          ),
+                          const Expanded(child: Divider()),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // ── Continue as guest ──
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: controller.loading.value
+                              ? null
+                              : controller.continueAsGuest,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: const BorderSide(color: AppColors.primary),
+                          ),
+                          icon: const Icon(Icons.person_outline,
+                              color: AppColors.primary),
+                          label: Text('continue_as_guest'.tr,
+                              style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ),
                     ])),
               ],
             ),

@@ -22,6 +22,10 @@ class StorageProvider extends GetxService {
   static const _kPrayerSound = 'notif_prayer_sound';
   static const _kReminderSound = 'notif_reminder_sound';
 
+  // ── Leaderboard ──
+  static const _kLeaderboardPeriod = 'leaderboard_period';
+  static const _kLeaderboardScope = 'leaderboard_scope';
+
   String? get token => _box.read(_kToken);
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
 
@@ -49,6 +53,14 @@ class StorageProvider extends GetxService {
 
   String get reminderSoundId => _box.read(_kReminderSound) ?? 'athan_reminder_1';
   set reminderSoundId(String v) => _box.write(_kReminderSound, v);
+
+  /// One of 'all' | '7d' | '30d'. Persists across launches so the last-chosen
+  /// leaderboard scope is restored.
+  String get leaderboardPeriod => _box.read(_kLeaderboardPeriod) ?? 'all';
+  set leaderboardPeriod(String v) => _box.write(_kLeaderboardPeriod, v);
+
+  String get leaderboardScope => _box.read(_kLeaderboardScope) ?? 'global';
+  set leaderboardScope(String v) => _box.write(_kLeaderboardScope, v);
 
   double? get lat => _box.read(_kLat);
   double? get lng => _box.read(_kLng);

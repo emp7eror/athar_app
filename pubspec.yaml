@@ -27,6 +27,7 @@ dependencies:
   flutter_timezone:
   timezone:
   audioplayers:
+  device_info_plus:
   share_plus:
   image_picker:
 

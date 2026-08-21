@@ -12,6 +12,7 @@ import '../constants/app_colors.dart';
 class AtharPalette extends ThemeExtension<AtharPalette> {
   const AtharPalette({
     required this.gold,
+    required this.danger,
     required this.sage,
     required this.beige,
     required this.card,
@@ -22,6 +23,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
   });
 
   final Color gold; // Soft Gold — high-impact accents
+  final Color danger; // Soft Gold — high-impact accents
   final Color sage; // Sage Green — subtle status / success
   final Color beige; // section surface (beige in light, deep green in dark)
   final Color card; // raised surface (white in light, elevated green in dark)
@@ -32,6 +34,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
 
   static const light = AtharPalette(
     gold: AppColors.secondary,
+    danger: AppColors.danger,
     sage: AppColors.sage,
     beige: AppColors.surface,
     card: Colors.white,
@@ -47,6 +50,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
 
   static const dark = AtharPalette(
     gold: AppColors.secondary,
+    danger: AppColors.danger,
     sage: AppColors.sage,
     beige: Color(0xFF1E2C24), // deep green section surface
     card: Color(0xFF243329), // elevated green surface
@@ -63,6 +67,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
   @override
   AtharPalette copyWith({
     Color? gold,
+    Color? danger,
     Color? sage,
     Color? beige,
     Color? card,
@@ -73,6 +78,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
   }) {
     return AtharPalette(
       gold: gold ?? this.gold,
+      danger: gold ?? this.danger,
       sage: sage ?? this.sage,
       beige: beige ?? this.beige,
       card: card ?? this.card,
@@ -88,6 +94,7 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
     if (other is! AtharPalette) return this;
     return AtharPalette(
       gold: Color.lerp(gold, other.gold, t)!,
+      danger: Color.lerp(danger, other.danger, t)!,
       sage: Color.lerp(sage, other.sage, t)!,
       beige: Color.lerp(beige, other.beige, t)!,
       card: Color.lerp(card, other.card, t)!,

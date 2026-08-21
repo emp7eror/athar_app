@@ -345,18 +345,28 @@ class _PrayerTile extends StatelessWidget {
           ? controller.onTimeBonusRemaining(item.time)
           : null;
 
-      // Late completions get a warm accent so they're visually distinct from
-      // on-time completions; missed (yet-to-log) prayers get a muted amber tint.
+      // Post-completion detection, read from the server's `pointsEarned` so
+      // the badge value/color never disagrees with what was actually credited.
+      final bonusEarned = done &&
+          !late &&
+          item.pointsEarned - item.points >= HomeController.onTimeBonusPoints;
+
+      // Row visuals — missed (late) completions read as a warm red/orange so
+      // the user sees at a glance the prayer was completed after its window.
+      // Everything else keeps the existing look.
+      final errorTint = context.colors.error;
       final Color borderColor;
       final Color bgColor;
       if (late) {
-        borderColor = athar.gold.withValues(alpha: 0.55);
-        bgColor = athar.gold.withValues(alpha: 0.10);
+        borderColor = errorTint.withValues(alpha: 0.55);
+        bgColor = errorTint.withValues(alpha: 0.10);
       } else if (done) {
         borderColor = athar.success.withValues(alpha: 0.4);
         bgColor = athar.sage.withValues(alpha: 0.22);
       } else if (missed) {
-        borderColor = athar.gold.withValues(alpha: 0.35);
+        // A missed prayer that hasn't been recorded YET — warn subtly with the
+        // same red/orange family so it primes the user for the late log.
+        borderColor = errorTint.withValues(alpha: 0.35);
         bgColor = athar.card;
       } else {
         borderColor = context.colors.outline.withValues(alpha: 0.3);
@@ -394,8 +404,8 @@ class _PrayerTile extends StatelessWidget {
                     item.prayerName.tr,
                     style: context.text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: late
-                          ? athar.gold
+                      color: late || missed
+                          ? errorTint
                           : (done ? athar.success : null),
                     ),
                   ),
@@ -404,19 +414,19 @@ class _PrayerTile extends StatelessWidget {
                     Text(
                       'performed_outside_time'.tr,
                       style: context.text.labelSmall?.copyWith(
-                        color: athar.gold,
+                        color: errorTint,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ]  else if (missed) ...[
-                    // const SizedBox(height: 2),
-                    // Text(
-                    //   'missed_tap_to_log'.tr,
-                    //   style: context.text.labelSmall?.copyWith(
-                    //     color: athar.gold,
-                    //     fontWeight: FontWeight.w600,
-                    //   ),
-                    // ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'missed_tap_to_log'.tr,
+                      style: context.text.labelSmall?.copyWith(
+                        color:errorTint,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -437,56 +447,75 @@ class _PrayerTile extends StatelessWidget {
               ),
 
             // ── النقاط ──
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: late
-                    ? athar.gold.withValues(alpha: 0.15)
-                    : (done
-                    ? athar.success.withValues(alpha: 0.12)
-                    : context.colors.primary.withValues(alpha: 0.08)),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child:Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (bonusLeft != null) ...[
-                    Icon(Icons.bolt_rounded, size: 22, color: athar.gold),
-                    const SizedBox(width: 4),
-                  ],
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '+${item.points}   ${'point'.tr}',
-                        style: context.text.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: late
-                              ? athar.gold
-                              : (done ? athar.success : context.colors.primary),
-                        ),
-                      ),
-                      if (bonusLeft != null) ...[
-                        const SizedBox(height: 2),
+            // Single points badge — its VALUE and COLOR communicate the
+            // prayer's status, per spec:
+            //   • pending / active            → base `+item.points`, primary
+            //   • active + bonus available    → still base, GOLD (+ ⚡ mm:ss)
+            //   • done on-time (no bonus)     → `+pointsEarned`, green
+            //   • done on-time WITH +10 bonus → `+pointsEarned` (base+10), GOLD
+            //   • done late / Qada (÷2)       → `+pointsEarned` (halved), RED
+            () {
+              final Color pillColor;
+              if (done && late) {
+                pillColor = errorTint;
+              } else if (done && bonusEarned) {
+                pillColor = athar.gold;
+              } else if (done) {
+                pillColor = athar.success;
+              } else if (bonusLeft != null) {
+                pillColor = athar.gold;
+              } else {
+                pillColor = context.colors.primary;
+              }
+              // Show credited points once the server has decided them; the
+              // potential base until then.
+              final displayPoints = done ? item.pointsEarned : item.points;
+
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: pillColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: pillColor.withValues(alpha: 0.35)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (bonusLeft != null) ...[
+                      Icon(Icons.bolt_rounded, size: 18, color: pillColor),
+                      const SizedBox(width: 4),
+                    ],
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
                         Text(
-                          'bonus_pill'.trParams({
-                            'points': '${HomeController.onTimeBonusPoints}',
-                            'time': _mmss(bonusLeft),
-                          }),
+                          '+$displayPoints   ${'point'.tr}',
                           style: context.text.bodySmall?.copyWith(
-                            color: athar.gold,
-                            fontWeight: FontWeight.w800,
-                            fontFeatures: const [FontFeature.tabularFigures()],
+                            fontWeight: FontWeight.w700,
+                            color: pillColor,
                           ),
                         ),
+                        if (bonusLeft != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'bonus_pill'.trParams({
+                              'points': '${HomeController.onTimeBonusPoints}',
+                              'time': _mmss(bonusLeft),
+                            }),
+                            style: context.text.labelSmall?.copyWith(
+                              color: pillColor,
+                              fontWeight: FontWeight.w800,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                    ),
+                  ],
+                ),
+              );
+            }(),
           ],
         ),
       );
@@ -497,6 +526,7 @@ class _PrayerTile extends StatelessWidget {
       '${d.inMinutes.toString().padLeft(2, '0')}:'
           '${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 }
+
 
 class _TrailingState extends StatelessWidget {
   const _TrailingState({
@@ -525,10 +555,10 @@ class _TrailingState extends StatelessWidget {
     }
     if (done) {
       // Late-completed prayers get the same check but in the "off-time" hue
-      // so the row visually signals both "done" and "outside window".
+      // (red/orange) so the row visually signals both "done" and "outside window".
       return Icon(
         Icons.check_circle_rounded,
-        color: late ? context.athar.gold : context.athar.success,
+        color: late ? Theme.of(context).colorScheme.error : context.athar.success,
         size: 30,
       );
     }
@@ -554,7 +584,7 @@ class _TrailingState extends StatelessWidget {
       return GestureDetector(
         onTap: () => controller.mark(item),
         child: Icon(Icons.history_toggle_off_rounded,
-            color: context.athar.gold, size: 30),
+            color: Theme.of(context).colorScheme.error, size: 30),
       );
     }
     return Icon(Icons.lock_outline_rounded,

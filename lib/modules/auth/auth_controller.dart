@@ -1,3 +1,6 @@
+import 'dart:io' show Platform;
+
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -69,4 +72,63 @@ class AuthController extends GetxController {
     } catch (_) {
       // Non-fatal: never block login if FCM/registration hiccups.
     }
-  }}
+  }
+
+  // ── Anonymous / guest login ────────────────────────────────────────
+  /// Continues into the app without a real account. Only the device id is
+  /// sent to the backend, which returns the (existing or newly-provisioned)
+  /// anonymous user tied to this device. Hydrates the local session exactly
+  /// like a normal login so downstream code is unaware of the difference.
+  Future<void> continueAsGuest() async {
+    if (loading.value) return;
+    loading.value = true;
+    try {
+      final deviceId = await _deviceId();
+      if (deviceId.isEmpty) {
+        AppSnackbar.error('app_name'.tr, 'guest_device_id_error'.tr,
+            position: SnackPosition.BOTTOM);
+        return;
+      }
+
+      final res = await _api.anonymousLogin(deviceId);
+      final token = res['token'];
+      final user = res['user'];
+      if (token is! String || token.isEmpty || user is! Map) {
+        AppSnackbar.error('app_name'.tr, 'guest_login_failed'.tr,
+            position: SnackPosition.BOTTOM);
+        return;
+      }
+      _storage.token = token;
+      _storage.cachedUser = Map<String, dynamic>.from(user);
+
+      await _registerFcmToken();
+      try {
+        await Get.find<LocationService>().refreshFromDevice();
+      } catch (_) {/* non-fatal */}
+
+      Get.offAllNamed('/home');
+    } on ApiException catch (e) {
+      AppSnackbar.error('app_name'.tr, e.message,
+          position: SnackPosition.BOTTOM);
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  /// Best-available stable per-install device identifier. Android's
+  /// `androidId` (SSAID) survives app reinstall; iOS's `identifierForVendor`
+  /// survives reinstall as long as any app from the same vendor stays
+  /// installed. Both are fine as backend correlation keys for a guest.
+  Future<String> _deviceId() async {
+    final info = DeviceInfoPlugin();
+    if (Platform.isAndroid) {
+      final a = await info.androidInfo;
+      return a.id;
+    }
+    if (Platform.isIOS) {
+      final i = await info.iosInfo;
+      return i.identifierForVendor ?? '';
+    }
+    return '';
+  }
+}

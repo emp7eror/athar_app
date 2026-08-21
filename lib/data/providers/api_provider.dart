@@ -30,6 +30,12 @@ class ApiProvider {
   Future<Map<String, dynamic>> login(String email, String password) async =>
       _unwrap(await _dio.post(ApiEndpoints.login, data: {'email': email, 'password': password}));
 
+  /// Guest / "continue without account" login. Backend keys the user by
+  /// [deviceId] so tapping this again on the same device returns the same
+  /// user instead of creating a duplicate.
+  Future<Map<String, dynamic>> anonymousLogin(String deviceId) async =>
+      _unwrap(await _dio.post(ApiEndpoints.anonymousLogin, data: {'device_id': deviceId}));
+
   Future<void> logout() async => _dio.post(ApiEndpoints.logout);
 
   Future<Map<String, dynamic>> getProfile() async =>
@@ -108,11 +114,24 @@ class ApiProvider {
 
   Future<void> nudge(int friendId) async => _dio.post(ApiEndpoints.nudge, data: {'friend_id': friendId});
 
+  /// Remove an accepted friend. Backend should accept either the friendship id
+  /// or the friend user id — we send both to be safe.
+  Future<Map<String, dynamic>> removeFriend(int friendId) async =>
+      _unwrap(await _dio.post(ApiEndpoints.removeFriend, data: {'friend_id': friendId}));
+
   // --- Analytics ---
   Future<Map<String, dynamic>> stats(String tz) async => _unwrap(await _dio.get(ApiEndpoints.stats, queryParameters: {'timezone': tz}));
 
-  Future<Map<String, dynamic>> leaderboard({String tab = 'points', String scope = 'global'}) async =>
-      _unwrap(await _dio.get(ApiEndpoints.leaderboard, queryParameters: {'tab': tab, 'scope': scope}));
+  Future<Map<String, dynamic>> leaderboard({
+    String tab = 'points',
+    String scope = 'global',
+    String period = 'all', // 'all' | '7d' | '30d'
+  }) async =>
+      _unwrap(await _dio.get(ApiEndpoints.leaderboard, queryParameters: {
+        'tab': tab,
+        'scope': scope,
+        'period': period,
+      }));
 
   Future<Map<String, dynamic>> randomQuote() async => _unwrap(await _dio.get(ApiEndpoints.randomQuote));
 }
