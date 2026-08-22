@@ -2,6 +2,8 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
+import '../utils/error_reporter.dart';
+
 /// In-app sound effects (distinct from OS notification sounds).
 ///
 /// Currently just the completion chime played when a prayer is marked done.
@@ -24,6 +26,8 @@ class SoundService extends GetxService {
       await _player.stop(); // avoid overlap if tapped rapidly
       await _player.play(AssetSource(assetPath));
     } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       debugPrint('SoundService: could not play $assetPath — $e');
     }
   }

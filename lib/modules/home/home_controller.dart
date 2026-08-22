@@ -11,6 +11,7 @@ import '../../core/services/adhan_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/prayer_notification_scheduler.dart';
 import '../../core/services/sound_service.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
@@ -101,6 +102,8 @@ class HomeController extends GetxController {
           .toList();
       pointsToday.value = res['points_today'] ?? 0;
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('app_name'.tr, e.message);
     }
   }
@@ -110,7 +113,9 @@ class HomeController extends GetxController {
       final q = await _api.randomQuote();
       quote.value = q['text'] ?? '';
       quoteSource.value = q['source'] ?? '';
-    } catch (_) {
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       /* non-critical */
     }
   }
@@ -164,11 +169,16 @@ class HomeController extends GetxController {
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
       try {
         await _sound.playPrayerDone(); // completion chime
-      } catch (_) {}
+      } catch (e) {
+        ErrorReporter.report(e, StackTrace.current);
+
+      }
       await _loadToday();
       // Motivational feedback shown only AFTER the API save + reload succeed.
       await PrayerDoneDialog.showOnTime();
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('app_name'.tr, e.message);
     } finally {
       marking.value = '';
@@ -199,10 +209,13 @@ class HomeController extends GetxController {
       if (res['level'] is Map) level.value = LevelInfo.fromJson(res['level']);
       try {
         await _sound.playPrayerDone();
-      } catch (_) {}
+      } catch (e) {ErrorReporter.report(e, StackTrace.current);
+      }
       await _loadToday(); // reactive checklist now shows it as done + outside-time
       await PrayerDoneDialog.showOutsideTime();
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       // Failure path: intentionally do NOT touch checklist / points state.
       AppSnackbar.error('app_name'.tr, e.message);
     } finally {
@@ -221,6 +234,8 @@ class HomeController extends GetxController {
       _storage.locationSetBefore = true;
       AppSnackbar.show('app_name'.tr, 'location_updated'.tr);
     } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('app_name'.tr, (e is String ? e : 'location_error').tr);
     } finally {
       updatingLocation.value = false;

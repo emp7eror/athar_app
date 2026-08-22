@@ -44,7 +44,7 @@ class PrayerChecklistItem {
     pointsEarned: pointsEarned,
     isCompleted: isCompleted ?? this.isCompleted,
     performedOutsideTime: performedOutsideTime ?? this.performedOutsideTime,
-    onTimeBonusAwarded: onTimeBonusAwarded ?? this.onTimeBonusAwarded,
+    onTimeBonusAwarded: onTimeBonusAwarded ,
     completedAt: completedAt,
     time: time ?? this.time,
   );

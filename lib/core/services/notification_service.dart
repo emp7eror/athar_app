@@ -8,6 +8,7 @@ import 'package:timezone/timezone.dart' as tz;
 
 import '../../data/providers/storage_provider.dart';
 import '../constants/notification_sounds.dart';
+import '../utils/error_reporter.dart';
 
 /// Whether the OS will actually deliver a notification we post right now.
 enum NotifStatus {
@@ -71,7 +72,9 @@ class NotificationService extends GetxService {
     try {
       final name = (await FlutterTimezone.getLocalTimezone()).identifier;
       tz.setLocalLocation(tz.getLocation(name));
-    } catch (_) {
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       // Fall back to UTC rather than crashing scheduling.
       tz.setLocalLocation(tz.getLocation('Etc/UTC'));
     }

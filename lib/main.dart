@@ -13,6 +13,7 @@ import 'core/localization/localization_controller.dart';
 import 'core/services/prayer_notification_scheduler.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'core/utils/error_reporter.dart';
 import 'firebase_options.dart';
 import 'modules/auth/auth_view.dart';
 import 'modules/auth/auth_binding.dart';
@@ -31,6 +32,7 @@ Future<void> _bgHandler(RemoteMessage message) async {
 }
 
 Future<void> main() async {
+  ErrorReporter.init();
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

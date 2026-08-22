@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
@@ -51,6 +52,8 @@ class ProfileController extends GetxController {
       editing.value = false;
       AppSnackbar.show('profile'.tr, 'profile_updated'.tr);
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('profile'.tr, e.message);
     } finally {
       loading.value = false;
@@ -76,6 +79,8 @@ class ProfileController extends GetxController {
       user.value = UserModel.fromJson(updated);
       AppSnackbar.show('profile'.tr, 'avatar_updated'.tr);
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('profile'.tr, e.message);
     } finally {
       uploading.value = false;

@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 
@@ -41,6 +42,8 @@ class StatsController extends GetxController {
       maxStreak.value = s['max_streak'] ?? 0;
       totalPoints.value = s['total_points'] ?? 0;
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('stats'.tr, e.message);
     } finally {
       loading.value = false;

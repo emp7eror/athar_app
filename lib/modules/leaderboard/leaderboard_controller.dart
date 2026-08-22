@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/leaderboard_model.dart';
 import '../../data/providers/api_provider.dart';
@@ -53,6 +54,8 @@ void switchScope(String p) {
           (res['rankings'] as List).map((e) => LeaderboardEntry.fromJson(e)).toList();
       me.value = res['me'] is Map ? LeaderboardEntry.fromJson(res['me']) : null;
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('leaderboard'.tr, e.message);
     } finally {
       loading.value = false;

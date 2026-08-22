@@ -363,8 +363,8 @@ class _PrayerTile extends StatelessWidget {
 
       // Text color for name/time — themed when the tile is colored, otherwise
       // fall back to the body default so distant-future tiles stay readable.
-      final Color? textColor = theme.tintsRow ? accent : null;
-      final timeColor = theme.tintsRow ? athar.success : athar.textMuted;
+      // final Color? textColor = theme.tintsRow ? accent : null;
+      // final timeColor = theme.tintsRow ? athar.success : athar.textMuted;
 
       // The "current" prayer — the one that's in its active window OR the
       // next up when none is active — earns a thicker, saturated border so
@@ -560,7 +560,7 @@ class _TrailingState extends StatelessWidget {
       // Bonus preview surfaces a sparkle instead of the plain circle so the
       // "act now to earn +10" affordance is unmistakable — accent is already
       // gold in that case per the resolver.
-      final bonusPreview = controller.onTimeBonusRemaining(item.time) != null;
+      // final bonusPreview = controller.onTimeBonusRemaining(item.time) != null;
       return GestureDetector(
         onTap: () => controller.mark(item),
         child: Icon(

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile, Response;
 import '../../core/constants/api_endpoints.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/utils/error_reporter.dart';
 
 /// Central typed access to the Laravel API. Returns decoded maps; controllers
 /// map them into models. Throws [ApiException] on non-2xx for uniform handling.
@@ -134,4 +135,28 @@ class ApiProvider {
       }));
 
   Future<Map<String, dynamic>> randomQuote() async => _unwrap(await _dio.get(ApiEndpoints.randomQuote));
+
+  Future<void> logError({
+    required String error,
+    String? stack,
+    String? platform,
+    String? appVersion,
+    String? device,
+    String? route,
+  }) async {
+    try {
+      await _dio.post('/errors/log', data: {
+        'error':       error.length > 500 ? error.substring(0, 500) : error,
+        'stack':        stack != null && stack.length > 5000
+            ? stack.substring(0, 5000)
+            : stack,
+        'platform':    platform,
+        'app_version': appVersion,
+        'device':      device,
+        'route':       route,
+      });
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+    }
+  }
 }

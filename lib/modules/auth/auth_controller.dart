@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/services/location_service.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
@@ -25,6 +26,7 @@ class AuthController extends GetxController {
   void toggleMode() => isRegister.toggle();
 
   Future<void> submit() async {
+    if (loading.value) return;
     loading.value = true;
     try {
       final Map<String, dynamic> res = isRegister.value
@@ -42,14 +44,21 @@ class AuthController extends GetxController {
       // Best-effort: grab location so prayer times are correct on first load.
       try {
         await Get.find<LocationService>().refreshFromDevice();
-      } catch (_) {
+      } catch (e) {
+        ErrorReporter.report(e, StackTrace.current);
         // Non-fatal — user can set it from Home; Adhan falls back to Makkah.
       }
-      
+
+      // IMPORTANT: reset loading BEFORE navigation. `Get.offAllNamed` triggers
+      // this controller's onClose(), which disposes the TextEditingControllers.
+      // Any subsequent Obx rebuild (from setting loading here after nav) would
+      // then read disposed controllers and throw.
+      loading.value = false;
       Get.offAllNamed('/home');
     } on ApiException catch (e) {
-      AppSnackbar.error('app_name'.tr, e.message, position: SnackPosition.BOTTOM);
-    } finally {
+      ErrorReporter.report(e, StackTrace.current);
+      AppSnackbar.error('app_name'.tr, e.message,
+          position: SnackPosition.BOTTOM);
       loading.value = false;
     }
   }
@@ -69,7 +78,9 @@ class AuthController extends GetxController {
     try {
       final t = await FirebaseMessaging.instance.getToken();
       if (t != null) await _api.updateFcmToken(t);
-    } catch (_) {
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       // Non-fatal: never block login if FCM/registration hiccups.
     }
   }
@@ -87,6 +98,7 @@ class AuthController extends GetxController {
       if (deviceId.isEmpty) {
         AppSnackbar.error('app_name'.tr, 'guest_device_id_error'.tr,
             position: SnackPosition.BOTTOM);
+        loading.value = false;
         return;
       }
 
@@ -96,6 +108,7 @@ class AuthController extends GetxController {
       if (token is! String || token.isEmpty || user is! Map) {
         AppSnackbar.error('app_name'.tr, 'guest_login_failed'.tr,
             position: SnackPosition.BOTTOM);
+        loading.value = false;
         return;
       }
       _storage.token = token;
@@ -104,13 +117,21 @@ class AuthController extends GetxController {
       await _registerFcmToken();
       try {
         await Get.find<LocationService>().refreshFromDevice();
-      } catch (_) {/* non-fatal */}
+      } catch (e) {
+        ErrorReporter.report(e, StackTrace.current);
+        /* non-fatal */
+      }
 
+      // Reset loading BEFORE navigation — `Get.offAllNamed` triggers this
+      // controller's onClose(), which disposes the TextEditingControllers.
+      // Any Obx rebuild caused by setting loading afterwards would read the
+      // disposed controllers and crash.
+      loading.value = false;
       Get.offAllNamed('/home');
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
       AppSnackbar.error('app_name'.tr, e.message,
           position: SnackPosition.BOTTOM);
-    } finally {
       loading.value = false;
     }
   }

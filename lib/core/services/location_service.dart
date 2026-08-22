@@ -2,6 +2,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../data/providers/api_provider.dart';
+import '../utils/error_reporter.dart';
 
 /// Resolves and persists coordinates used by AdhanService. A real build would
 /// use the `geolocator` package here; this keeps the integration point clean
@@ -22,19 +23,51 @@ class LocationService extends GetxService {
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw 'location_services_disabled';
     }
+
     var perm = await Geolocator.checkPermission();
+
     if (perm == LocationPermission.denied) {
       perm = await Geolocator.requestPermission();
     }
+
     if (perm == LocationPermission.denied ||
         perm == LocationPermission.deniedForever) {
       throw 'location_permission_denied';
     }
-    final Position position = await Geolocator.getCurrentPosition().timeout(
-      const Duration(seconds: 20),
-    );
 
-    return position;
+    // 1. Try to get an accurate/current location.
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(),
+      ).timeout(
+        const Duration(seconds: 8),
+      );
+    } catch (_) {
+      // Continue with fallback.
+    }
+
+    // 2. Try again with lower accuracy.
+    try {
+      return await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.low,
+        ),
+      ).timeout(
+        const Duration(seconds: 8),
+      );
+    } catch (_) {
+      // Continue with last known location.
+    }
+
+    // 3. Use the last known location, even if it is not accurate.
+    final lastKnown = await Geolocator.getLastKnownPosition();
+
+    if (lastKnown != null) {
+      return lastKnown;
+    }
+
+    // 4. Nothing available.
+    throw 'location_unavailable';
   }
 
   Future<void> saveCoordinates(double lat, double lng) async {
@@ -46,7 +79,9 @@ class LocationService extends GetxService {
       if (city != null) {
         storage.saveCity(city['name_ar'] as String?, city['name_en'] as String?);
       }
-    } catch (_) {
+    } catch (e) {
+
+      ErrorReporter.report(e, StackTrace.current);
       // Offline-first: coords are cached locally regardless of sync success.
     }
   }

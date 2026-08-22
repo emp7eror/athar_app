@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/models/friend_model.dart';
@@ -26,6 +27,8 @@ class FriendsController extends GetxController {
       pending.value =
           (res['pending_incoming'] as List).map((e) => PendingRequest.fromJson(e)).toList();
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('friends'.tr, e.message);
     } finally {
       loading.value = false;
@@ -41,6 +44,8 @@ class FriendsController extends GetxController {
       AppSnackbar.show('friends'.tr, 'add_friend'.tr, position: SnackPosition.BOTTOM);
       await load();
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('friends'.tr, e.message, position: SnackPosition.BOTTOM);
     }
   }
@@ -50,6 +55,8 @@ class FriendsController extends GetxController {
       await _api.respond(friendshipId, action);
       await load();
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('friends'.tr, e.message);
     }
   }
@@ -59,6 +66,8 @@ class FriendsController extends GetxController {
       await _api.nudge(f.id);
       AppSnackbar.show('nudge'.tr, f.name, position: SnackPosition.BOTTOM);
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('nudge'.tr, e.message, position: SnackPosition.BOTTOM);
     }
   }
@@ -93,6 +102,8 @@ class FriendsController extends GetxController {
       AppSnackbar.show('friends'.tr, 'friend_removed'.tr,
           position: SnackPosition.BOTTOM);
     } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+
       AppSnackbar.error('friends'.tr, e.message,
           position: SnackPosition.BOTTOM);
     }

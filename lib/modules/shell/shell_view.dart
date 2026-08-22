@@ -172,12 +172,12 @@ class _NavItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(icon, size: 22, color: selected ? Colors.white : muted),
+            Icon(icon, size: 20, color: selected ? Colors.white : muted),
             if (selected) ...[
               const SizedBox(width: 8),
               Text(
                 label,
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(color: Colors.white),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(color: Colors.white,fontWeight: FontWeight.bold),
               ),
             ],
           ],
