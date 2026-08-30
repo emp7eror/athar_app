@@ -11,11 +11,9 @@ class LeaderboardController extends GetxController {
 
   final rankings = <LeaderboardEntry>[].obs;
   final me = Rxn<LeaderboardEntry>();
-  final tab = 'points'.obs; // points | streak
-  // Rolling window applied to the leaderboard. Restored from storage so the
-  // choice survives navigation, tab switches, and app restarts.
-  final period = 'all'.obs; // all | 7d | 30d
-  final scope = 'global'.obs; // all | 7d | 30d
+  // Rankings are always based on the server-maintained monthly score.
+  final period = 'current_month'.obs; // current_month | all
+  final scope = 'global'.obs; // global | friends
   final loading = false.obs;
 
   @override
@@ -26,12 +24,6 @@ class LeaderboardController extends GetxController {
     load();
   }
 
-  void switchTab(String t) {
-    if (tab.value == t) return;
-    tab.value = t;
-    load();
-  }
-
   void switchPeriod(String p) {
     if (period.value == p) return;
     period.value = p;
@@ -39,7 +31,7 @@ class LeaderboardController extends GetxController {
     load();
   }
 
-void switchScope(String p) {
+  void switchScope(String p) {
     if (scope.value == p) return;
     scope.value = p;
     _store.leaderboardScope = p;
@@ -49,7 +41,7 @@ void switchScope(String p) {
   Future<void> load() async {
     loading.value = true;
     try {
-      final res = await _api.leaderboard(tab: tab.value,scope: scope.value, period: period.value);
+      final res = await _api.leaderboard(scope: scope.value, period: period.value);
       rankings.value =
           (res['rankings'] as List).map((e) => LeaderboardEntry.fromJson(e)).toList();
       me.value = res['me'] is Map ? LeaderboardEntry.fromJson(res['me']) : null;

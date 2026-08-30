@@ -124,9 +124,9 @@ class ApiProvider {
   Future<Map<String, dynamic>> stats(String tz) async => _unwrap(await _dio.get(ApiEndpoints.stats, queryParameters: {'timezone': tz}));
 
   Future<Map<String, dynamic>> leaderboard({
-    String tab = 'points',
+    String tab = 'score',
     String scope = 'global',
-    String period = 'all', // 'all' | '7d' | '30d'
+    String period = 'current_month', // 'current_month' | 'all'
   }) async =>
       _unwrap(await _dio.get(ApiEndpoints.leaderboard, queryParameters: {
         'tab': tab,

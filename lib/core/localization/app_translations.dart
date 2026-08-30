@@ -159,6 +159,8 @@ class AppTranslations extends Translations {
           // ── Leaderboard filters ────────────────────────────────
           'leaderboard_friends':      'الاصدقاء',
           'leaderboard_global':    'الكل',
+          'leaderboard_current_month': 'الشهر الحالي',
+          'leaderboard_all_time': 'كل الوقت',
           // ── Remove friend ──────────────────────────────────────
           'remove':                  'إزالة',
           'remove_friend':           'إزالة الصديق',
@@ -336,8 +338,7 @@ class AppTranslations extends Translations {
           'prayer_not_started_yet':  'This prayer\'s time has not started yet',
           'bonus_pill':              '+@points • @time',
           // ── Leaderboard filters ────────────────────────────────
-          'leaderboard_last_7':      'Last 7 days',
-          'leaderboard_last_30':     'Last 30 days',
+          'leaderboard_current_month': 'Current month',
           'leaderboard_all_time':    'All time',
           // ── Remove friend ──────────────────────────────────────
           'remove':                  'Remove',

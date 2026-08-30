@@ -20,7 +20,7 @@ class LevelInfo {
 class UserModel {
   final int id;
   final String name, email, userCode;
-  final int age, totalPoints, currentStreak, maxStreak;
+  final int age, totalPoints, score, currentStreak, maxStreak;
   final double? lat, lng;
   final String? avatarPath;
   final LevelInfo? level;
@@ -32,6 +32,7 @@ class UserModel {
     required this.userCode,
     required this.age,
     required this.totalPoints,
+    required this.score,
     required this.currentStreak,
     required this.maxStreak,
     this.lat,
@@ -47,6 +48,7 @@ class UserModel {
     userCode: j['user_code'] ?? '',
     age: j['age'] ?? 0,
     totalPoints: j['total_points'] ?? 0,
+    score: j['score'] ?? 0,
     currentStreak: j['current_streak'] ?? 0,
     maxStreak: j['max_streak'] ?? 0,
     lat: double.tryParse(j['lat']?.toString() ?? ''),

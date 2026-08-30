@@ -54,9 +54,12 @@ class StorageProvider extends GetxService {
   String get reminderSoundId => _box.read(_kReminderSound) ?? 'athan_reminder_1';
   set reminderSoundId(String v) => _box.write(_kReminderSound, v);
 
-  /// One of 'all' | '7d' | '30d'. Persists across launches so the last-chosen
-  /// leaderboard scope is restored.
-  String get leaderboardPeriod => _box.read(_kLeaderboardPeriod) ?? 'all';
+  /// One of 'current_month' | 'all'. Old rolling-window selections are
+  /// migrated to the current-month score ranking.
+  String get leaderboardPeriod {
+    final value = _box.read(_kLeaderboardPeriod) as String?;
+    return value == 'all' || value == 'current_month' ? value! : 'current_month';
+  }
   set leaderboardPeriod(String v) => _box.write(_kLeaderboardPeriod, v);
 
   String get leaderboardScope => _box.read(_kLeaderboardScope) ?? 'global';
