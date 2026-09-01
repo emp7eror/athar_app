@@ -24,11 +24,25 @@ class ProfileController extends GetxController {
   void onInit() {
     super.onInit();
     _loadUser();
+    _refreshUser();
   }
 
   void _loadUser() {
     final cached = _storage.cachedUser;
     if (cached != null) user.value = UserModel.fromJson(cached);
+  }
+
+  /// Pulls the latest profile from the server so monthly-reset fields
+  /// (score / last_score / best_score) don't show stale cached values.
+  Future<void> _refreshUser() async {
+    try {
+      final res = await _api.getProfile();
+      final data = res['user'] as Map<String, dynamic>;
+      _storage.cachedUser = data;
+      user.value = UserModel.fromJson(data);
+    } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+    }
   }
 
   void startEdit() {

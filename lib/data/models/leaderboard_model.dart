@@ -1,7 +1,7 @@
 import 'user_model.dart';
 
 class LeaderboardEntry {
-  final int rank, id, score, currentStreak, maxStreak;
+  final int rank, id, score, totalPoints, currentStreak, maxStreak;
   final String name, userCode;
   final String? avatarPath;
   final LevelInfo? level;
@@ -12,6 +12,7 @@ class LeaderboardEntry {
     required this.name,
     required this.userCode,
     required this.score,
+    required this.totalPoints,
     required this.currentStreak,
     required this.maxStreak,
     this.avatarPath,
@@ -24,6 +25,7 @@ class LeaderboardEntry {
         name: j['name'] ?? '',
         userCode: j['user_code'] ?? '',
         score: j['score'] ?? 0,
+        totalPoints: j['total_points'] ?? 0,
         currentStreak: j['current_streak'] ?? 0,
         maxStreak: j['max_streak'] ?? 0,
         avatarPath: j['avatar_path'],

@@ -93,12 +93,22 @@ class ProfileView extends GetView<ProfileController> {
     final u          = controller.user.value;
     final isAr       = Get.locale?.languageCode == 'ar';
     final levelTitle = isAr ? u?.level?.titleAr : u?.level?.titleEn;
-    return Row(children: [
-      _statChip(context, Icons.star,                 '${u?.totalPoints ?? 0}',    'points'.tr),
-      const SizedBox(width: 10),
-      _statChip(context, Icons.local_fire_department,'${u?.currentStreak ?? 0}',  'streak'.tr),
-      const SizedBox(width: 10),
-      _statChip(context, Icons.emoji_events,          levelTitle ?? '-',           'level'.tr),
+    return Column(children: [
+      Row(children: [
+        _statChip(context, Icons.star,                 '${u?.totalPoints ?? 0}',    'points'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.local_fire_department,'${u?.currentStreak ?? 0}',  'streak'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.emoji_events,          levelTitle ?? '-',           'level'.tr),
+      ]),
+      const SizedBox(height: 10),
+      Row(children: [
+        _statChip(context, Icons.calendar_month,        '${u?.score ?? 0}',         'current_month_score'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.history,                '${u?.lastScore ?? 0}',    'last_month_score'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.military_tech,          '${u?.bestScore ?? 0}',    'best_score'.tr),
+      ]),
     ]);
   }
 

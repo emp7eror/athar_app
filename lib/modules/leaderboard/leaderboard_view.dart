@@ -59,7 +59,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: controller.rankings.length,
-                    itemBuilder: (_, i) => _row(controller.rankings[i], isAr),
+                    itemBuilder: (_, i) => _row(
+                      controller.rankings[i],
+                      isAr,
+                      controller.period.value == 'all',
+                    ),
                   ),
                 );
               }),
@@ -113,9 +117,9 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  Widget _row(LeaderboardEntry e, bool isAr) {
+  Widget _row(LeaderboardEntry e, bool isAr, bool allTime) {
     final isMe   = e.id == myId;
-    final metric = '${e.score}';
+    final metric = '${allTime ? e.totalPoints : e.score}';
     final title = e.level == null ? '' : (isAr ? e.level!.titleAr : e.level!.titleEn);
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
