@@ -7,6 +7,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/friend_model.dart';
 import '../../data/providers/storage_provider.dart';
+import '../../widgets/framed_avatar.dart';
+import '../profile_preview/profile_preview_modal.dart';
 import 'friends_controller.dart';
 
 class FriendsView extends GetView<FriendsController> {
@@ -61,6 +63,12 @@ class FriendsView extends GetView<FriendsController> {
 
   Widget _pendingTile(PendingRequest r) => Card(
     child: ListTile(
+      leading: FramedAvatar(
+        name: r.name,
+        avatarUrl: r.avatarUrl,
+        frameAsset: r.level?.frame,
+        radius: 20,
+      ),
       title: Text(r.name),
       subtitle: Text(r.userCode),
       trailing: Row(
@@ -87,58 +95,120 @@ class FriendsView extends GetView<FriendsController> {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              backgroundColor: AppColors.primary,
-              child: Text(f.name.isNotEmpty ? f.name[0].toUpperCase() : '?', style: const TextStyle(color: Colors.white)),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            InkWell(
+              onTap: () => openProfilePreview(f.id),
+              child: Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Text(f.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  Text('🔥 ${f.currentStreak}  •  ${f.totalPoints} ${'points'.tr}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                  FramedAvatar(
+                    name: f.name,
+                    avatarUrl: f.avatarUrl,
+                    frameAsset: f.level?.frame,
+                    radius: 15,
+                  ),
+                  // Streak badge, on the avatar instead of the crowded text
+                  // row — only shown once there's actually a streak to show.
+                  if (f.currentStreak > 0)
+                    Positioned(
+                      bottom: -2,
+                      right: -2,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white, width: 1.4),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.local_fire_department_rounded, size: 11, color: Colors.white),
+                            const SizedBox(width: 2),
+                            Text('${f.currentStreak}',
+                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
-            TextButton.icon(onPressed: () => controller.nudge(f), icon: const Icon(Icons.notifications_active, size: 18), label: Text('nudge'.tr)),
-            // Remove-friend affordance — tucked behind an overflow menu so
-            // it's discoverable without competing with the primary "Nudge"
-            // action visually.
-            PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert, color: AppColors.textMuted),
-              onSelected: (v) {
-                if (v == 'remove') controller.remove(f);
-              },
-              itemBuilder: (_) => [
-                PopupMenuItem(
-                  value: 'remove',
-                  child: Row(
+            const SizedBox(width: 12),
+            Expanded(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(f.name,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                      maxLines: 1, overflow: TextOverflow.ellipsis),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.person_remove_outlined,
-                          color: AppColors.danger, size: 20),
-                      const SizedBox(width: 10),
-                      Text('remove_friend'.tr,
-                          style: const TextStyle(color: AppColors.danger)),
+                      Text(
+                        '${f.score}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Transform.translate(
+                        offset: const Offset(0, -3),
+                        child: Icon(
+                          Icons.star_rounded,
+                          size: 17,
+                          color: AppColors.accent,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-              ],
+                  TextButton.icon(
+                    onPressed: () => controller.nudge(f),
+                    icon: const Icon(Icons.notifications_active_rounded, size: 20),
+                    label: Text('nudge'.tr)
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: f.todayProgress.clamp(0, 1),
-            minHeight: 6,
-            backgroundColor: Theme.of(context).colorScheme.outline,
-            color: AppColors.accent,
-          ),
-        ),
+        if (f.todayChecklist.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          _prayerTicksRow(f.todayChecklist),
+        ],
+
+
       ],
     ),
+  );
+
+  /// Small per-prayer tick/cross row — at a glance, which of today's 5
+  /// prayers this friend has completed.
+  Widget _prayerTicksRow(List<PrayerCheckItem> checklist) => Row(
+    children: checklist.map((p) {
+      final done = p.isCompleted;
+      final onTime = p.isOnTime;
+      return Expanded(
+        child: Column(
+          children: [
+            Icon(
+              done ? Icons.check_circle : Icons.circle_outlined,
+              size: 16,
+              color: done ?( onTime?AppColors.secondary :AppColors.success) : AppColors.textMuted.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              p.prayerName.tr,
+              style: TextStyle(
+                fontSize: 9,
+                color: done ? AppColors.textMuted : AppColors.textMuted,
+                fontWeight: done ? FontWeight.w700 : FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList(),
   );
 
   Widget _myCodeCard() {

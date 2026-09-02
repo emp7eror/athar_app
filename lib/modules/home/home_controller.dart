@@ -17,6 +17,7 @@ import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
+import '../level_up/level_up_popup.dart';
 
 class HomeController extends GetxController {
   final _api = Get.find<ApiProvider>();
@@ -64,6 +65,10 @@ class HomeController extends GetxController {
   final avatarUrl = ''.obs;
 
   Timer? _ticker;
+
+  // Guards against a duplicate/stacked popup if two mark-prayer responses
+  // both resolve with level_changed:true in quick succession.
+  bool _levelUpShowing = false;
 
   Future<String> get _tz async {
     final timezone = await FlutterTimezone.getLocalTimezone();
@@ -176,6 +181,7 @@ class HomeController extends GetxController {
       await _loadToday();
       // Motivational feedback shown only AFTER the API save + reload succeed.
       await PrayerDoneDialog.showOnTime();
+      await _maybeShowLevelUp(res);
     } on ApiException catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
@@ -213,6 +219,7 @@ class HomeController extends GetxController {
       }
       await _loadToday(); // reactive checklist now shows it as done + outside-time
       await PrayerDoneDialog.showOutsideTime();
+      await _maybeShowLevelUp(res);
     } on ApiException catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
@@ -271,10 +278,33 @@ class HomeController extends GetxController {
     }
   }
 
+  /// Shows the full-screen celebration popup when [res] (the raw markPrayer
+  /// response) reports a level promotion. Guarded against duplicate/stacked
+  /// popups if multiple mark-prayer calls resolve close together.
+  Future<void> _maybeShowLevelUp(Map<String, dynamic> res) async {
+    if (res['level_changed'] != true || _levelUpShowing) return;
+    final newLevelJson = res['new_level'];
+    if (newLevelJson is! Map) return;
+
+    _levelUpShowing = true;
+    try {
+      await LevelUpPopup.show(
+        name: userName.value,
+        avatarUrl: avatarUrl.value,
+        newLevel: LevelInfo.fromJson(Map<String, dynamic>.from(newLevelJson)),
+        totalPoints: totalPoints.value,
+      );
+    } finally {
+      _levelUpShowing = false;
+    }
+  }
+
   void _loadUserInfo() {
     final u = Get.find<StorageProvider>().cachedUser;
     userName.value = (u?['name'] as String?) ?? '';
     avatarUrl.value = (u?['avatar_url'] as String?) ?? '';
+    if (u?['level'] is Map) level.value = LevelInfo.fromJson(u!['level']);
+    totalPoints.value = (u?['total_points'] as int?) ?? totalPoints.value;
   }
 
   String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

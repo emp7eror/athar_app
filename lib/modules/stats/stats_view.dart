@@ -2,6 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
+import '../../data/models/user_model.dart';
+import '../../data/providers/storage_provider.dart';
+import '../../widgets/level_progress_card.dart';
 import 'stats_controller.dart';
 
 class StatsView extends GetView<StatsController> {
@@ -19,11 +22,9 @@ class StatsView extends GetView<StatsController> {
                   Text('stats'.tr,
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
-                  Row(children: [
-                    _stat(context, '🔥', '${controller.currentStreak.value}', 'streak'.tr),
-                    _stat(context, '🏆', '${controller.maxStreak.value}', 'max_streak'.tr),
-                    _stat(context, '⭐', '${controller.totalPoints.value}', 'points'.tr),
-                  ]),
+                  _statsRow(context),
+                  const SizedBox(height: 16),
+                  LevelProgressCard(level: _cachedUser()?.level),
                   const SizedBox(height: 24),
                    Text('last_7_days'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
@@ -56,20 +57,56 @@ class StatsView extends GetView<StatsController> {
     );
   }
 
-  Widget _stat(BuildContext context, String icon, String value, String label) => Expanded(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(14)),
-          child: Column(children: [
-            Text(icon, style: const TextStyle(fontSize: 22)),
-            Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
-          ]),
-        ),
-      );
+  /// The `/stats` endpoint doesn't carry level/monthly-score data, so this
+  /// (moved here from the Profile page) reads the same cached user object
+  /// the rest of the app already keeps up to date via [StorageProvider].
+  UserModel? _cachedUser() {
+    final u = Get.find<StorageProvider>().cachedUser;
+    return u != null ? UserModel.fromJson(u) : null;
+  }
+
+  Widget _statsRow(BuildContext context) {
+    final u          = _cachedUser();
+    final isAr       = Get.locale?.languageCode == 'ar';
+    final levelTitle = isAr ? u?.level?.titleAr : u?.level?.titleEn;
+    return Column(children: [
+      Row(children: [
+        _statChip(context, Icons.star,                 '${u?.totalPoints ?? 0}',    'points'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.local_fire_department,'${u?.currentStreak ?? 0}',  'streak'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.emoji_events,          levelTitle ?? '-',           'level'.tr),
+      ]),
+      const SizedBox(height: 10),
+      Row(children: [
+        _statChip(context, Icons.calendar_month,        '${u?.score ?? 0}',         'current_month_score'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.history,                '${u?.lastScore ?? 0}',    'last_month_score'.tr),
+        const SizedBox(width: 10),
+        _statChip(context, Icons.military_tech,          '${u?.bestScore ?? 0}',    'best_score'.tr),
+      ]),
+    ]);
+  }
+
+  Widget _statChip(BuildContext context, IconData icon, String value, String label) {
+    final colors = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        decoration: BoxDecoration(
+            color: colors.surface, borderRadius: BorderRadius.circular(14)),
+        child: Column(children: [
+          Icon(icon, color: colors.secondary, size: 20),
+          const SizedBox(height: 4),
+          Text(label, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11)),
+
+          Text(value,
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+              maxLines: 1, overflow: TextOverflow.ellipsis),
+        ]),
+      ),
+    );
+  }
 
   Widget _weeklyChart() {
     final data = controller.weekly;

@@ -1,20 +1,44 @@
 class LevelInfo {
   final int level;
-  final String titleAr, titleEn;
+  final String name, titleAr, titleEn;
+  final int rank;
   final int? nextAt;
   final int pointsToNext;
   final double progress;
 
-  LevelInfo({required this.level, required this.titleAr, required this.titleEn, this.nextAt, this.pointsToNext = 0, this.progress = 0});
+  LevelInfo({
+    required this.level,
+    this.name = '',
+    required this.titleAr,
+    required this.titleEn,
+    int? rank,
+    this.nextAt,
+    this.pointsToNext = 0,
+    this.progress = 0,
+  }) : rank = rank ?? level;
 
   factory LevelInfo.fromJson(Map<String, dynamic> j) => LevelInfo(
-    level: j['level'] ?? 1,
+    // 'id' is the current field name; 'level' is kept as a fallback for
+    // backward compatibility with any cached/older response shape.
+    level: j['id'] ?? j['level'] ?? 1,
+    name: j['name'] ?? '',
     titleAr: j['title_ar'] ?? '',
     titleEn: j['title_en'] ?? '',
+    rank: j['rank'],
     nextAt: j['next_at'],
     pointsToNext: j['points_to_next'] ?? 0,
     progress: (j['progress'] ?? 0).toDouble(),
   );
+
+  /// Localized flat name, preferring the server-provided [name] and falling
+  /// back to picking the right bilingual title for older cached payloads.
+  String displayName(bool isAr) => name.isNotEmpty ? name : (isAr ? titleAr : titleEn);
+
+  /// The level's frame asset, resolved entirely on-device from the bundled
+  /// `assets/frames/` folder — the backend only ever tells us *which* level
+  /// a user is on, never a file path, so this stays correct even against a
+  /// stale cached user object (the numeric level id has always been present).
+  String get frame => 'assets/frames/frame_$level.png';
 }
 
 class UserModel {
@@ -57,7 +81,7 @@ class UserModel {
     maxStreak: j['max_streak'] ?? 0,
     lat: double.tryParse(j['lat']?.toString() ?? ''),
     lng: double.tryParse(j['lng']?.toString() ?? ''),
-    avatarPath: j['avatar_path'],
+    avatarPath: j['avatar_url'],
     level: j['level'] is Map ? LevelInfo.fromJson(j['level']) : null,
   );
 }

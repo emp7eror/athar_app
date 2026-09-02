@@ -9,6 +9,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../data/providers/storage_provider.dart';
 import '../constants/notification_sounds.dart';
 import '../utils/error_reporter.dart';
+import 'notification_router.dart';
 
 /// Whether the OS will actually deliver a notification we post right now.
 enum NotifStatus {
@@ -29,6 +30,7 @@ class NotificationService extends GetxService {
 
   // ── Channel ids ──
   static const nudgeChannelId = 'ATHAR_NUDGE';
+  static const socialChannelId = 'ATHAR_SOCIAL';
   static const _prayerChannelPrefix = 'athar_prayer_';
   static const _reminderChannelPrefix = 'athar_reminder_';
 
@@ -111,6 +113,12 @@ class NotificationService extends GetxService {
       nudgeChannelId,
       'Prayer Nudges',
       description: 'Reminders sent by your friends',
+      importance: Importance.high,
+    ));
+    await a.createNotificationChannel(const AndroidNotificationChannel(
+      socialChannelId,
+      'Friend Activity',
+      description: 'Level-ups and other friend achievements',
       importance: Importance.high,
     ));
   }
@@ -258,19 +266,49 @@ class NotificationService extends GetxService {
     );
   }
 
+  /// Non-interactive social notification (no yes/no/soon action buttons) —
+  /// used for friend-leveled-up pushes rendered while the app is foreground.
+  Future<void> showPlain(String title, String body, {String? payload}) async {
+    if (!await isReady) return;
+    await _plugin.show(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          socialChannelId,
+          'Friend Activity',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      payload: payload,
+    );
+  }
+
   // ── FCM foreground bridge ───────────────────────────────────────────
   // Background & terminated FCM notification messages are rendered by the OS;
-  // in the foreground we render them ourselves so friend reminders are never
-  // swallowed.
+  // in the foreground we render them ourselves so friend reminders (and
+  // friend level-ups) are never swallowed.
   void _bindForegroundMessages() {
     FirebaseMessaging.onMessage.listen((message) {
       final n = message.notification;
       if (n == null) return;
-      showNudge(n.title ?? 'nudge'.tr, n.body ?? '');
+      if (message.data['type'] == 'level_up') {
+        showPlain(n.title ?? 'app_name'.tr, n.body ?? '',
+            payload: 'level_up:${message.data['user_id']}');
+      } else {
+        showNudge(n.title ?? 'nudge'.tr, n.body ?? '');
+      }
     });
   }
 
   void _onAction(NotificationResponse r) {
     debugPrint('Notification action: ${r.actionId} payload=${r.payload}');
+    final payload = r.payload;
+    if (payload == null || !payload.startsWith('level_up:')) return;
+    final id = int.tryParse(payload.substring('level_up:'.length));
+    if (id != null) NotificationRouter.openLevelUpProfile(id);
   }
 }

@@ -16,9 +16,6 @@ class StatsController extends GetxController {
   final dailyPercent = 0.obs;
   final weekly = <WeeklyPoint>[].obs;
   final monthly = <Map<String, dynamic>>[].obs;
-  final currentStreak = 0.obs;
-  final maxStreak = 0.obs;
-  final totalPoints = 0.obs;
 
   String get _tz => DateTime.now().timeZoneName;
 
@@ -37,10 +34,6 @@ class StatsController extends GetxController {
           .map((e) => WeeklyPoint(e['date'], e['completed'] ?? 0, e['points'] ?? 0, e['percent'] ?? 0))
           .toList();
       monthly.value = List<Map<String, dynamic>>.from(res['monthly'] ?? []);
-      final s = res['summary'] ?? {};
-      currentStreak.value = s['current_streak'] ?? 0;
-      maxStreak.value = s['max_streak'] ?? 0;
-      totalPoints.value = s['total_points'] ?? 0;
     } on ApiException catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 

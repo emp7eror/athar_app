@@ -10,6 +10,7 @@ import 'package:get_storage/get_storage.dart';
 import 'core/bindings/initial_binding.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
+import 'core/services/notification_router.dart';
 import 'core/services/prayer_notification_scheduler.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
@@ -49,6 +50,17 @@ Future<void> main() async {
   // Lay out the first batch of prayer notifications. Self-guards on
   // permission, so it's safe even before the user grants it.
   unawaited(Get.find<PrayerNotificationScheduler>().reschedule());
+
+  // Tap routing for a background (app in memory) or cold-started (terminated)
+  // FCM notification tap. Foreground taps are handled separately by
+  // NotificationService's local-notification response callback.
+  FirebaseMessaging.onMessageOpenedApp.listen((message) {
+    NotificationRouter.routeFromData(message.data);
+  });
+  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    NotificationRouter.routeFromData(initialMessage.data);
+  }
 
   runApp(const AtharApp());
 }

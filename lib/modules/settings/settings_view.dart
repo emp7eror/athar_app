@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/localization/localization_controller.dart';
 import '../../core/theme/theme_controller.dart';
+import '../home/home_controller.dart';
 import 'notification_settings_view.dart';
 
 class SettingsView extends StatelessWidget {
@@ -11,6 +12,7 @@ class SettingsView extends StatelessWidget {
   Widget build(BuildContext context) {
     final lang    = Get.find<LocalizationController>();
     final theme   = Get.find<ThemeController>();
+    final home    = Get.find<HomeController>();
     final colors  = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -20,6 +22,29 @@ class SettingsView extends StatelessWidget {
           children: [
             Text('settings'.tr,
                 style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 24),
+
+            _SectionHeader('general'.tr),
+            const SizedBox(height: 12),
+
+            _SettingsTile(
+              icon: Icons.location_on_outlined,
+              title: 'location'.tr,
+              trailing: Obx(() => home.updatingLocation.value
+                  ? const SizedBox(
+                      width: 16, height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(
+                      home.locationLabel.value,
+                      style: TextStyle(
+                          color: colors.primary, fontWeight: FontWeight.w700),
+                      overflow: TextOverflow.ellipsis,
+                    )),
+              onTap: () {
+                if (!home.updatingLocation.value) home.updateLocation();
+              },
+            ),
+
             const SizedBox(height: 24),
 
             _SectionHeader('appearance'.tr),

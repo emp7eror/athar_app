@@ -110,6 +110,12 @@ class ApiProvider {
 
   Future<Map<String, dynamic>> addFriend(String code) async => _unwrap(await _dio.post(ApiEndpoints.addFriend, data: {'user_code': code}));
 
+  Future<Map<String, dynamic>> addFriendById(int userId) async =>
+      _unwrap(await _dio.post(ApiEndpoints.addFriendById, data: {'user_id': userId}));
+
+  Future<Map<String, dynamic>> userProfile(int userId) async =>
+      _unwrap(await _dio.get(ApiEndpoints.userProfile(userId)));
+
   Future<Map<String, dynamic>> respond(int friendshipId, String action) async =>
       _unwrap(await _dio.post(ApiEndpoints.respondFriend, data: {'friendship_id': friendshipId, 'action': action}));
 

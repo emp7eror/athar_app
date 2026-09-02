@@ -31,6 +31,8 @@ dependencies:
   upgrader:
   share_plus:
   image_picker:
+  path_provider:
+  confetti: ^0.7.0
 
 dev_dependencies:
   flutter_lints:
@@ -40,3 +42,4 @@ flutter:
   assets:
     - assets/images/
     - assets/audio/
+    - assets/frames/

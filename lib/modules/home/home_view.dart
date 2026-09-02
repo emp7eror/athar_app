@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/prayer_log_model.dart';
+import '../../widgets/framed_avatar.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
 import 'prayer_visual_theme.dart';
@@ -33,23 +34,26 @@ class HomeView extends GetView<HomeController> {
                       final name      = controller.userName.value;
                       final avatarUrl = controller.avatarUrl.value;
                       return Row(children: [
-                        avatarUrl.isNotEmpty
-                            ? CircleAvatar(
-                            radius: 22,
-                            backgroundImage: NetworkImage(avatarUrl),
-                            backgroundColor: AppColors.primary)
-                            : CircleAvatar(
-                            radius: 22,
-                            backgroundColor: AppColors.primary,
-                            child: Text(
-                              name.isNotEmpty ? name[0].toUpperCase() : '?',
-                              style: const TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-                            )),
+                        FramedAvatar(
+                          name: name,
+                          avatarUrl: avatarUrl,
+                          frameAsset: controller.level.value?.frame,
+                          radius: 13,
+                          backgroundColor: AppColors.primary,
+                        ),
                         const SizedBox(width: 10),
-                        Text(name,
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
+                        Column(
+                          children: [
+                            Text(name,
+                                style: const TextStyle(
+                                    fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
+
+                              Text( controller.level.value!.name,
+                                  style: TextStyle(color: context.athar.textMuted, fontSize: 12)),
+
+                          ],
+                        ), const SizedBox(width: 10),
+
                       ]);
                     }),
                   ),
@@ -67,8 +71,8 @@ class HomeView extends GetView<HomeController> {
                 ],
               ),
 
-              const SizedBox(height: 10),
-              const _LocationChip(),
+              // const SizedBox(height: 10),
+              // Obx(() => LevelProgressCard(level: controller.level.value)),
               const SizedBox(height: 10),
               const _NextPrayerCard(),
               const SizedBox(height: 15),
@@ -115,50 +119,6 @@ class _CircleIconButton extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Location chip
-// ─────────────────────────────────────────────────────────────────────────
-class _LocationChip extends StatelessWidget {
-  const _LocationChip();
-
-  @override
-  Widget build(BuildContext context) {
-    final controller = Get.find<HomeController>();
-    return Obx(
-      () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(30)),
-        child: Row(
-          children: [
-            Icon(Icons.location_on_outlined, size: 18, color: context.colors.primary),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(controller.locationLabel.value, style: context.text.bodySmall, overflow: TextOverflow.ellipsis),
-            ),
-            if (controller.updatingLocation.value)
-              const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-            else
-              InkWell(
-                onTap: controller.updateLocation,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  child: Row(
-                    children: [
-                      Icon(Icons.my_location, size: 16, color: context.colors.primary),
-                      const SizedBox(width: 4),
-                      Text('update_location'.tr, style: context.text.labelSmall?.copyWith(color: context.colors.primary)),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────
 // Hero: next-prayer countdown
 // ─────────────────────────────────────────────────────────────────────────
 class _NextPrayerCard extends StatelessWidget {
@@ -185,10 +145,39 @@ class _NextPrayerCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.mosque_outlined, size: 18, color: athar.gold),
-                  const SizedBox(width: 6),
-                  Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                  Row(
+                    children: [
+                      Icon(Icons.mosque_outlined, size: 18, color: athar.gold),
+                      const SizedBox(width: 6),
+                      Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                    ],
+                  ),
+                  // Tapping the location opens Settings to change it — the
+                  // hero card's own update-location button was removed.
+                  InkWell(
+                    onTap: () => Get.find<ShellController>().index.value = 5,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                      child: Obx(() => Row(
+                        children: [
+                          Icon(Icons.location_on_outlined, size: 15, color: Colors.white.withValues(alpha: 0.85)),
+                          const SizedBox(width: 4),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 96),
+                            child: Text(
+                              controller.locationLabel.value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                            ),
+                          ),
+                        ],
+                      )),
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),

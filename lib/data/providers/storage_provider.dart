@@ -25,6 +25,7 @@ class StorageProvider extends GetxService {
   // ── Leaderboard ──
   static const _kLeaderboardPeriod = 'leaderboard_period';
   static const _kLeaderboardScope = 'leaderboard_scope';
+  static const _kLeaderboardTab = 'leaderboard_tab';
 
   String? get token => _box.read(_kToken);
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
@@ -64,6 +65,9 @@ class StorageProvider extends GetxService {
 
   String get leaderboardScope => _box.read(_kLeaderboardScope) ?? 'global';
   set leaderboardScope(String v) => _box.write(_kLeaderboardScope, v);
+
+  String get leaderboardTab => _box.read(_kLeaderboardTab) ?? 'points';
+  set leaderboardTab(String v) => _box.write(_kLeaderboardTab, v);
 
   double? get lat => _box.read(_kLat);
   double? get lng => _box.read(_kLng);

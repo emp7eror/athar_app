@@ -14,9 +14,12 @@ class ApiEndpoints {
 
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';
+  static const String addFriendById = '/friends/add-by-id';
   static const String respondFriend = '/friends/respond';
   static const String removeFriend = '/friends/remove';
   static const String nudge = '/friends/nudge';
+
+  static String userProfile(int id) => '/users/$id/profile';
 
   static const String stats = '/stats';
   static const String leaderboard = '/leaderboard';

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/providers/storage_provider.dart';
+import '../../widgets/framed_avatar.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -11,32 +12,33 @@ class ProfileView extends GetView<ProfileController> {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: SafeArea(
-        child: Obx(() => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Row(children: [
-              Text('profile'.tr,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-            ]),
-            const SizedBox(height: 24),
-            _avatarCard(context),
-            const SizedBox(height: 16),
-            _statsRow(context),
-            const SizedBox(height: 24),
-            if (controller.editing.value) _editForm(context) else _infoCard(context),
-            const SizedBox(height: 32),
-            OutlinedButton.icon(
-              onPressed: () => _confirmLogout(context),
-              icon: Icon(Icons.logout, color: colors.error),
-              label: Text('logout'.tr,
-                  style: TextStyle(color: colors.error, fontWeight: FontWeight.w700)),
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                side: BorderSide(color: colors.error),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Obx(() => RefreshIndicator(
+          onRefresh: controller.refreshAll,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Row(children: [
+                Text('profile'.tr,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ]),
+              const SizedBox(height: 24),
+              _avatarCard(context),
+              const SizedBox(height: 24),
+              if (controller.editing.value) _editForm(context) else _infoCard(context),
+              const SizedBox(height: 32),
+              OutlinedButton.icon(
+                onPressed: () => _confirmLogout(context),
+                icon: Icon(Icons.logout, color: colors.error),
+                label: Text('logout'.tr,
+                    style: TextStyle(color: colors.error, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(color: colors.error),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         )),
       ),
     );
@@ -69,65 +71,13 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   Widget _avatarWidget(BuildContext context, {double radius = 24}) {
-    final colors    = Theme.of(context).colorScheme;
     final u         = controller.user.value;
     final avatarUrl = (Get.find<StorageProvider>().cachedUser ?? {})['avatar_url'] as String?;
-    if (avatarUrl != null && avatarUrl.isNotEmpty) {
-      return CircleAvatar(
-          radius: radius,
-          backgroundImage: NetworkImage(avatarUrl),
-          backgroundColor: colors.primary);
-    }
-    return CircleAvatar(
+    return FramedAvatar(
+      name: u?.name ?? '',
+      avatarUrl: avatarUrl,
+      frameAsset: u?.level?.frame,
       radius: radius,
-      backgroundColor: colors.primary,
-      child: Text(
-        (u?.name.isNotEmpty == true) ? u!.name[0].toUpperCase() : '?',
-        style: TextStyle(
-            color: colors.onPrimary, fontSize: radius * 0.8, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _statsRow(BuildContext context) {
-    final u          = controller.user.value;
-    final isAr       = Get.locale?.languageCode == 'ar';
-    final levelTitle = isAr ? u?.level?.titleAr : u?.level?.titleEn;
-    return Column(children: [
-      Row(children: [
-        _statChip(context, Icons.star,                 '${u?.totalPoints ?? 0}',    'points'.tr),
-        const SizedBox(width: 10),
-        _statChip(context, Icons.local_fire_department,'${u?.currentStreak ?? 0}',  'streak'.tr),
-        const SizedBox(width: 10),
-        _statChip(context, Icons.emoji_events,          levelTitle ?? '-',           'level'.tr),
-      ]),
-      const SizedBox(height: 10),
-      Row(children: [
-        _statChip(context, Icons.calendar_month,        '${u?.score ?? 0}',         'current_month_score'.tr),
-        const SizedBox(width: 10),
-        _statChip(context, Icons.history,                '${u?.lastScore ?? 0}',    'last_month_score'.tr),
-        const SizedBox(width: 10),
-        _statChip(context, Icons.military_tech,          '${u?.bestScore ?? 0}',    'best_score'.tr),
-      ]),
-    ]);
-  }
-
-  Widget _statChip(BuildContext context, IconData icon, String value, String label) {
-    final colors = Theme.of(context).colorScheme;
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        decoration: BoxDecoration(
-            color: colors.surface, borderRadius: BorderRadius.circular(14)),
-        child: Column(children: [
-          Icon(icon, color: colors.secondary, size: 20),
-          const SizedBox(height: 4),
-          Text(value,
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
-              maxLines: 1, overflow: TextOverflow.ellipsis),
-          Text(label, style: TextStyle(color: colors.onSurfaceVariant, fontSize: 11)),
-        ]),
-      ),
     );
   }
 

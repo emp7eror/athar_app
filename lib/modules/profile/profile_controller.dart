@@ -87,7 +87,6 @@ class ProfileController extends GetxController {
     try {
       final res = await _api.updateAvatar(picked.path);
       final updated = Map<String, dynamic>.from(_storage.cachedUser ?? {});
-      updated['avatar_path'] = res['avatar_path'];
       updated['avatar_url']  = res['avatar_url'];
       _storage.cachedUser = updated;
       user.value = UserModel.fromJson(updated);
@@ -109,4 +108,8 @@ class ProfileController extends GetxController {
 
   @override
   void onClose() { nameCtrl.dispose(); super.onClose(); }
+
+  Future<void> refreshAll() async {
+    await Future.wait([_refreshUser()]);
+  }
 }
