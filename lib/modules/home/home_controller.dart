@@ -91,25 +91,46 @@ class HomeController extends GetxController {
   }
 
   Future<void> _loadToday() async {
+    final now = DateTime.now();
+    final isBeforeFajr = now.isBefore(_adhan.getTodayPrayerTimes().fajr);
+    // قبل الفجر → اجلب أمس، غير ذلك → اليوم
+    final referenceDate = isBeforeFajr ? now.subtract(const Duration(days: 1)) : now;
+    final date = isBeforeFajr ? _formatDate(referenceDate) : null;
+    final times = isBeforeFajr ? _adhan.getTodayPrayerTimes(date: referenceDate) : _adhan.getTodayPrayerTimes();
+
     try {
       final tz = await _tz;
-      final now = DateTime.now();
-      final isBeforeFajr = now.isBefore(_adhan.getTodayPrayerTimes().fajr);
-
-      // قبل الفجر → اجلب أمس، غير ذلك → اليوم
-      final date = isBeforeFajr ? _formatDate(now.subtract(const Duration(days: 1))) : null;
-      final times = isBeforeFajr ? _adhan.getTodayPrayerTimes(date: now.subtract(const Duration(days: 1))) : _adhan.getTodayPrayerTimes();
-
       final res = await _api.todayPrayers(tz, date: date);
       checklist.value = (res['checklist'] as List)
           .map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>))
           .map((item) => item.copyWith(time: _timeFor(item.prayerName, times))) // ← أضف الوقت
           .toList();
       pointsToday.value = res['points_today'] ?? 0;
-    } on ApiException catch (e) {
+    } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
-      AppSnackbar.error('app_name'.tr, e.message);
+      // Prayer times themselves are computed on-device (AdhanService) and
+      // never need the network — only completion/points state does. If the
+      // request failed (most commonly: no internet), fall back to locally
+      // computed times so the app stays usable offline instead of showing a
+      // blank checklist. Server-known completion/points just can't be shown
+      // until the next successful sync.
+      if (checklist.isEmpty) {
+        checklist.value = _adhan.orderedTimes(referenceDate)
+            .map((p) => PrayerChecklistItem(
+                  prayerName: p.key,
+                  points: 0,
+                  pointsEarned: 0,
+                  isCompleted: false,
+                ).copyWith(time: p.time))
+            .toList();
+      }
+
+      if (e is ApiException) {
+        AppSnackbar.error('app_name'.tr, e.message);
+      } else {
+        AppSnackbar.show('app_name'.tr, 'offline_mode_notice'.tr);
+      }
     }
   }
 
@@ -178,6 +199,9 @@ class HomeController extends GetxController {
         ErrorReporter.report(e, StackTrace.current);
 
       }
+      // Prayer's logged — the pre-scheduled "did you pray?" nudges for it
+      // today (at-time + 30-min-after) would otherwise still fire.
+      unawaited(_scheduler.cancelRemindersFor(item.prayerName, occurredOn: item.time));
       await _loadToday();
       // Motivational feedback shown only AFTER the API save + reload succeed.
       await PrayerDoneDialog.showOnTime();
@@ -217,6 +241,7 @@ class HomeController extends GetxController {
         await _sound.playPrayerDone();
       } catch (e) {ErrorReporter.report(e, StackTrace.current);
       }
+      unawaited(_scheduler.cancelRemindersFor(item.prayerName, occurredOn: item.time));
       await _loadToday(); // reactive checklist now shows it as done + outside-time
       await PrayerDoneDialog.showOutsideTime();
       await _maybeShowLevelUp(res);

@@ -120,4 +120,27 @@ class PrayerNotificationScheduler extends GetxService {
 
   /// Remove every prayer notification (e.g. on logout).
   Future<void> cancelAll() => _notif.cancelMany(_allIds);
+
+  /// Cancels the still-pending reminders for one prayer once it's been
+  /// marked complete — otherwise the pre-scheduled "did you pray?" nudges
+  /// (at prayer time, and 30 min after) still fire even though the user
+  /// already logged it. [occurredOn] is the prayer's own date (from its
+  /// scheduled `DateTime`), not necessarily "today" — falls back to today
+  /// if unknown.
+  Future<void> cancelRemindersFor(String prayerKey, {DateTime? occurredOn}) async {
+    final prayerIndex = _prayerKeys.indexOf(prayerKey);
+    if (prayerIndex == -1) return;
+
+    final target = occurredOn ?? DateTime.now();
+    final today = DateTime.now();
+    final dayOffset = DateTime(target.year, target.month, target.day)
+        .difference(DateTime(today.year, today.month, today.day))
+        .inDays;
+    if (dayOffset < 0 || dayOffset >= _daysAhead) return;
+
+    await _notif.cancelMany([
+      _id(dayOffset, prayerIndex, _typePrayer),
+      _id(dayOffset, prayerIndex, _typePost),
+    ]);
+  }
 }

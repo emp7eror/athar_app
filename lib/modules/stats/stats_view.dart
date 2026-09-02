@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/services/coach_insight_engine.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/level_progress_card.dart';
@@ -22,6 +23,8 @@ class StatsView extends GetView<StatsController> {
                   Text('stats'.tr,
                       style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
+                  _coachSection(context),
+                  const SizedBox(height: 24),
                   _statsRow(context),
                   const SizedBox(height: 16),
                   LevelProgressCard(level: _cachedUser()?.level),
@@ -63,6 +66,78 @@ class StatsView extends GetView<StatsController> {
   UserModel? _cachedUser() {
     final u = Get.find<StorageProvider>().cachedUser;
     return u != null ? UserModel.fromJson(u) : null;
+  }
+
+  /// The "personal coach" — a short, prioritized list of insight cards built
+  /// from the last 30 days of actual prayer data (see CoachInsightEngine).
+  /// Wrapped in its own Obx since `controller.insights` loads separately
+  /// from (and isn't covered by) the page-level `loading` flag.
+  Widget _coachSection(BuildContext context) {
+    return Obx(() {
+      final data = controller.insights.value;
+      if (data == null) return const SizedBox.shrink();
+
+      final u = _cachedUser();
+      final cards = CoachInsightEngine.build(
+        data,
+        currentStreak: u?.currentStreak ?? 0,
+        maxStreak: u?.maxStreak ?? 0,
+      );
+      if (cards.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.psychology_rounded, color: Theme.of(context).colorScheme.primary, size: 22),
+            const SizedBox(width: 8),
+            Text('coach_title'.tr, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          ]),
+          const SizedBox(height: 12),
+          for (final c in cards)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: _coachCard(context, c),
+            ),
+        ],
+      );
+    });
+  }
+
+  Widget _coachCard(BuildContext context, CoachInsight c) {
+    final color = switch (c.tone) {
+      CoachTone.positive => AppColors.success,
+      CoachTone.warning => AppColors.warning,
+      CoachTone.info => Theme.of(context).colorScheme.primary,
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withValues(alpha: 0.15), shape: BoxShape.circle),
+            child: Icon(c.icon, color: color, size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(c.title, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: color)),
+                const SizedBox(height: 4),
+                Text(c.message, style: const TextStyle(fontSize: 13, height: 1.4)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _statsRow(BuildContext context) {

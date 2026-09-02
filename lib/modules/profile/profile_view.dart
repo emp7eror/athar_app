@@ -54,7 +54,7 @@ class ProfileView extends GetView<ProfileController> {
             decoration: BoxDecoration(
                 color: colors.primary.withOpacity(0.1), shape: BoxShape.circle),
             child: const Center(child: CircularProgressIndicator(strokeWidth: 2)))
-            : _avatarWidget(context, radius: 50)),
+            : _avatarWidget(context, radius: 40)),
         Positioned(
           bottom: 0, right: 0,
           child: GestureDetector(
@@ -95,8 +95,8 @@ class ProfileView extends GetView<ProfileController> {
         const Divider(height: 24),
         _infoRow(context, Icons.cake_outlined,   'age'.tr,    '${u?.age ?? '-'}'),
         const Divider(height: 24),
-        _infoRow(context, Icons.tag,             'my_code'.tr, u?.userCode ?? '-'),
-        const SizedBox(height: 20),
+        // _infoRow(context, Icons.tag,             'my_code'.tr, u?.userCode ?? '-'),
+        // const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(

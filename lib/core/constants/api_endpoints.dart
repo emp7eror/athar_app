@@ -22,6 +22,7 @@ class ApiEndpoints {
   static String userProfile(int id) => '/users/$id/profile';
 
   static const String stats = '/stats';
+  static const String statsInsights = '/stats/insights';
   static const String leaderboard = '/leaderboard';
   static const String randomQuote = '/quotes/random';
 }
