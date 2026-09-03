@@ -22,11 +22,21 @@ class AuthController extends GetxController {
   final email = TextEditingController();
   final password = TextEditingController();
   final age = TextEditingController();
+  /// Required when registering — drives Arabic grammatical agreement.
+  final gender = Rxn<String>();
 
   void toggleMode() => isRegister.toggle();
 
   Future<void> submit() async {
     if (loading.value) return;
+
+    // Caught here so the user gets a clear message instead of a raw 422 from
+    // the server's `required` rule.
+    if (isRegister.value && gender.value == null) {
+      AppSnackbar.error('app_name'.tr, 'gender_required'.tr);
+      return;
+    }
+
     loading.value = true;
     try {
       final Map<String, dynamic> res = isRegister.value
@@ -35,6 +45,7 @@ class AuthController extends GetxController {
               'email': email.text.trim(),
               'password': password.text,
               'age': int.tryParse(age.text) ?? 0,
+              'gender': gender.value,
             })
           : await _api.login(email.text.trim(), password.text);
 

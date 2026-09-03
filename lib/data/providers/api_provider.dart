@@ -42,10 +42,17 @@ class ApiProvider {
   Future<Map<String, dynamic>> getProfile() async =>
       _unwrap(await _dio.get('/profile'));
 
-  Future<Map<String, dynamic>> updateProfile({String? name, int? age}) async =>
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    int? age,
+    String? email,
+    String? gender,
+  }) async =>
       _unwrap(await _dio.post('/profile', data: {
-        if (name != null) 'name': name,
-        if (age != null)  'age':  age,
+        if (name != null)   'name':   name,
+        if (age != null)    'age':    age,
+        if (email != null)  'email':  email,
+        if (gender != null) 'gender': gender,
       }));
 
   Future<Map<String, dynamic>> updateAvatar(String filePath) async {

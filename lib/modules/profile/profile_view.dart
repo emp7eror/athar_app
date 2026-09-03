@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
+import '../../widgets/gender_selector.dart';
 import 'profile_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -136,6 +137,23 @@ class ProfileView extends GetView<ProfileController> {
           controller: controller.nameCtrl,
           decoration: InputDecoration(labelText: 'name'.tr),
         ),
+        const SizedBox(height: 16),
+        TextField(
+          controller: controller.emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          autocorrect: false,
+          decoration: InputDecoration(labelText: 'email'.tr),
+        ),
+        const SizedBox(height: 16),
+        Text('gender'.tr,
+            style: TextStyle(
+                color: colors.onSurfaceVariant,
+                fontSize: 13, fontWeight: FontWeight.w600)),
+        const SizedBox(height: 8),
+        Obx(() => GenderSelector(
+              value: controller.selectedGender.value,
+              onChanged: (v) => controller.selectedGender.value = v,
+            )),
         const SizedBox(height: 16),
         Text('age'.tr,
             style: TextStyle(

@@ -18,7 +18,9 @@ class ProfileController extends GetxController {
 
   // edit form
   late final nameCtrl = TextEditingController();
+  late final emailCtrl = TextEditingController();
   final selectedAge   = 18.obs;
+  final selectedGender = Rxn<String>();
 
   @override
   void onInit() {
@@ -46,8 +48,10 @@ class ProfileController extends GetxController {
   }
 
   void startEdit() {
-    nameCtrl.text       = user.value?.name ?? '';
-    selectedAge.value   = user.value?.age ?? 18;
+    nameCtrl.text        = user.value?.name ?? '';
+    emailCtrl.text       = user.value?.email ?? '';
+    selectedAge.value    = user.value?.age ?? 18;
+    selectedGender.value = user.value?.gender;
     editing.value       = true;
   }
 
@@ -60,6 +64,8 @@ class ProfileController extends GetxController {
       final res = await _api.updateProfile(
         name: nameCtrl.text.trim(),
         age:  selectedAge.value,
+        email: emailCtrl.text.trim(),
+        gender: selectedGender.value,
       );
       _storage.cachedUser = res['user'] as Map<String, dynamic>;
       user.value = UserModel.fromJson(res['user']);
@@ -107,7 +113,7 @@ class ProfileController extends GetxController {
   }
 
   @override
-  void onClose() { nameCtrl.dispose(); super.onClose(); }
+  void onClose() { nameCtrl.dispose(); emailCtrl.dispose(); super.onClose(); }
 
   Future<void> refreshAll() async {
     await Future.wait([_refreshUser()]);

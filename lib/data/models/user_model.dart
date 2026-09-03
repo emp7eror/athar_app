@@ -45,6 +45,8 @@ class UserModel {
   final int id;
   final String name, email, userCode;
   final int age, totalPoints, score, lastScore, bestScore, currentStreak, maxStreak;
+  /// 'male' | 'female' | null (not set yet). Drives Arabic agreement.
+  final String? gender;
   final double? lat, lng;
   final String? avatarPath;
   final LevelInfo? level;
@@ -55,6 +57,7 @@ class UserModel {
     required this.email,
     required this.userCode,
     required this.age,
+    this.gender,
     required this.totalPoints,
     required this.score,
     required this.lastScore,
@@ -73,6 +76,7 @@ class UserModel {
     email: j['email'] ?? '',
     userCode: j['user_code'] ?? '',
     age: j['age'] ?? 0,
+    gender: j['gender'],
     totalPoints: j['total_points'] ?? 0,
     score: j['score'] ?? 0,
     lastScore: j['last_score'] ?? 0,

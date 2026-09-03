@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/localization/localization_controller.dart';
+import '../../widgets/gender_selector.dart';
 import 'auth_controller.dart';
 
 class AuthView extends GetView<AuthController> {
@@ -32,6 +33,13 @@ class AuthView extends GetView<AuthController> {
                       if (controller.isRegister.value) ...[
                         _field(controller.name, 'name'.tr),
                         _field(controller.age, 'age'.tr, number: true),
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: GenderSelector(
+                            value: controller.gender.value,
+                            onChanged: (v) => controller.gender.value = v,
+                          ),
+                        ),
                       ],
                       _field(controller.email, 'email'.tr),
                       _field(controller.password, 'password'.tr, obscure: true),
