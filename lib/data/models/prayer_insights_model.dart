@@ -40,8 +40,64 @@ class WeekdayStat {
       );
 }
 
-/// Structured 30-day prayer analysis from `GET /stats/insights`. Pure data —
-/// wording/copy is generated client-side by `CoachInsightEngine`.
+/// One coaching card generated and worded server-side.
+class InsightCard {
+  /// One of: positive | warning | info.
+  final String tone;
+  final String title, message;
+
+  InsightCard({required this.tone, required this.title, required this.message});
+
+  factory InsightCard.fromJson(Map<String, dynamic> j) => InsightCard(
+        tone: j['tone'] ?? 'info',
+        title: j['title'] ?? '',
+        message: j['message'] ?? '',
+      );
+}
+
+/// An honorific the coach awarded the user based on this report — e.g.
+/// "المحافظ على الفجر" — with a one-line justification.
+class UserTitle {
+  final String label, reason;
+
+  UserTitle({required this.label, required this.reason});
+
+  factory UserTitle.fromJson(Map<String, dynamic> j) => UserTitle(
+        label: j['label'] ?? '',
+        reason: j['reason'] ?? '',
+      );
+}
+
+/// Ready-to-render coaching section built on the server (see AiInsightService).
+/// Absent when the server has nothing generated — the client then falls back
+/// to its own rule-based cards.
+class InsightSection {
+  final String title;
+  final DateTime? generatedAt;
+  final UserTitle? userTitle;
+  final List<InsightCard> cards;
+
+  InsightSection({
+    required this.title,
+    this.generatedAt,
+    this.userTitle,
+    this.cards = const [],
+  });
+
+  factory InsightSection.fromJson(Map<String, dynamic> j) => InsightSection(
+        title: j['title'] ?? '',
+        generatedAt: DateTime.tryParse('${j['generated_at']}'),
+        userTitle: j['user_title'] is Map
+            ? UserTitle.fromJson(Map<String, dynamic>.from(j['user_title']))
+            : null,
+        cards: (j['cards'] as List? ?? [])
+            .map((e) => InsightCard.fromJson(e as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// Structured 30-day prayer analysis from `GET /stats/insights`, plus the
+/// server-generated [section] when one is available.
 class PrayerInsights {
   final bool insufficientData;
   final int periodDays;
@@ -53,6 +109,7 @@ class PrayerInsights {
   final List<WeekdayStat> weekdayPattern;
   final int? notableWeekday;
   final Map<String, int> reasonCounts;
+  final InsightSection? section;
 
   PrayerInsights({
     required this.insufficientData,
@@ -69,6 +126,7 @@ class PrayerInsights {
     this.weekdayPattern = const [],
     this.notableWeekday,
     this.reasonCounts = const {},
+    this.section,
   });
 
   factory PrayerInsights.fromJson(Map<String, dynamic> j) => PrayerInsights(
@@ -94,5 +152,8 @@ class PrayerInsights {
         //       .entries
         //       .map((e) => MapEntry(e.key, _asInt(e.value))),
         // ),
+        section: j['section'] is Map
+            ? InsightSection.fromJson(Map<String, dynamic>.from(j['section']))
+            : null,
       );
 }

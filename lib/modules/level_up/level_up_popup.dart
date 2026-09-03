@@ -147,6 +147,7 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
                         name: widget.name,
                         avatarUrl: widget.avatarUrl,
                         frameAsset: widget.newLevel.frame,
+                        level: widget.newLevel.level,
                         radius: 56,
                         backgroundColor: AppColors.secondary,
                       ),

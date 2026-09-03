@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
+import '../../widgets/choice_chip_group.dart';
 
-/// Predefined reasons the user can pick for missing a prayer. Sent to the API
-/// as the enum's `name` (e.g. "asleep") for a stable, translatable value.
-enum MissedReason { asleep, forgot, busy, traveling }
+/// Predefined reasons the user can pick for missing a prayer, sent to the API
+/// as a stable snake_case value (see [MissedReasonX.apiValue]).
+///
+/// [forgotToMark] is different in kind from the others: the prayer *was*
+/// performed on time, the user just didn't record it in the app. It's logged
+/// as an on-time prayer — so no late halving — but earns no on-time bonus
+/// either, since punctuality can't be verified after the fact.
+enum MissedReason { asleep, forgot, busy, traveling, forgotToMark }
+
+extension MissedReasonX on MissedReason {
+  /// Wire value. `name` would send camelCase for [forgotToMark].
+  String get apiValue => switch (this) {
+        MissedReason.forgotToMark => 'forgot_to_mark',
+        _ => name,
+      };
+
+  /// True when the prayer was performed within its window and only the
+  /// *logging* happened late.
+  bool get prayedOnTime => this == MissedReason.forgotToMark;
+}
 
 /// Result of the missed-prayer confirmation flow.
 class MissedPrayerResult {
@@ -19,11 +36,26 @@ class MissedPrayerResult {
 /// has already closed.
 class MissedPrayerDialog extends StatefulWidget {
   final String prayerName;
-  const MissedPrayerDialog({super.key, required this.prayerName});
 
-  static Future<MissedPrayerResult?> show(String prayerName) {
+  /// The "forgot to log it" allowance is one per day (enforced server-side);
+  /// hidden here once spent so the user isn't rejected after choosing it.
+  final bool allowForgotToMark;
+
+  const MissedPrayerDialog({
+    super.key,
+    required this.prayerName,
+    this.allowForgotToMark = true,
+  });
+
+  static Future<MissedPrayerResult?> show(
+    String prayerName, {
+    bool allowForgotToMark = true,
+  }) {
     return Get.dialog<MissedPrayerResult>(
-      MissedPrayerDialog(prayerName: prayerName),
+      MissedPrayerDialog(
+        prayerName: prayerName,
+        allowForgotToMark: allowForgotToMark,
+      ),
       barrierDismissible: false,
     );
   }
@@ -115,26 +147,54 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
             // ── Reason (required, chip group like mood) ──
             _Label(text: 'missed_reason_label'.tr, required: true),
             const SizedBox(height: 10),
-            _ChipGroup<MissedReason>(
-              options: const [
+            ChoiceChipGroup<MissedReason>(
+              options: [
                 MissedReason.asleep,
                 MissedReason.forgot,
                 MissedReason.busy,
                 MissedReason.traveling,
+                if (widget.allowForgotToMark) MissedReason.forgotToMark,
               ],
               labels: [
                 'reason_asleep'.tr,
                 'reason_forgot'.tr,
                 'reason_busy'.tr,
                 'reason_traveling'.tr,
+                if (widget.allowForgotToMark) 'reason_forgot_to_mark'.tr,
               ],
-              emojis: const ['😴', '🤔', '💼', '✈️'],
+              emojis: [
+                '😴',
+                '🤔',
+                '💼',
+                '✈️',
+                if (widget.allowForgotToMark) '📝',
+              ],
               selected: _reason,
               onSelected: (v) => setState(() {
                 _reason = v;
                 _showReasonError = false;
               }),
             ),
+            // Praying on time but logging it late is treated as an on-time
+            // prayer — worth telling the user so the choice is meaningful.
+            if (_reason?.prayedOnTime == true) ...[
+              const SizedBox(height: 8),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline_rounded,
+                      size: 15, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text('reason_forgot_to_mark_hint'.tr,
+                        style: TextStyle(
+                            fontSize: 11.5,
+                            height: 1.35,
+                            color: Theme.of(context).colorScheme.primary)),
+                  ),
+                ],
+              ),
+            ],
             if (_showReasonError) ...[
               const SizedBox(height: 6),
               Text('missed_reason_required'.tr,
@@ -220,48 +280,4 @@ class _Label extends StatelessWidget {
       ],
     );
   }
-}
-
-// Chip group mirroring the visual language used by PrayerConfirmDialog's
-// difficulty / mood pickers.
-class _ChipGroup<T> extends StatelessWidget {
-  final List<T> options;
-  final List<String> labels;
-  final List<String> emojis;
-  final T? selected;
-  final void Function(T) onSelected;
-
-  const _ChipGroup({
-    required this.options,
-    required this.labels,
-    required this.emojis,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-        spacing: 3,
-        runSpacing: 5,
-        children: List.generate(options.length, (i) {
-          final isSelected = options[i] == selected;
-          return ChoiceChip(
-            label: Text('${emojis[i]}  ${labels[i]}'),
-            selected: isSelected,
-            onSelected: (_) => onSelected(options[i]),
-            selectedColor: AppColors.primary.withValues(alpha: 0.15),
-            backgroundColor: AppColors.bg,
-            side: BorderSide(
-              color: isSelected ? AppColors.primary : Colors.transparent,
-            ),
-            labelStyle: TextStyle(
-              color: isSelected ? AppColors.primary : AppColors.textMuted,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              fontSize: 12,
-            ),
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          );
-        }),
-      );
 }

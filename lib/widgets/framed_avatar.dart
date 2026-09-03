@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../core/theme/app_theme.dart';
+
 /// A user's avatar (photo, or an initial-letter fallback) rendered inside
 /// their current level's frame asset. Every place in the app that shows a
 /// user photo — leaderboard, profile, friends list/requests, the level-up
@@ -18,6 +20,8 @@ class FramedAvatar extends StatelessWidget {
     this.frameAsset,
     this.radius = 24,
     this.backgroundColor,
+    this.glow = true,
+    this.level,
   });
 
   final String name;
@@ -26,11 +30,29 @@ class FramedAvatar extends StatelessWidget {
   final double radius;
   final Color? backgroundColor;
 
+  /// Golden halo behind the avatar. On by default; pass false where the
+  /// surrounding design already carries its own emphasis.
+  final bool glow;
+
+  /// The user's level (1..5). The halo grows with rank, so a higher level is
+  /// visible at a glance. Null falls back to the faintest glow.
+  final int? level;
+
+  /// Levels run 1..5 — maps rank onto 0..1 so the halo can scale smoothly.
+  double get _rankFactor {
+    final l = (level ?? 1).clamp(1, 5);
+    return (l - 1) / 4;
+  }
+
+  static double _lerp(double from, double to, double t) => from + (to - from) * t;
+
   @override
   Widget build(BuildContext context) {
     final finalRadius=radius*1.8;
     final bg = backgroundColor ?? Theme.of(context).colorScheme.primary;
     final size = finalRadius * 2;
+    final gold = context.athar.gold;
+    final t = _rankFactor;
 
     return SizedBox(
       width: size,
@@ -39,6 +61,30 @@ class FramedAvatar extends StatelessWidget {
         alignment: Alignment.center,
         clipBehavior: Clip.none,
         children: [
+          // Two layers: a tight core plus a soft outer bloom. Both are scaled
+          // off the avatar size so the halo reads the same on a 13px header
+          // avatar as on the large one in the level-up popup — and both grow
+          // with [level], so rank is legible without reading a number.
+          if (glow)
+            Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: gold.withValues(alpha: _lerp(0.18, 0.38, t)),
+                    blurRadius: finalRadius * _lerp(0.20, 0.36, t),
+                    spreadRadius: finalRadius * _lerp(0.008, 0.04, t),
+                  ),
+                  BoxShadow(
+                    color: gold.withValues(alpha: _lerp(0.06, 0.16, t)),
+                    blurRadius: finalRadius * _lerp(0.35, 0.65, t),
+                    spreadRadius: finalRadius * _lerp(0.02, 0.08, t),
+                  ),
+                ],
+              ),
+            ),
           (avatarUrl != null && avatarUrl!.isNotEmpty)
               ? CircleAvatar(
                   radius: finalRadius,

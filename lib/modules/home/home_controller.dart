@@ -4,13 +4,13 @@ import 'package:adhan/adhan.dart';
 import 'package:athar/modules/home/missed_prayer_dialog.dart';
 import 'package:athar/modules/home/prayer_confirm_dialog.dart';
 import 'package:athar/modules/home/prayer_done_dialog.dart';
-import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get/get.dart';
 
 import '../../core/services/adhan_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/prayer_notification_scheduler.dart';
 import '../../core/services/sound_service.dart';
+import '../../core/services/timezone_service.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/prayer_log_model.dart';
@@ -29,6 +29,8 @@ class HomeController extends GetxController {
 
   final checklist = <PrayerChecklistItem>[].obs;
   final pointsToday = 0.obs;
+  /// Whether today's single "forgot to log it" allowance is already spent.
+  final forgotToMarkUsed = false.obs;
   final totalPoints = 0.obs;
   final level = Rxn<LevelInfo>();
   final quote = ''.obs;
@@ -70,10 +72,9 @@ class HomeController extends GetxController {
   // both resolve with level_changed:true in quick succession.
   bool _levelUpShowing = false;
 
-  Future<String> get _tz async {
-    final timezone = await FlutterTimezone.getLocalTimezone();
-    return timezone.identifier;
-  }
+  /// Cached IANA identifier — the platform channel is only hit on a cold
+  /// cache, not on every request. The server pins its own copy anyway.
+  Future<String> get _tz => Get.find<TimezoneService>().resolve();
 
   @override
   void onInit() {
@@ -82,6 +83,9 @@ class HomeController extends GetxController {
     _refreshLocationLabel();
     _startCountdown();
     refreshAll();
+    // Pin/refresh the server-side timezone. Safe here: this controller only
+    // exists once the user is authenticated.
+    unawaited(Get.find<TimezoneService>().syncIfChanged());
   }
 
   Future<void> refreshAll() async {
@@ -106,6 +110,7 @@ class HomeController extends GetxController {
           .map((item) => item.copyWith(time: _timeFor(item.prayerName, times))) // ← أضف الوقت
           .toList();
       pointsToday.value = res['points_today'] ?? 0;
+      forgotToMarkUsed.value = res['forgot_to_mark_used'] == true;
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
@@ -218,7 +223,10 @@ class HomeController extends GetxController {
   /// Logs a prayer whose scheduled window has closed. The reason is required
   /// (dialog enforces it); the state is only updated after the API succeeds.
   Future<void> _markMissed(PrayerChecklistItem item) async {
-    final result = await MissedPrayerDialog.show(item.prayerName);
+    final result = await MissedPrayerDialog.show(
+      item.prayerName,
+      allowForgotToMark: !forgotToMarkUsed.value,
+    );
     if (result == null) return;
 
     marking.value = item.prayerName;
@@ -230,8 +238,10 @@ class HomeController extends GetxController {
         tz: timezone,
         prayerDate: _prayerDate(item.prayerName),
         prayerTime: item.time?.toIso8601String(),
-        performedOutsideTime: true,
-        reason: result.reason.name,
+        // "Forgot to mark" means the prayer *was* on time — only the logging
+        // was late — so it isn't flagged as performed outside its window.
+        performedOutsideTime: !result.reason.prayedOnTime,
+        reason: result.reason.apiValue,
         note: result.note.isEmpty ? null : result.note,
       );
 

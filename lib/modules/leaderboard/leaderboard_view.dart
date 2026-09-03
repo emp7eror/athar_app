@@ -187,6 +187,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
                   name: e.name,
                   avatarUrl: e.avatarUrl,
                   frameAsset: e.level?.frame,
+                  level: e.level?.level,
                   radius: 20,
                 ),
                 Positioned(

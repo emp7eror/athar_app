@@ -12,6 +12,8 @@ import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
 import 'core/services/notification_router.dart';
 import 'core/services/prayer_notification_scheduler.dart';
+import 'core/services/timezone_service.dart';
+import 'data/providers/storage_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/utils/error_reporter.dart';
@@ -92,6 +94,15 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed &&
         Get.isRegistered<PrayerNotificationScheduler>()) {
       Get.find<PrayerNotificationScheduler>().reschedule();
+
+      // Catches a timezone change that happened while backgrounded (travel).
+      // Guarded on an active session — an unauthenticated call would 401 and
+      // the interceptor would sign the user out.
+      if (Get.isRegistered<TimezoneService>() &&
+          Get.isRegistered<StorageProvider>() &&
+          Get.find<StorageProvider>().isLoggedIn) {
+        Get.find<TimezoneService>().syncIfChanged();
+      }
     }
   }
 

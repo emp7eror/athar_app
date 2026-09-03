@@ -213,7 +213,7 @@ class _ProfilePreviewModalState extends State<ProfilePreviewModal> {
     print(widget.rank);
     return Column(
       children: [
-        FramedAvatar(name: p.name, avatarUrl: p.avatarUrl, frameAsset: p.level.frame, radius: 35),
+        FramedAvatar(name: p.name, avatarUrl: p.avatarUrl, frameAsset: p.level.frame, level: p.level.level, radius: 35),
         const SizedBox(height: 12),
         Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
         if (widget.rank != null) ...[

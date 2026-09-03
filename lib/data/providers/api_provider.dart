@@ -60,6 +60,12 @@ class ApiProvider {
   Future<Map<String, dynamic>> updateLocation(double lat, double lng) async =>
       _unwrap(await _dio.post(ApiEndpoints.location, data: {'lat': lat, 'lng': lng}));
 
+  /// Pins the device's IANA timezone server-side. Rate-limited to once a day
+  /// by the API (429), so the server — not the device — owns "what time is it
+  /// for this user".
+  Future<Map<String, dynamic>> updateTimezone(String timezone) async =>
+      _unwrap(await _dio.post(ApiEndpoints.timezone, data: {'timezone': timezone}));
+
   // --- Prayers ---
   Future<Map<String, dynamic>> todayPrayers(String tz, {String? date}) async =>
       _unwrap(await _dio.get(ApiEndpoints.prayersToday, queryParameters: {
@@ -93,6 +99,9 @@ class ApiProvider {
           data: {
             'prayer_name':  prayer,
             'is_completed': completed,
+            // The device's own "now" — the server compares it against real
+            // time in the user's pinned timezone to detect a shifted clock.
+            'client_time':  DateTime.now().toUtc().toIso8601String(),
             if (tz != null)                          'timezone':    tz,
             if (prayerDate != null)                  'prayer_date': prayerDate,
             if (prayerTime != null)                  'prayer_time': prayerTime,
@@ -168,4 +177,9 @@ class ApiProvider {
       ErrorReporter.report(e, StackTrace.current);
     }
   }
+
+  // --- Legal (public, no auth required) ---
+  Future<Map<String, dynamic>> legalTerms() async => _unwrap(await _dio.get(ApiEndpoints.legalTerms));
+
+  Future<Map<String, dynamic>> legalPrivacy() async => _unwrap(await _dio.get(ApiEndpoints.legalPrivacy));
 }

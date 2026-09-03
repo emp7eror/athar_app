@@ -27,6 +27,10 @@ class StorageProvider extends GetxService {
   static const _kLeaderboardScope = 'leaderboard_scope';
   static const _kLeaderboardTab = 'leaderboard_tab';
 
+  // ── Timezone (pinned; mirrored server-side) ──
+  static const _kTimezone = 'timezone';
+  static const _kTimezoneReportedAt = 'timezone_reported_at';
+
   String? get token => _box.read(_kToken);
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
 
@@ -68,6 +72,19 @@ class StorageProvider extends GetxService {
 
   String get leaderboardTab => _box.read(_kLeaderboardTab) ?? 'points';
   set leaderboardTab(String v) => _box.write(_kLeaderboardTab, v);
+
+  /// Last IANA timezone identifier we pinned/reported (e.g. "Asia/Riyadh").
+  /// Always an identifier, never an offset — the identifier carries DST rules.
+  String? get timezone => _box.read(_kTimezone);
+  set timezone(String? v) => v == null ? _box.remove(_kTimezone) : _box.write(_kTimezone, v);
+
+  DateTime? get timezoneReportedAt {
+    final raw = _box.read(_kTimezoneReportedAt) as String?;
+    return raw == null ? null : DateTime.tryParse(raw);
+  }
+  set timezoneReportedAt(DateTime? v) => v == null
+      ? _box.remove(_kTimezoneReportedAt)
+      : _box.write(_kTimezoneReportedAt, v.toIso8601String());
 
   double? get lat => _box.read(_kLat);
   double? get lng => _box.read(_kLng);

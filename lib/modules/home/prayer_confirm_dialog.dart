@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
+import '../../widgets/choice_chip_group.dart';
 
 // ── نماذج الإدخال ──────────────────────────────────────────────
 enum PrayerDifficulty { easy, medium, hard }
@@ -52,9 +53,13 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final athar = context.athar;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: AppColors.primaryDark,
+      // Card surface (theme-aware) rather than a fixed dark emerald — the
+      // chips/field/buttons below all assume a normal surface, and matches
+      // MissedPrayerDialog so the two flows look like siblings.
+      backgroundColor: athar.card,
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -66,10 +71,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryDark],
-                  begin: Alignment.topLeft, end: Alignment.bottomRight,
-                ),
+                gradient: athar.heroGradient,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Row(
@@ -85,8 +87,8 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                                 color: Colors.white, fontSize: 18,
                                 fontWeight: FontWeight.w800)),
                         Text('+${widget.points} ${'points'.tr}',
-                            style: const TextStyle(
-                                color: AppColors.accent, fontSize: 13,
+                            style: TextStyle(
+                                color: athar.gold, fontSize: 13,
                                 fontWeight: FontWeight.w600)),
                       ],
                     ),
@@ -100,7 +102,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
             // ── الصعوبة ──
             _SectionLabel(label: 'prayer_difficulty'.tr),
             const SizedBox(height: 10),
-            _ChipGroup<PrayerDifficulty>(
+            ChoiceChipGroup<PrayerDifficulty>(
               options: const [
                 PrayerDifficulty.easy,
                 PrayerDifficulty.medium,
@@ -121,7 +123,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
             // ── الحالة النفسية ──
             _SectionLabel(label: 'prayer_mood'.tr),
             const SizedBox(height: 10),
-            _ChipGroup<PrayerMood>(
+            ChoiceChipGroup<PrayerMood>(
               options: const [
                 PrayerMood.focused,
                 PrayerMood.peaceful,
@@ -148,12 +150,11 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
               controller: _noteCtrl,
               maxLines: 2,
               maxLength: 120,
-              style: const TextStyle(fontSize: 14,color: AppColors.textDark,),
+              style: const TextStyle(fontSize: 14),
               decoration: InputDecoration(
                 hintText: 'prayer_note_hint'.tr,
-                hintStyle: const TextStyle(color: AppColors.textMuted),
                 filled: true,
-                fillColor: AppColors.bg,
+                fillColor: athar.beige,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -161,7 +162,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                 contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 counterStyle:
-                const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                TextStyle(color: athar.textMuted, fontSize: 12),
               ),
             ),
 
@@ -175,12 +176,12 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                     onPressed: () => Get.back(result: null),
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: const BorderSide(color: AppColors.textMuted),
+                      side: BorderSide(color: athar.textMuted),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text('cancel'.tr,
-                        style: const TextStyle(color: AppColors.textMuted,
+                        style: TextStyle(color: athar.textMuted,
                             fontWeight: FontWeight.w600)),
                   ),
                 ),
@@ -196,8 +197,6 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),
@@ -226,49 +225,8 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
     label,
-    style: const TextStyle(
+    style: TextStyle(
         fontSize: 14, fontWeight: FontWeight.w700,
-        color: AppColors.secondary),
-  );
-}
-
-class _ChipGroup<T> extends StatelessWidget {
-  final List<T>      options;
-  final List<String> labels;
-  final List<String> emojis;
-  final T            selected;
-  final void Function(T) onSelected;
-
-  const _ChipGroup({
-    required this.options,
-    required this.labels,
-    required this.emojis,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  @override
-  Widget build(BuildContext context) => Wrap(
-    spacing: 3, runSpacing: 5,
-    children: List.generate(options.length, (i) {
-      final isSelected = options[i] == selected;
-      return ChoiceChip(
-        label: Text('${emojis[i]}  ${labels[i]}'),
-        selected: isSelected,
-        onSelected: (_) => onSelected(options[i]),
-        selectedColor: AppColors.primary.withOpacity(0.15),
-        backgroundColor: AppColors.bg,
-        side: BorderSide(
-          color: isSelected ? AppColors.primary : Colors.transparent,
-        ),
-        labelStyle: TextStyle(
-          color: isSelected ? AppColors.primary : AppColors.textMuted,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          fontSize: 12,
-        ),
-        shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10)),
-      );
-    }),
+        color: context.athar.textMuted),
   );
 }

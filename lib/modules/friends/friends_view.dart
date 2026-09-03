@@ -67,6 +67,7 @@ class FriendsView extends GetView<FriendsController> {
         name: r.name,
         avatarUrl: r.avatarUrl,
         frameAsset: r.level?.frame,
+        level: r.level?.level,
         radius: 20,
       ),
       title: Text(r.name),
@@ -104,6 +105,7 @@ class FriendsView extends GetView<FriendsController> {
                     name: f.name,
                     avatarUrl: f.avatarUrl,
                     frameAsset: f.level?.frame,
+                    level: f.level?.level,
                     radius: 15,
                   ),
                   // Streak badge, on the avatar instead of the crowded text

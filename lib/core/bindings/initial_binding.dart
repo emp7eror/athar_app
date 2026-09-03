@@ -10,6 +10,7 @@ import '../services/notification_service.dart';
 import '../services/permission_service.dart';
 import '../services/prayer_notification_scheduler.dart';
 import '../services/sound_service.dart';
+import '../services/timezone_service.dart';
 
 /// Registered once at app start (from `main()`, before `runApp`).
 ///
@@ -34,6 +35,7 @@ class InitialBinding extends Bindings {
   static Future<void> initAsync() async {
     await Get.putAsync(() => NotificationService().init(), permanent: true);
     await Get.putAsync(() => SoundService().init(), permanent: true);
+    await Get.putAsync(() => TimezoneService().init(), permanent: true);
     // Scheduler depends on NotificationService + AdhanService being ready.
     Get.put(PrayerNotificationScheduler(), permanent: true);
   }

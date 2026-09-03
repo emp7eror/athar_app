@@ -6,6 +6,8 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../widgets/framed_avatar.dart';
+import '../coach/coach_binding.dart';
+import '../coach/coach_view.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
 import 'prayer_visual_theme.dart';
@@ -16,6 +18,19 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Pinned to the right in both languages — the default `endFloat` would
+      // flip it to the left under Arabic's RTL layout.
+      floatingActionButtonLocation: const _AlwaysRightFabLocation(),
+      // Lifted clear of the shell's floating nav bar (the shell uses
+      // extendBody, so this Scaffold's bottom sits behind it).
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 78),
+        child: FloatingActionButton(
+          onPressed: () => Get.to(() => const CoachView(), binding: CoachBinding()),
+          tooltip: 'coach_title'.tr,
+          child: const Icon(Icons.auto_awesome_rounded),
+        ),
+      ),
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
@@ -38,6 +53,7 @@ class HomeView extends GetView<HomeController> {
                           name: name,
                           avatarUrl: avatarUrl,
                           frameAsset: controller.level.value?.frame,
+                          level: controller.level.value?.level,
                           radius: 13,
                           backgroundColor: AppColors.primary,
                         ),
@@ -570,6 +586,21 @@ class _TrailingState extends StatelessWidget {
   }
 }
 
+/// Bottom-right FAB regardless of text direction. Flutter's built-in
+/// start/end locations are direction-aware, so under RTL `endFloat` lands on
+/// the left — this computes the offset from the physical right edge instead.
+class _AlwaysRightFabLocation extends StandardFabLocation with FabFloatOffsetY {
+  const _AlwaysRightFabLocation();
+
+  @override
+  double getOffsetX(ScaffoldPrelayoutGeometry geometry, double adjustment) {
+    return geometry.scaffoldSize.width -
+        geometry.floatingActionButtonSize.width -
+        kFloatingActionButtonMargin -
+        geometry.minInsets.right;
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Quote / reflection card
 // ─────────────────────────────────────────────────────────────────────────
@@ -584,7 +615,10 @@ class _QuoteCard extends StatelessWidget {
       if (controller.quote.value.isEmpty) return const SizedBox.shrink();
       return Container(
         margin: const EdgeInsets.only(top: 8),
-        padding: const EdgeInsets.all(10),
+        // Extra room on the physical right so the floating coach button never
+        // covers the text — this card sits at the bottom of the scroll, right
+        // where the FAB floats.
+        padding: const EdgeInsets.fromLTRB(10, 10, 64, 10),
         decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(20)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

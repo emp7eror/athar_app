@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
 import '../../core/localization/localization_controller.dart';
+import '../../core/services/timezone_service.dart';
 import '../../core/theme/theme_controller.dart';
+import '../../core/utils/snackbar.dart';
+import '../../core/utils/store_link.dart';
+import '../../data/providers/api_provider.dart';
 import '../home/home_controller.dart';
+import 'legal_document_view.dart';
 import 'notification_settings_view.dart';
 
 class SettingsView extends StatelessWidget {
@@ -43,6 +50,24 @@ class SettingsView extends StatelessWidget {
               onTap: () {
                 if (!home.updatingLocation.value) home.updateLocation();
               },
+            ),
+
+            const SizedBox(height: 8),
+
+            _SettingsTile(
+              icon: Icons.schedule_outlined,
+              title: 'timezone'.tr,
+              trailing: Obx(() => Text(
+                Get.find<TimezoneService>().current.value.isEmpty
+                    ? '-'
+                    : Get.find<TimezoneService>().current.value,
+                style: TextStyle(
+                    color: colors.onSurfaceVariant, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
+              )),
+              // Detected automatically; tapping re-checks and reports a change
+              // (the server allows one change per day).
+              onTap: () => Get.find<TimezoneService>().syncIfChanged(),
             ),
 
             const SizedBox(height: 24),
@@ -108,14 +133,29 @@ class SettingsView extends StatelessWidget {
             _SectionHeader('about'.tr),
             const SizedBox(height: 12),
 
-            _SettingsTile(
-              icon: Icons.info_outline,
-              title: 'app_version'.tr,
-              trailing: Text('1.0.0',
-                  style: TextStyle(
-                      color: colors.onSurfaceVariant,
-                      fontWeight: FontWeight.w600)),
-              onTap: null,
+            FutureBuilder<PackageInfo>(
+              future: PackageInfo.fromPlatform(),
+              builder: (context, snapshot) {
+                final info = snapshot.data;
+                final label = info == null ? '' : '${info.version}+${info.buildNumber}';
+                return _SettingsTile(
+                  icon: Icons.info_outline,
+                  title: 'app_version'.tr,
+                  trailing: Text(label,
+                      style: TextStyle(
+                          color: colors.onSurfaceVariant,
+                          fontWeight: FontWeight.w600)),
+                  // Tapping opens this app's store listing — Play Store on
+                  // Android, App Store on iOS — so the user can check for and
+                  // install an update.
+                  onTap: () async {
+                    final opened = await StoreLink.open();
+                    if (!opened) {
+                      AppSnackbar.error('app_version'.tr, 'open_store_failed'.tr);
+                    }
+                  },
+                );
+              },
             ),
 
             const SizedBox(height: 8),
@@ -123,9 +163,11 @@ class SettingsView extends StatelessWidget {
             _SettingsTile(
               icon: Icons.privacy_tip_outlined,
               title: 'privacy_policy'.tr,
-              trailing: Icon(Icons.open_in_new,
-                  color: colors.onSurfaceVariant, size: 18),
-              onTap: () {},
+              trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+              onTap: () => Get.to(() => LegalDocumentView(
+                    fallbackTitle: 'privacy_policy'.tr,
+                    fetch: () => Get.find<ApiProvider>().legalPrivacy(),
+                  )),
             ),
 
             const SizedBox(height: 8),
@@ -133,9 +175,11 @@ class SettingsView extends StatelessWidget {
             _SettingsTile(
               icon: Icons.description_outlined,
               title: 'terms'.tr,
-              trailing: Icon(Icons.open_in_new,
-                  color: colors.onSurfaceVariant, size: 18),
-              onTap: () {},
+              trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+              onTap: () => Get.to(() => LegalDocumentView(
+                    fallbackTitle: 'terms'.tr,
+                    fetch: () => Get.find<ApiProvider>().legalTerms(),
+                  )),
             ),
           ],
         ),

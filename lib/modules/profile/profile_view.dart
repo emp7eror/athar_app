@@ -77,6 +77,7 @@ class ProfileView extends GetView<ProfileController> {
       name: u?.name ?? '',
       avatarUrl: avatarUrl,
       frameAsset: u?.level?.frame,
+      level: u?.level?.level,
       radius: radius,
     );
   }

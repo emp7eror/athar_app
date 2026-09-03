@@ -8,6 +8,7 @@ class ApiEndpoints {
   static const String logout = '/auth/logout';
   static const String fcmToken = '/auth/fcm-token';
   static const String location = '/user/location';
+  static const String timezone = '/user/timezone';
 
   static const String prayersToday = '/prayers/today';
   static const String markPrayer = '/prayers/mark';
@@ -25,4 +26,7 @@ class ApiEndpoints {
   static const String statsInsights = '/stats/insights';
   static const String leaderboard = '/leaderboard';
   static const String randomQuote = '/quotes/random';
+
+  static const String legalTerms = '/legal/terms';
+  static const String legalPrivacy = '/legal/privacy';
 }

@@ -22,7 +22,6 @@ class ShellController extends GetxController {
   /// Index of the tab we consider "root" for the back-button contract.
   /// Back from any other tab returns here first; a second back then exits.
   static const homeTabIndex = 0;
-  static const statsTabIndex = 3;
 }
 
 class ShellView extends StatelessWidget {
