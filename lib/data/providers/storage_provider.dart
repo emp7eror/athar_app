@@ -27,12 +27,26 @@ class StorageProvider extends GetxService {
   static const _kLeaderboardScope = 'leaderboard_scope';
   static const _kLeaderboardTab = 'leaderboard_tab';
 
+  // ── Dhikr (taps counted locally but not yet accepted by the server) ──
+  static const _kDhikrPending = 'dhikr_pending';
+
   // ── Timezone (pinned; mirrored server-side) ──
   static const _kTimezone = 'timezone';
   static const _kTimezoneReportedAt = 'timezone_reported_at';
 
   String? get token => _box.read(_kToken);
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
+
+  /// Taps recorded on device but not yet confirmed by the server, shaped as
+  /// `{'date': 'YYYY-MM-DD', '<dhikr>': <count>}`. Survives an app kill so a
+  /// dropped sync doesn't silently lose the user's dhikr.
+  Map<String, dynamic> get dhikrPending {
+    final raw = _box.read(_kDhikrPending);
+    return raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+  }
+
+  set dhikrPending(Map<String, dynamic> v) =>
+      v.isEmpty ? _box.remove(_kDhikrPending) : _box.write(_kDhikrPending, v);
 
   bool get seenOnboarding => _box.read(_kSeenOnboarding) ?? false;
   set seenOnboarding(bool v) => _box.write(_kSeenOnboarding, v);

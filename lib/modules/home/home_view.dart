@@ -8,6 +8,8 @@ import '../../data/models/prayer_log_model.dart';
 import '../../widgets/framed_avatar.dart';
 import '../coach/coach_binding.dart';
 import '../coach/coach_view.dart';
+import '../dhikr/dhikr_binding.dart';
+import '../dhikr/dhikr_view.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
 import 'prayer_visual_theme.dart';
@@ -103,8 +105,62 @@ class HomeView extends GetView<HomeController> {
                     .toList(),
               )),
               const _QuoteCard(),
+              const SizedBox(height: 12),
+              const _DhikrCard(),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Entry point to the tasbeeh / istighfar counters. Sits under the prayer list
+/// and the quote, matching the beige section styling used elsewhere on Home.
+class _DhikrCard extends StatelessWidget {
+  const _DhikrCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.athar.beige,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.athar.gold.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.brightness_7_rounded, color: context.athar.gold, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'dhikr_home_card_title'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'dhikr_home_card_sub'.tr,
+                    style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.athar.textMuted),
+          ],
         ),
       ),
     );

@@ -25,6 +25,30 @@ class ApiProvider {
     throw ApiException(data['message']?.toString() ?? 'Request failed', status: res.statusCode);
   }
 
+  // --- Dhikr ---
+
+  /// Today's tasbeeh / istighfar counters, as the server sees them.
+  Future<Map<String, dynamic>> dhikrToday(String timezone) async =>
+      _unwrap(await _dio.get(ApiEndpoints.dhikrToday, queryParameters: {'timezone': timezone}));
+
+  /// Reports [increments] taps since the last sync. The server owns the running
+  /// total and is the only thing that decides whether the daily reward is due,
+  /// so a retried call can never award the points twice.
+  /// [date] is only sent when flushing a count finished before the day rolled
+  /// over; the server accepts today or yesterday and rejects anything older.
+  Future<Map<String, dynamic>> dhikrIncrement({
+    required String dhikr,
+    required int increments,
+    required String timezone,
+    String? date,
+  }) async =>
+      _unwrap(await _dio.post(ApiEndpoints.dhikrIncrement, data: {
+        'dhikr': dhikr,
+        'increments': increments,
+        'timezone': timezone,
+        if (date != null) 'dhikr_date': date,
+      }));
+
   // --- Auth ---
   Future<Map<String, dynamic>> register(Map<String, dynamic> body) async => _unwrap(await _dio.post(ApiEndpoints.register, data: body));
 

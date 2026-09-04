@@ -13,6 +13,9 @@ class ApiEndpoints {
   static const String prayersToday = '/prayers/today';
   static const String markPrayer = '/prayers/mark';
 
+  static const String dhikrToday = '/dhikr/today';
+  static const String dhikrIncrement = '/dhikr/increment';
+
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';
   static const String addFriendById = '/friends/add-by-id';
