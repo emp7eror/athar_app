@@ -2,22 +2,106 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+/// How the pull travels down the string. Kept separate from the widget so the
+/// feel can be tuned — or a second strand given a different character — without
+/// touching the drawing code.
+class MisbahaMotion {
+  const MisbahaMotion({
+    this.amplitude = 0.062,
+    this.falloff = 0.62,
+    this.trailingFactor = 0.5,
+    this.reach = 4,
+    this.stagger = const Duration(milliseconds: 52),
+    this.settle = const Duration(milliseconds: 520),
+    this.damping = 2.6,
+    this.springiness = 1.3,
+  });
+
+  /// How far the struck bead slides, in arc-parameter units.
+  final double amplitude;
+
+  /// Share of the movement each further bead receives: 0.62 gives the next
+  /// bead 62%, the one after 38%, then 24% — the tension thinning out as it
+  /// travels, the way it does on a real string.
+  final double falloff;
+
+  /// Beads behind the struck one are dragged less than those ahead of it.
+  final double trailingFactor;
+
+  /// Beads further than this stay put; their share would be invisible anyway.
+  final int reach;
+
+  /// Delay added per bead of distance, which is what makes it a ripple rather
+  /// than everything twitching at once.
+  final Duration stagger;
+
+  /// How long one bead takes to swing out and settle back.
+  final Duration settle;
+
+  /// Higher settles sooner. Tuned so the return reads as weight, not bounce.
+  final double damping;
+
+  /// Slightly over 1 leaves a small counter-swing — the spring in the string.
+  final double springiness;
+
+  Duration get total => settle + stagger * reach;
+
+  double get _staggerFraction => stagger.inMicroseconds / total.inMicroseconds;
+
+  double get _settleFraction => settle.inMicroseconds / total.inMicroseconds;
+
+  /// Displacement of a bead [distance] beads from the struck one, at [phase]
+  /// (0..1) through the impulse. Positive moves it along the string.
+  double displacement(int distance, double phase, {required bool trailing}) {
+    final steps = distance.abs();
+    if (steps > reach) return 0;
+
+    var share = amplitude * math.pow(falloff, steps).toDouble();
+    if (trailing) share *= trailingFactor;
+
+    final local = (phase - steps * _staggerFraction) / _settleFraction;
+    return share * _spring(local);
+  }
+
+  /// A damped swing: out, back, and a much smaller counter-swing. Normalised so
+  /// the peak is exactly 1 whatever [damping] and [springiness] are, which is
+  /// what keeps [falloff] honest — each bead really does move the share it says.
+  double _spring(double x) {
+    if (x <= 0 || x >= 1) return 0;
+
+    final a = math.pi * springiness;
+
+    // The damping drags the maximum earlier than the sine's own peak, so it has
+    // to be solved for: d/dx[sin(ax)·e^(-bx)] = 0 when tan(ax) = a/b.
+    final peakAt = math.atan(a / damping) / a;
+    final norm = math.sin(a * peakAt) * math.exp(-damping * peakAt);
+
+    return math.sin(a * x) * math.exp(-damping * x) / norm;
+  }
+}
+
 /// A hand-painted misbaha strand.
 ///
-/// The beads are drawn rather than modelled: each one is a radial gradient with
-/// a specular highlight, a darkened rim and a contact shadow, which reads as a
+/// The beads are drawn rather than modelled: each is a radial gradient with a
+/// specular highlight, a darkened rim and a contact shadow, which reads as a
 /// polished sphere without pulling in a 3D engine. The strand hangs as a shallow
 /// arc across the bottom of the screen with the large separator bead at its
 /// lowest point, so the whole thing sits under the thumb in one-handed use.
+///
+/// A tap slides the struck bead along the arc and the pull travels outward from
+/// it, each neighbour picking the movement up a moment later and a little more
+/// weakly. Everything is driven by one controller and painted in one pass, so
+/// the cascade costs no more than a single bead would.
 class MisbahaStrand extends StatefulWidget {
   const MisbahaStrand({
     super.key,
     required this.count,
     required this.onTap,
     required this.enabled,
+    this.motion = const MisbahaMotion(),
   });
 
-  /// Current tally — decides which bead is lit.
+  /// Current tally — decides which bead is struck.
   final int count;
 
   /// Returns true when the tap was counted; false while the counter is paused.
@@ -25,6 +109,8 @@ class MisbahaStrand extends StatefulWidget {
 
   /// False during the rapid-tap cooldown; dims the strand.
   final bool enabled;
+
+  final MisbahaMotion motion;
 
   /// Beads either side of the separator.
   static const beadsPerSide = 6;
@@ -36,8 +122,11 @@ class MisbahaStrand extends StatefulWidget {
 class _MisbahaStrandState extends State<MisbahaStrand> with SingleTickerProviderStateMixin {
   late final AnimationController _pulse = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 260),
+    duration: widget.motion.total,
   );
+
+  /// The bead the pull started from.
+  int _struck = 0;
 
   @override
   void dispose() {
@@ -47,7 +136,15 @@ class _MisbahaStrandState extends State<MisbahaStrand> with SingleTickerProvider
 
   void _handleTap() {
     if (!widget.onTap()) return;
+
+    // The bead that has just been counted is the one the thumb pushed.
+    _struck = _activeIndex(widget.count);
     _pulse.forward(from: 0);
+  }
+
+  int _activeIndex(int count) {
+    const beads = MisbahaStrand.beadsPerSide * 2;
+    return count % beads;
   }
 
   @override
@@ -62,8 +159,10 @@ class _MisbahaStrandState extends State<MisbahaStrand> with SingleTickerProvider
           animation: _pulse,
           builder: (context, _) => CustomPaint(
             painter: _MisbahaPainter(
-              count: widget.count,
-              pulse: _pulse.value,
+              activeIndex: _activeIndex(widget.count),
+              struckIndex: _struck,
+              phase: _pulse.value,
+              motion: widget.motion,
               beadsPerSide: MisbahaStrand.beadsPerSide,
             ),
             size: Size.infinite,
@@ -76,13 +175,17 @@ class _MisbahaStrandState extends State<MisbahaStrand> with SingleTickerProvider
 
 class _MisbahaPainter extends CustomPainter {
   _MisbahaPainter({
-    required this.count,
-    required this.pulse,
+    required this.activeIndex,
+    required this.struckIndex,
+    required this.phase,
+    required this.motion,
     required this.beadsPerSide,
   });
 
-  final int count;
-  final double pulse;
+  final int activeIndex;
+  final int struckIndex;
+  final double phase;
+  final MisbahaMotion motion;
   final int beadsPerSide;
 
   // Dark emerald body, gold accents.
@@ -93,12 +196,15 @@ class _MisbahaPainter extends CustomPainter {
   static const _goldBright = Color(0xFFEBD9A3);
   static const _cord = Color(0xFF2A2018);
 
+  /// Half-width of the gap kept clear for the separator.
+  static const _gap = 0.20;
+
+  /// Spacing between neighbouring beads, in arc-parameter units.
+  static const _spacing = 0.145;
+
   @override
   void paint(Canvas canvas, Size size) {
     final beadCount = beadsPerSide * 2;
-    // Which bead is lit: walks the strand and wraps, so the strand always shows
-    // motion no matter how high the tally goes.
-    final activeIndex = beadCount == 0 ? 0 : count % beadCount;
 
     final beadRadius = math.min(size.width / 16, 26.0);
     final separatorRadius = beadRadius * 1.45;
@@ -106,35 +212,44 @@ class _MisbahaPainter extends CustomPainter {
     // Arc geometry: a wide, shallow circle whose lowest point is the separator.
     final arcRadius = size.width * 0.78;
     final centre = Offset(size.width / 2, size.height - separatorRadius * 1.9 - arcRadius);
-    final spread = 0.62; // radians either side of straight down
+    const spread = 0.62; // radians either side of straight down
 
     Offset positionAt(double t) {
-      // t: -1 (far left) .. 0 (bottom) .. 1 (far right)
       final angle = spread * t;
       return centre + Offset(math.sin(angle) * arcRadius, math.cos(angle) * arcRadius);
     }
 
     _paintCord(canvas, positionAt);
 
-    // Beads run outward from the separator on both sides.
     for (var i = 0; i < beadCount; i++) {
+      // Beads run outward from the separator on both sides, leaving it a gap.
       final side = i < beadsPerSide ? -1 : 1;
-      final rank = i < beadsPerSide ? beadsPerSide - i : i - beadsPerSide + 1;
-      final t = side * (rank / (beadsPerSide + 0.6));
+      final rank = i < beadsPerSide ? beadsPerSide - 1 - i : i - beadsPerSide;
+      final base = side * (_gap + rank * _spacing);
+
+      // The pull propagates along the string, so a bead's share depends on how
+      // many beads separate it from the one that was struck.
+      final offset = i - struckIndex;
+      final slide = motion.displacement(offset, phase, trailing: offset < 0);
+
+      // Movement follows the curve of the string, not a straight line: the
+      // displacement is applied to the arc parameter, then resolved to a point.
+      final position = positionAt(base + slide * side.toDouble());
 
       final lit = i == activeIndex;
-      // Only the lit bead reacts, and only while the pulse is running.
-      final scale = lit ? 1 + 0.14 * _pulseCurve(pulse) : 1.0;
+      // A touch of scale supports the movement without standing in for it.
+      final struck = i == struckIndex ? _swell(phase) : 0.0;
 
       _paintBead(
         canvas,
-        centre: positionAt(t),
-        radius: beadRadius * scale,
-        glow: lit ? (1 - pulse).clamp(0.0, 1.0) : 0,
+        centre: position,
+        radius: beadRadius * (1 + 0.05 * struck),
+        glow: lit ? (1 - phase).clamp(0.0, 1.0) : 0,
       );
     }
 
-    // The imame sits at the lowest point of the arc.
+    // The imame sits at the lowest point of the arc and never moves — it is
+    // the anchor the rest of the strand is pulled against.
     _paintBead(
       canvas,
       centre: positionAt(0),
@@ -144,10 +259,10 @@ class _MisbahaPainter extends CustomPainter {
     );
   }
 
-  /// Fast rise, gentle settle — the bead never lingers enlarged.
-  double _pulseCurve(double t) {
-    if (t <= 0 || t >= 1) return 0;
-    return math.sin(t * math.pi) * (1 - t * 0.35);
+  /// Brief swell on the struck bead, gone well before the slide settles.
+  double _swell(double x) {
+    if (x <= 0 || x >= 0.5) return 0;
+    return math.sin(x * 2 * math.pi);
   }
 
   void _paintCord(Canvas canvas, Offset Function(double) positionAt) {
@@ -269,5 +384,8 @@ class _MisbahaPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_MisbahaPainter old) =>
-      old.count != count || old.pulse != pulse || old.beadsPerSide != beadsPerSide;
+      old.phase != phase ||
+      old.activeIndex != activeIndex ||
+      old.struckIndex != struckIndex ||
+      old.beadsPerSide != beadsPerSide;
 }

@@ -35,6 +35,8 @@ dependencies:
   confetti: ^0.7.0
   package_info_plus:
   url_launcher:
+  flutter_svg:
+  flutter_cache_manager:
 
 dev_dependencies:
   flutter_lints:

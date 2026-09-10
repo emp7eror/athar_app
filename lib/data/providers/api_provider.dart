@@ -25,6 +25,27 @@ class ApiProvider {
     throw ApiException(data['message']?.toString() ?? 'Request failed', status: res.statusCode);
   }
 
+  // --- Quran Werd ---
+
+  /// Mushaf config plus where the reader left off.
+  Future<Map<String, dynamic>> quranWerd() async =>
+      _unwrap(await _dio.get(ApiEndpoints.quranWerd));
+
+  /// Starts the server-side reading clock for [page]. The elapsed time is
+  /// measured against this call, not against anything the client reports.
+  Future<Map<String, dynamic>> quranPageOpen(int page) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranPageOpen, data: {'page': page}));
+
+  /// Called when the reader turns away from [page]. The server decides whether
+  /// the 60 seconds were actually served and whether the page still owes points.
+  Future<Map<String, dynamic>> quranPageComplete(int page) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page}));
+
+  /// The "read by how you feel" index: sections, their feelings, and the
+  /// passages for each, in both languages. Small enough to fetch whole.
+  Future<Map<String, dynamic>> quranMoods() async =>
+      _unwrap(await _dio.get(ApiEndpoints.quranMoods));
+
   // --- Dhikr ---
 
   /// Today's tasbeeh / istighfar counters, as the server sees them.

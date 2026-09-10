@@ -16,6 +16,11 @@ class ApiEndpoints {
   static const String dhikrToday = '/dhikr/today';
   static const String dhikrIncrement = '/dhikr/increment';
 
+  static const String quranWerd = '/quran/werd';
+  static const String quranPageOpen = '/quran/page-open';
+  static const String quranPageComplete = '/quran/page-complete';
+  static const String quranMoods = '/quran/moods';
+
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';
   static const String addFriendById = '/friends/add-by-id';

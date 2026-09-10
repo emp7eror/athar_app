@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/constants/app_colors.dart';
+import '../../core/theme/app_theme.dart';
 import 'animated_counter.dart';
 import 'dhikr_controller.dart';
 import 'misbaha_widget.dart';
-
-/// Dark emerald and gold, used only on this page. The rest of the app keeps its
-/// own light/dark themes; the misbaha is deliberately its own quiet room.
-class _Palette {
-  static const bgTop = Color(0xFF06231A);
-  static const bgBottom = Color(0xFF010B08);
-  static const gold = Color(0xFFC8A95B);
-  static const goldBright = Color(0xFFEBD9A3);
-  static const emeraldLine = Color(0xFF18543E);
-  static const textFaint = Color(0xFF7C9A8C);
-}
 
 class DhikrView extends GetView<DhikrController> {
   const DhikrView({super.key});
@@ -22,39 +13,22 @@ class DhikrView extends GetView<DhikrController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _Palette.bgBottom,
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        foregroundColor: _Palette.goldBright,
-        title: Text(
-          'dhikr_title'.tr,
-          style: const TextStyle(color: _Palette.goldBright, fontWeight: FontWeight.w600),
-        ),
+        title: Text('dhikr_title'.tr),
         actions: [
           IconButton(
             // The virtue lives behind an icon rather than on the page, so the
             // counter and the strand keep the screen to themselves.
             onPressed: () => _showVirtue(context),
             tooltip: 'dhikr_virtue_title'.tr,
-            icon: const Icon(Icons.auto_stories_outlined, color: _Palette.gold),
+            icon: const Icon(Icons.auto_stories_outlined),
           ),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0, -0.35),
-            radius: 1.1,
-            colors: [_Palette.bgTop, _Palette.bgBottom],
-          ),
-        ),
-        child: Obx(() {
+      body: Builder(
+        builder: (context) => Obx(() {
           if (controller.loading.value) {
-            return const Center(
-              child: CircularProgressIndicator(color: _Palette.gold),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
           if (controller.failed.value) {
             return _ErrorState(onRetry: controller.load);
@@ -71,11 +45,11 @@ void _showVirtue(BuildContext context) {
 
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: _Palette.bgTop,
+    backgroundColor: Theme.of(context).cardColor,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
     ),
-    builder: (_) => SafeArea(
+    builder: (context) => SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(24, 18, 24, 28),
         child: Column(
@@ -87,7 +61,7 @@ void _showVirtue(BuildContext context) {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: _Palette.emeraldLine,
+                  color: context.athar.textMuted.withValues(alpha: 0.35),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -95,8 +69,8 @@ void _showVirtue(BuildContext context) {
             const SizedBox(height: 18),
             Text(
               'dhikr_virtue_title'.tr,
-              style: const TextStyle(
-                color: _Palette.gold,
+              style: TextStyle(
+                color: context.athar.gold,
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
               ),
@@ -104,13 +78,13 @@ void _showVirtue(BuildContext context) {
             const SizedBox(height: 12),
             Text(
               'dhikr_virtue_$key'.tr,
-              style: const TextStyle(color: Colors.white, height: 1.8, fontSize: 15),
+              style: context.text.bodyMedium?.copyWith(height: 1.8, fontSize: 15),
             ),
             const SizedBox(height: 10),
             Text(
               'dhikr_virtue_source_$key'.tr,
-              style: const TextStyle(
-                color: _Palette.textFaint,
+              style: TextStyle(
+                color: context.athar.textMuted,
                 fontWeight: FontWeight.w700,
                 fontSize: 12.5,
               ),
@@ -165,9 +139,8 @@ class _DhikrSelector extends StatelessWidget {
       child: Obx(() => Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.04),
+              color: context.athar.beige,
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(color: _Palette.emeraldLine),
             ),
             child: Row(
               children: DhikrController.keys.map((key) {
@@ -183,11 +156,8 @@ class _DhikrSelector extends StatelessWidget {
                       curve: Curves.easeOut,
                       padding: const EdgeInsets.symmetric(vertical: 11),
                       decoration: BoxDecoration(
-                        color: active ? _Palette.gold.withValues(alpha: 0.16) : Colors.transparent,
+                        color: active ? AppColors.primary : Colors.transparent,
                         borderRadius: BorderRadius.circular(26),
-                        border: Border.all(
-                          color: active ? _Palette.gold.withValues(alpha: 0.55) : Colors.transparent,
-                        ),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -201,13 +171,17 @@ class _DhikrSelector extends StatelessWidget {
                               style: TextStyle(
                                 fontWeight: FontWeight.w700,
                                 fontSize: 13.5,
-                                color: active ? _Palette.goldBright : _Palette.textFaint,
+                                color: active ? Colors.white : context.athar.textMuted,
                               ),
                             ),
                           ),
                           if (done) ...[
                             const SizedBox(width: 5),
-                            const Icon(Icons.check_circle_rounded, size: 14, color: _Palette.gold),
+                            Icon(
+                              Icons.check_circle_rounded,
+                              size: 14,
+                              color: active ? Colors.white : context.athar.success,
+                            ),
                           ],
                         ],
                       ),
@@ -233,8 +207,7 @@ class _DhikrPhrase extends StatelessWidget {
       child: Obx(() => Text(
             'dhikr_${controller.selected.value}'.tr,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: _Palette.goldBright,
+            style: context.text.titleLarge?.copyWith(
               fontSize: 21,
               height: 1.7,
               fontWeight: FontWeight.w600,
@@ -274,13 +247,8 @@ class _CounterDial extends StatelessWidget {
                   height: 158,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        Colors.white.withValues(alpha: 0.05),
-                        Colors.transparent,
-                      ],
-                    ),
-                    border: Border.all(color: _Palette.emeraldLine, width: 1),
+                    color: context.athar.beige.withValues(alpha: 0.45),
+                    border: Border.all(color: context.athar.beige, width: 1.5),
                   ),
                 ),
 
@@ -293,9 +261,9 @@ class _CounterDial extends StatelessWidget {
                       value: value,
                       strokeWidth: 4,
                       strokeCap: StrokeCap.round,
-                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      backgroundColor: context.athar.beige,
                       valueColor: AlwaysStoppedAnimation(
-                        rewarded ? _Palette.goldBright : _Palette.gold,
+                        rewarded ? context.athar.gold : AppColors.primary,
                       ),
                     ),
                   ),
@@ -310,14 +278,14 @@ class _CounterDial extends StatelessWidget {
                         fontSize: 54,
                         height: 1,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppColors.primary,
                         letterSpacing: -1,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'dhikr_of_target'.trParams({'target': '${controller.target.value}'}),
-                      style: const TextStyle(color: _Palette.textFaint, fontSize: 12.5),
+                      style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
                     ),
                   ],
                 ),
@@ -332,7 +300,7 @@ class _CounterDial extends StatelessWidget {
                     key: const ValueKey('done'),
                     icon: Icons.verified_rounded,
                     text: 'dhikr_reward_done'.tr,
-                    color: _Palette.goldBright,
+                    color: context.athar.gold,
                   )
                 : _Caption(
                     key: const ValueKey('remaining'),
@@ -341,7 +309,7 @@ class _CounterDial extends StatelessWidget {
                       'count': '$remaining',
                       'points': '${controller.rewardPoints.value}',
                     }),
-                    color: _Palette.textFaint,
+                    color: context.athar.textMuted,
                   ),
           ),
         ],
@@ -407,13 +375,13 @@ class _MisbahaZone extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.4),
+                    color: context.athar.card,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _Palette.emeraldLine),
+                    border: Border.all(color: context.athar.beige),
                   ),
                   child: Text(
                     'dhikr_paused'.tr,
-                    style: const TextStyle(color: _Palette.gold, fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(color: context.athar.textMuted, fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -438,22 +406,15 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.cloud_off_rounded, size: 44, color: _Palette.textFaint),
+            Icon(Icons.cloud_off_rounded, size: 44, color: context.athar.textMuted),
             const SizedBox(height: 12),
             Text(
               'dhikr_load_failed'.tr,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: _Palette.textFaint, height: 1.6),
+              style: context.text.bodyMedium?.copyWith(color: context.athar.textMuted, height: 1.6),
             ),
             const SizedBox(height: 16),
-            FilledButton(
-              onPressed: onRetry,
-              style: FilledButton.styleFrom(
-                backgroundColor: _Palette.gold,
-                foregroundColor: const Color(0xFF06231A),
-              ),
-              child: Text('retry'.tr),
-            ),
+            FilledButton(onPressed: onRetry, child: Text('retry'.tr)),
           ],
         ),
       ),

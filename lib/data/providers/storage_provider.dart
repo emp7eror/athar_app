@@ -30,6 +30,11 @@ class StorageProvider extends GetxService {
   // ── Dhikr (taps counted locally but not yet accepted by the server) ──
   static const _kDhikrPending = 'dhikr_pending';
 
+  // ── Quran Werd ──
+  static const _kQuranLastPage = 'quran_last_page';
+  static const _kQuranNightMode = 'quran_night_mode';
+  static const _kQuranBookmark = 'quran_bookmark_page';
+
   // ── Timezone (pinned; mirrored server-side) ──
   static const _kTimezone = 'timezone';
   static const _kTimezoneReportedAt = 'timezone_reported_at';
@@ -47,6 +52,22 @@ class StorageProvider extends GetxService {
 
   set dhikrPending(Map<String, dynamic> v) =>
       v.isEmpty ? _box.remove(_kDhikrPending) : _box.write(_kDhikrPending, v);
+
+  /// Last Mushaf page opened. Mirrored on the server, but kept here too so
+  /// "continue reading" works before the first request comes back.
+  int get quranLastPage => (_box.read(_kQuranLastPage) as num?)?.round() ?? 1;
+  set quranLastPage(int v) => _box.write(_kQuranLastPage, v);
+
+  /// Night reading: dark ground, light script. Kept separate from the app's
+  /// own theme — a reader may want it at night without darkening everything.
+  bool get quranNightMode => _box.read(_kQuranNightMode) ?? false;
+  set quranNightMode(bool v) => _box.write(_kQuranNightMode, v);
+
+  /// The one bookmarked Mushaf page, or null when none is set. Device-only —
+  /// it is a reading aid, not progress the server needs to know about.
+  int? get quranBookmark => (_box.read(_kQuranBookmark) as num?)?.round();
+  set quranBookmark(int? v) =>
+      v == null ? _box.remove(_kQuranBookmark) : _box.write(_kQuranBookmark, v);
 
   bool get seenOnboarding => _box.read(_kSeenOnboarding) ?? false;
   set seenOnboarding(bool v) => _box.write(_kSeenOnboarding, v);

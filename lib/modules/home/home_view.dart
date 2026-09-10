@@ -10,6 +10,8 @@ import '../coach/coach_binding.dart';
 import '../coach/coach_view.dart';
 import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
+import '../quran/quran_binding.dart';
+import '../quran/quran_view.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
 import 'prayer_visual_theme.dart';
@@ -104,9 +106,11 @@ class HomeView extends GetView<HomeController> {
                 ))
                     .toList(),
               )),
-              const _QuoteCard(),
+              // const _QuoteCard(),
               const SizedBox(height: 12),
               const _DhikrCard(),
+              const SizedBox(height: 10),
+              const _QuranCard(),
             ],
           ),
         ),
@@ -136,10 +140,10 @@ class _DhikrCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: context.athar.gold.withValues(alpha: 0.16),
+                color: context.athar.primaryDark.withValues(alpha: 0.16),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(Icons.brightness_7_rounded, color: context.athar.gold, size: 24),
+              child: Icon(Icons.brightness_7_rounded, color: context.athar.success, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -154,6 +158,57 @@ class _DhikrCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     'dhikr_home_card_sub'.tr,
+                    style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: context.athar.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Entry point to Quran Werd, alongside the dhikr counters.
+class _QuranCard extends StatelessWidget {
+  const _QuranCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: context.athar.beige,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: context.athar.primaryDark.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.menu_book_rounded, color: context.athar.success, size: 24),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'quran_home_card_title'.tr,
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    'quran_home_card_sub'.tr,
                     style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
                   ),
                 ],
@@ -277,7 +332,7 @@ class _NextPrayerCard extends StatelessWidget {
               ),
               const SizedBox(height: 6),
 
-              const _DailyProgressBar(),
+              // const _DailyProgressBar(),
             ],
           ),
         ],
