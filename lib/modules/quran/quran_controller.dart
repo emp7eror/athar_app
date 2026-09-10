@@ -10,6 +10,7 @@ import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../level_up/level_up_popup.dart';
+import 'quran_ayah_geometry.dart';
 import 'quran_page_cache.dart';
 
 /// Quran Werd — reading state, page caching and the page-completion reward.
@@ -51,6 +52,15 @@ class QuranController extends GetxController {
 
   bool get dailyRewardDone => rewardedToday.value >= dailyRewardPages.value;
 
+  /// The pagination the page images follow, as the server reports it. Page
+  /// numbers in the mood and feeling lists are verified for the 604-page
+  /// Madinah Mushaf, so they're offered for opening only when this matches.
+  final pageEdition = ''.obs;
+
+  static const verifiedPageEdition = 'madinah_hafs_604';
+
+  bool get pagesMatchReader => pageEdition.value == verifiedPageEdition;
+
   /// Night reading mode — persisted, so it survives leaving the Mushaf.
   late final nightMode = _storage.quranNightMode.obs;
 
@@ -64,6 +74,12 @@ class QuranController extends GetxController {
 
   /// The one saved bookmark, kept on the device. Null when none is set.
   late final bookmarkPage = RxnInt(_storage.quranBookmark);
+
+  /// Ayahs set apart on the page — the passage a feeling result pointed to.
+  final highlight = Rxn<AyahRange>();
+
+  /// The ayah the reader tapped, while its details are showing.
+  final selectedAyah = Rxn<AyahRef>();
 
   String _template = '';
   Timer? _ticker;
@@ -118,6 +134,7 @@ class QuranController extends GetxController {
       requiredSeconds.value = _asInt(res['required_seconds'], 60);
       pagePoints.value = _asInt(res['page_points'], 20);
       dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 1);
+      pageEdition.value = res['page_edition']?.toString() ?? '';
 
       completed
         ..clear()
@@ -192,7 +209,13 @@ class QuranController extends GetxController {
   /// Opens [target] in a reader stacked over another screen — a passage picked
   /// from the "read by how you feel" results — without leaving page 0
   /// underneath, so back returns to that screen rather than the cover.
-  void readAt(int target) => _startReadingAt(target, alreadyReading: false);
+  ///
+  /// [highlight] is set apart on every page it spans until the reader closes.
+  void readAt(int target, {AyahRange? highlight}) {
+    this.highlight.value = highlight;
+    selectedAyah.value = null;
+    _startReadingAt(target, alreadyReading: false);
+  }
 
   /// Arriving on the page that is already current still has to open it when
   /// nothing was being read: `goTo` would see no change and do nothing, and the
@@ -208,10 +231,13 @@ class QuranController extends GetxController {
 
   /// The reader has closed. The page being left is not completed — the reward
   /// belongs to reading forward — and its clock stops, so no time counts while
-  /// nothing is on screen.
+  /// nothing is on screen. A highlighted passage and a tapped ayah belong to
+  /// that reading, so they go too.
   void stopReading() {
     _ticker?.cancel();
     elapsed.value = 0;
+    highlight.value = null;
+    selectedAyah.value = null;
   }
 
   /// Back to page 0.

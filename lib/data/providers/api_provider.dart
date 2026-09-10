@@ -46,6 +46,48 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranMoods() async =>
       _unwrap(await _dio.get(ApiEndpoints.quranMoods));
 
+  /// "Find passages by feeling". The body is one bilingual category; the rest
+  /// arrives in headers — whether urgent safety guidance leads it, and a
+  /// short-lived token for offering a generated result for review. Generation
+  /// can take a while, so this waits longer than usual; [cancelToken] lets the
+  /// screen abandon it.
+  Future<({Map<String, dynamic> category, bool urgent, String? suggestionToken, bool more})> quranFeeling(
+    String feeling,
+    String locale, {
+    CancelToken? cancelToken,
+  }) async {
+    final res = await _dio.post(
+      ApiEndpoints.quranFeelings,
+      data: {'feeling': feeling, 'locale': locale},
+      cancelToken: cancelToken,
+      options: Options(receiveTimeout: const Duration(seconds: 75)),
+    );
+    final category = await _unwrap(res);
+    return (
+      category: category,
+      urgent: res.headers.value('x-quran-feeling-safety') == 'urgent',
+      suggestionToken: res.headers.value('x-quran-feeling-suggestion'),
+      // A catalog result the server can look for more passages for.
+      more: res.headers.value('x-quran-feeling-more') == '1',
+    );
+  }
+
+  /// More passages for a catalog result. The server adds them to the category
+  /// for everyone and answers with the category as it now stands. Slow when
+  /// it asks the model, so it waits longer than usual.
+  Future<Map<String, dynamic>> quranFeelingMore(String categoryId, {CancelToken? cancelToken}) async =>
+      _unwrap(await _dio.post(
+        ApiEndpoints.quranFeelingMore,
+        data: {'category_id': categoryId},
+        cancelToken: cancelToken,
+        options: Options(receiveTimeout: const Duration(seconds: 75)),
+      ));
+
+  /// Offers a generated result for the shared list. Only the result is sent —
+  /// the token stands for it on the server — never what the person wrote.
+  Future<Map<String, dynamic>> quranFeelingSuggest(String token) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranFeelingSuggestions, data: {'token': token}));
+
   // --- Dhikr ---
 
   /// Today's tasbeeh / istighfar counters, as the server sees them.

@@ -9,9 +9,11 @@ import 'quran_mood_view.dart';
 
 /// "Page 0" — what the Mushaf opens on.
 ///
-/// Five ways in: the index, reading by how you feel, a random page, the saved
-/// bookmark, and the page last read. Nothing is opened and no reading clock runs until one is chosen,
-/// and the reader returns here when it goes back from page 1.
+/// Five ways in: the index, reading by how you feel (pick a feeling or describe
+/// it in your own words), a random page, the saved bookmark, and the page last
+/// read.
+/// Nothing is opened and no reading clock runs until one is chosen, and the
+/// reader returns here when it goes back from page 1.
 class QuranCover extends GetView<QuranController> {
   const QuranCover({super.key});
 

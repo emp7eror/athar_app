@@ -20,6 +20,9 @@ class ApiEndpoints {
   static const String quranPageOpen = '/quran/page-open';
   static const String quranPageComplete = '/quran/page-complete';
   static const String quranMoods = '/quran/moods';
+  static const String quranFeelings = '/quran/feelings';
+  static const String quranFeelingSuggestions = '/quran/feelings/suggestions';
+  static const String quranFeelingMore = '/quran/feelings/more';
 
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../core/constants/quran_surahs.dart';
 import '../../core/theme/app_theme.dart';
@@ -8,6 +10,7 @@ import 'page_flip/flip_settings.dart';
 import 'page_flip/page_flip_controller.dart';
 import 'page_flip/reading_direction.dart';
 import 'page_flip/turnable_page.dart';
+import 'quran_ayah_geometry.dart';
 import 'quran_cover.dart';
 import 'quran_page_sheet.dart';
 import 'quran_controller.dart';
@@ -191,6 +194,28 @@ class _ReaderState extends State<_Reader> {
     controller.goTo(target, countPrevious: forward);
   }
 
+  /// A tap on the page being read: select the ayah under it and show its
+  /// details. A tap on the margins just clears the selection.
+  void _onAyahTap(AyahRef? ayah) {
+    if (ayah == null) {
+      controller.selectedAyah.value = null;
+      return;
+    }
+
+    HapticFeedback.selectionClick();
+    controller.selectedAyah.value = ayah;
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (_) => _AyahSheet(ayah: ayah, page: controller.page.value),
+    ).whenComplete(() {
+      if (controller.selectedAyah.value == ayah) {
+        controller.selectedAyah.value = null;
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -211,6 +236,8 @@ class _ReaderState extends State<_Reader> {
                     child: Obx(() {
                       final night = controller.nightMode.value;
                       final current = controller.page.value;
+                      final highlight = controller.highlight.value;
+                      final selected = controller.selectedAyah.value;
                       // The book paints its own ground under and behind the
                       // pages; at night that has to be the dark paper, not
                       // the white the package would otherwise flash.
@@ -242,6 +269,12 @@ class _ReaderState extends State<_Reader> {
                                 // The page either side is the most a turn can
                                 // reach, and matches what the controller warms.
                                 active: (index + 1 - current).abs() <= 1,
+                                highlight: highlight,
+                                selected: selected,
+                                // Only the page being read takes ayah taps.
+                                onAyahTap: index + 1 == current
+                                    ? _onAyahTap
+                                    : null,
                               ),
                         ),
                       );
@@ -266,6 +299,93 @@ class _ReaderState extends State<_Reader> {
             onNext: _flip.nextPage,
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A tapped ayah: where it is, and its reference to copy or share. The page is
+/// artwork, not text, so the reference is what can be passed on.
+class _AyahSheet extends StatelessWidget {
+  const _AyahSheet({required this.ayah, required this.page});
+
+  final AyahRef ayah;
+  final int page;
+
+  String get _surahName => ayah.surah >= 1 && ayah.surah <= kQuranSurahs.length
+      ? kQuranSurahs[ayah.surah - 1].localizedName
+      : '${ayah.surah}';
+
+  String get _reference => 'quran_ayah_reference'.trParams({
+    'surah': _surahName,
+    'ayah': '${ayah.ayah}',
+    'ref': '${ayah.surah}:${ayah.ayah}',
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const ExcludeSemantics(
+                  child: Text('📖', style: TextStyle(fontSize: 26)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Semantics(
+                    header: true,
+                    child: Text(
+                      'quran_ayah_title'.trParams({
+                        'surah': _surahName,
+                        'ayah': '${ayah.ayah}',
+                      }),
+                      style: context.text.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsetsDirectional.only(start: 38),
+              child: Text(
+                '${'quran_page_short'.trParams({'page': '$page'})}  ·  ${ayah.surah}:${ayah.ayah}',
+                style: context.text.bodySmall?.copyWith(
+                  color: context.athar.textMuted,
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: Text('quran_ayah_copy'.tr),
+              onTap: () async {
+                await Clipboard.setData(ClipboardData(text: _reference));
+                Get.back<void>();
+                Get.rawSnackbar(
+                  message: 'quran_ayah_copied'.tr,
+                  duration: const Duration(seconds: 2),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.ios_share_rounded),
+              title: Text('quran_ayah_share'.tr),
+              onTap: () {
+                Get.back<void>();
+                SharePlus.instance.share(ShareParams(text: _reference));
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
