@@ -95,13 +95,7 @@ class QuranMoodController extends GetxController {
     try {
       final res = await _api.quranMoods();
 
-      sections.assignAll(
-        (res['sections'] is List ? res['sections'] as List : const [])
-            .whereType<Map>()
-            .map((s) => MoodSection.fromJson(Map<String, dynamic>.from(s)))
-            // A section with nothing to pick would be a dead end.
-            .where((s) => s.categories.isNotEmpty),
-      );
+      sections.assignAll(_parseSections(res));
 
       final notes = res['notes'];
       guidance.assignAll([
@@ -126,8 +120,42 @@ class QuranMoodController extends GetxController {
 
   void chooseCategory(MoodCategory c) {
     category.value = c;
+    unawaited(_refreshPicked(c.id));
     unawaited(_loadSuggested(c));
   }
+
+  /// Re-reads the list quietly — no loading state — so a category picked
+  /// from it shows passages added since the screen opened, such as a
+  /// suggestion an admin has just approved. The list on screen stays if this
+  /// fails.
+  Future<void> _refreshPicked(String pickedId) async {
+    try {
+      final fresh = _parseSections(await _api.quranMoods());
+      if (fresh.isEmpty) return;
+
+      sections.assignAll(fresh);
+      if (category.value?.id != pickedId) return;
+
+      for (final s in fresh) {
+        for (final c in s.categories) {
+          if (c.id != pickedId) continue;
+          if (section.value?.id == s.id) section.value = s;
+          category.value = c;
+          return;
+        }
+      }
+    } catch (_) {
+      // Keep what is already shown.
+    }
+  }
+
+  static List<MoodSection> _parseSections(Map<String, dynamic> res) =>
+      (res['sections'] is List ? res['sections'] as List : const [])
+          .whereType<Map>()
+          .map((s) => MoodSection.fromJson(Map<String, dynamic>.from(s)))
+          // A section with nothing to pick would be a dead end.
+          .where((s) => s.categories.isNotEmpty)
+          .toList();
 
   /// Asks for passages suggested for [picked]'s topic. Only the category is
   /// sent — nothing the reader typed.

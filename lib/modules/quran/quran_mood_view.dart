@@ -208,6 +208,7 @@ class _StepPage extends StatelessWidget {
 /// more on wider screens.
 class _ResponsiveGrid extends StatelessWidget {
   const _ResponsiveGrid({
+    super.key,
     required this.children,
     required this.minTileWidth,
     this.maxColumns = 3,
@@ -592,8 +593,8 @@ class _PickedResultStep extends GetView<QuranMoodController> {
           category: category,
           urgent: false,
           guidance: controller.guidance.toList(),
-          passagesTitle: '📖  ${'quran_feel_general'.tr}',
-          footer: const _SuggestedSection(),
+          predefined: true,
+          special: const _SuggestedPassages(),
         ),
       ],
     );
@@ -611,6 +612,7 @@ class _SearchResultStep extends GetView<QuranMoodController> {
           final Widget content;
           final error = controller.searchError.value;
           final found = controller.found.value;
+          final written = controller.foundIsPersonal.value;
 
           if (controller.searching.value) {
             content = _Searching(
@@ -630,13 +632,12 @@ class _SearchResultStep extends GetView<QuranMoodController> {
               category: found,
               urgent: controller.urgent.value,
               guidance: controller.guidance.toList(),
-              // Written for this feeling, the passages are already personal;
-              // from a saved category they're the general ones, with the
-              // personal passages following underneath.
-              passagesTitle: controller.foundIsPersonal.value
-                  ? '✨  ${'quran_feel_personal'.tr}'
-                  : '📖  ${'quran_feel_general'.tr}',
-              footer: const _PersonalSection(),
+              // Written for this feeling, the passages are the special ones
+              // and there are no predefined ones. From a saved category, the
+              // advice and special passages written for this person follow.
+              predefined: !written,
+              advice: written ? null : const _PersonalAdvice(),
+              special: written ? null : const _PersonalPassages(),
             );
           } else {
             // Left while animating out after going back.
@@ -702,243 +703,54 @@ class _Searching extends StatelessWidget {
   }
 }
 
-/// "Suggested passages", under a category picked from the list: passages the
-/// AI suggested for its topic, shown while an admin reviews them. Nothing is
-/// shown when there are none; a quiet note if they couldn't be fetched.
-class _SuggestedSection extends GetView<QuranMoodController> {
-  const _SuggestedSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final suggested = controller.suggested.value;
-      final Widget child;
-
-      if (controller.suggestedLoading.value) {
-        child = Semantics(
-          key: const ValueKey('loading'),
-          liveRegion: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'quran_mood_suggested_loading'.tr,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.athar.textMuted,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      } else if (suggested != null && suggested.passages.isNotEmpty) {
-        child = Semantics(
-          key: const ValueKey('suggested'),
-          liveRegion: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _ResponsiveGrid(
-                minTileWidth: 320,
-                maxColumns: 2,
-                runSpacing: 0,
-                children: [
-                  for (final passage in suggested.passages)
-                    QuranPassageCard(passage: passage),
-                ],
-              ),
-              _Note(emoji: 'ℹ️', text: 'quran_mood_suggested_note'.tr),
-            ],
-          ),
-        );
-      } else if (controller.suggestedFailed.value) {
-        child = _Note(
-          key: const ValueKey('failed'),
-          text: 'quran_mood_suggested_failed'.tr,
-        );
-      } else {
-        return const SizedBox.shrink();
-      }
-
-      return Padding(
-        padding: const EdgeInsets.only(top: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(
-                '✨  ${'quran_mood_suggested'.tr}',
-                style: context.text.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              alignment: Alignment.topCenter,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                child: child,
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-}
-
-/// "For your situation", under the general passages of a saved category:
-/// a loader while passages suited to what was written are looked for, then
-/// those passages — or a note when nothing more fits or they couldn't be
-/// fetched. The general passages above stand either way.
-class _PersonalSection extends GetView<QuranMoodController> {
-  const _PersonalSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      final personal = controller.personal.value;
-      final Widget child;
-
-      if (controller.personalLoading.value) {
-        child = Semantics(
-          key: const ValueKey('loading'),
-          liveRegion: true,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'quran_feel_personal_loading'.tr,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.athar.textMuted,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      } else if (personal != null && personal.passages.isNotEmpty) {
-        child = Semantics(
-          key: const ValueKey('personal'),
-          liveRegion: true,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (personal.relevance.text.isNotEmpty) ...[
-                Text(
-                  personal.relevance.text,
-                  style: context.text.bodyMedium?.copyWith(
-                    color: context.athar.textMuted,
-                    height: 1.7,
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
-              _ResponsiveGrid(
-                minTileWidth: 320,
-                maxColumns: 2,
-                runSpacing: 0,
-                children: [
-                  for (final passage in personal.passages)
-                    QuranPassageCard(passage: passage),
-                ],
-              ),
-            ],
-          ),
-        );
-      } else if (personal != null) {
-        child = _Note(
-          key: const ValueKey('none'),
-          emoji: '🔍',
-          text: 'quran_feel_personal_none'.tr,
-        );
-      } else if (controller.personalFailed.value) {
-        child = _Note(
-          key: const ValueKey('failed'),
-          text: 'quran_feel_personal_failed'.tr,
-        );
-      } else {
-        // Not asked for: a result written for this feeling, or urgent input.
-        return const SizedBox.shrink();
-      }
-
-      return Padding(
-        padding: const EdgeInsets.only(top: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Semantics(
-              header: true,
-              child: Text(
-                '✨  ${'quran_feel_personal'.tr}',
-                style: context.text.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            AnimatedSize(
-              duration: const Duration(milliseconds: 220),
-              alignment: Alignment.topCenter,
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                child: child,
-              ),
-            ),
-          ],
-        ),
-      );
-    });
-  }
-}
-
+/// A result in three parts:
+///  1. advice for the situation, drawn from the passages;
+///  2. the predefined reflection passages of a saved category;
+///  3. special reflection passages — suited to what was written, or suggested
+///     for the category's topic.
+/// Urgent safety guidance, when there is any, comes before all of them.
 class _Result extends StatelessWidget {
   const _Result({
     super.key,
     required this.category,
     required this.urgent,
     required this.guidance,
-    this.passagesTitle,
-    this.footer,
+    required this.predefined,
+    this.advice,
+    this.special,
   });
 
   final MoodCategory category;
   final bool urgent;
   final List<LocalizedText> guidance;
 
-  /// The heading over the passages; "Passages to reflect on" when unset.
-  final String? passagesTitle;
+  /// Whether [category]'s passages are a saved category's predefined ones.
+  /// Otherwise they were written for this feeling, and are the special ones.
+  final bool predefined;
 
-  /// Shown right under the passages — a search's personal passages.
-  final Widget? footer;
+  /// The advice, when it isn't simply [category]'s own explanation.
+  final Widget? advice;
+
+  /// The special passages, when they load separately from [category].
+  final Widget? special;
 
   @override
   Widget build(BuildContext context) {
     final relevance = category.relevance.text;
-    final empty = category.passages.isEmpty;
+    final adviceSection = advice;
+    final specialSection = special;
     final readerMismatch =
         category.pages.isNotEmpty && !QuranPassageCard.readerMatches();
+
+    final passages = _ResponsiveGrid(
+      minTileWidth: 320,
+      maxColumns: 2,
+      runSpacing: 0,
+      children: [
+        for (final passage in category.passages)
+          QuranPassageCard(passage: passage),
+      ],
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -968,50 +780,274 @@ class _Result extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (urgent)
-          _UrgentGuidance(text: relevance)
-        else if (!empty)
-          Text(
-            relevance,
-            style: context.text.bodyMedium?.copyWith(
-              color: context.athar.textMuted,
-              height: 1.7,
-            ),
+        if (urgent) ...[
+          const SizedBox(height: 12),
+          // The guidance leads the explanation, so it stands in for the advice.
+          _UrgentGuidance(text: relevance),
+        ] else
+          _Section(
+            emoji: '💡',
+            title: 'quran_result_advice'.tr,
+            child: adviceSection ?? _AdviceText(relevance),
           ),
-        if (empty)
-          // The explanation, never a stand-in recommendation.
-          _EmptyResult(explanation: urgent ? null : relevance)
-        else ...[
-          const SizedBox(height: 20),
+        if (predefined) ...[
+          if (category.passages.isNotEmpty)
+            _Section(
+              emoji: '📖',
+              title: 'quran_result_predefined'.tr,
+              child: passages,
+            ),
+          ?specialSection,
+        ] else
+          _Section(
+            emoji: '✨',
+            title: 'quran_result_special'.tr,
+            child: category.passages.isNotEmpty
+                ? passages
+                // An explanation, never a stand-in recommendation.
+                : const _EmptyResult(explanation: null),
+          ),
+        if (readerMismatch)
+          _Note(emoji: 'ℹ️', text: 'quran_feel_reader_mismatch'.tr),
+        const SizedBox(height: 6),
+        _Note(emoji: '🤍', text: 'quran_feel_reflection_note'.tr),
+        for (final note in guidance) _Note(text: note.text),
+      ],
+    );
+  }
+}
+
+/// One headed part of a result.
+class _Section extends StatelessWidget {
+  const _Section({
+    required this.emoji,
+    required this.title,
+    required this.child,
+  });
+
+  final String emoji;
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           Semantics(
             header: true,
             child: Text(
-              passagesTitle ?? '📖  ${'quran_mood_results'.tr}',
+              '$emoji  $title',
               style: context.text.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
             ),
           ),
           const SizedBox(height: 10),
-          _ResponsiveGrid(
-            minTileWidth: 320,
-            maxColumns: 2,
-            runSpacing: 0,
-            children: [
-              for (final passage in category.passages)
-                QuranPassageCard(passage: passage),
-            ],
-          ),
-          ?footer,
-          if (readerMismatch)
-            _Note(emoji: 'ℹ️', text: 'quran_feel_reader_mismatch'.tr),
+          child,
         ],
-        const SizedBox(height: 6),
-        _Note(emoji: '💡', text: 'quran_feel_reflection_note'.tr),
-        for (final note in guidance) _Note(text: note.text),
-      ],
+      ),
     );
+  }
+}
+
+/// The advice: how the passages speak to the situation. Reflection on the
+/// passages, never a ruling.
+class _AdviceText extends StatelessWidget {
+  const _AdviceText(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: context.athar.beige,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(text, style: context.text.bodyMedium?.copyWith(height: 1.7)),
+    );
+  }
+}
+
+/// A small spinner with a line of text, for a part still loading.
+class _LoadingLine extends StatelessWidget {
+  const _LoadingLine({super.key, required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                text,
+                style: context.text.bodySmall?.copyWith(
+                  color: context.athar.textMuted,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Swaps a part's content with a short fade, resizing smoothly.
+class _Animated extends StatelessWidget {
+  const _Animated({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      alignment: Alignment.topCenter,
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 220),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// For a search matched to a saved category: that category's explanation at
+/// first, replaced by the one written for what the person wrote once it
+/// arrives.
+class _PersonalAdvice extends GetView<QuranMoodController> {
+  const _PersonalAdvice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final personal = controller.personal.value?.relevance.text ?? '';
+      final general = controller.found.value?.relevance.text ?? '';
+      final text = personal.isNotEmpty ? personal : general;
+
+      return _Animated(child: _AdviceText(text, key: ValueKey(text)));
+    });
+  }
+}
+
+/// Special passages for a search matched to a saved category: suited to what
+/// was written, looked for while the predefined ones are already on screen.
+class _PersonalPassages extends GetView<QuranMoodController> {
+  const _PersonalPassages();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final personal = controller.personal.value;
+      final Widget child;
+
+      if (controller.personalLoading.value) {
+        child = _LoadingLine(
+          key: const ValueKey('loading'),
+          text: 'quran_feel_personal_loading'.tr,
+        );
+      } else if (personal != null && personal.passages.isNotEmpty) {
+        child = _ResponsiveGrid(
+          key: const ValueKey('passages'),
+          minTileWidth: 320,
+          maxColumns: 2,
+          runSpacing: 0,
+          children: [
+            for (final passage in personal.passages)
+              QuranPassageCard(passage: passage),
+          ],
+        );
+      } else if (personal != null) {
+        child = _Note(
+          key: const ValueKey('none'),
+          emoji: '🔍',
+          text: 'quran_feel_personal_none'.tr,
+        );
+      } else if (controller.personalFailed.value) {
+        child = _Note(
+          key: const ValueKey('failed'),
+          text: 'quran_feel_personal_failed'.tr,
+        );
+      } else {
+        // Not asked for — urgent input, for one.
+        return const SizedBox.shrink();
+      }
+
+      return _Section(
+        emoji: '✨',
+        title: 'quran_result_special'.tr,
+        child: _Animated(child: child),
+      );
+    });
+  }
+}
+
+/// Special passages for a category picked from the list: suggested by the AI
+/// for its topic, shown while an admin reviews them. Hidden when there are
+/// none; a quiet note if they couldn't be fetched.
+class _SuggestedPassages extends GetView<QuranMoodController> {
+  const _SuggestedPassages();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final suggested = controller.suggested.value;
+      final Widget child;
+
+      if (controller.suggestedLoading.value) {
+        child = _LoadingLine(
+          key: const ValueKey('loading'),
+          text: 'quran_mood_suggested_loading'.tr,
+        );
+      } else if (suggested != null && suggested.passages.isNotEmpty) {
+        child = Column(
+          key: const ValueKey('passages'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _ResponsiveGrid(
+              minTileWidth: 320,
+              maxColumns: 2,
+              runSpacing: 0,
+              children: [
+                for (final passage in suggested.passages)
+                  QuranPassageCard(passage: passage),
+              ],
+            ),
+            _Note(emoji: 'ℹ️', text: 'quran_mood_suggested_note'.tr),
+          ],
+        );
+      } else if (controller.suggestedFailed.value) {
+        child = _Note(
+          key: const ValueKey('failed'),
+          text: 'quran_mood_suggested_failed'.tr,
+        );
+      } else {
+        return const SizedBox.shrink();
+      }
+
+      return _Section(
+        emoji: '✨',
+        title: 'quran_result_special'.tr,
+        child: _Animated(child: child),
+      );
+    });
   }
 }
 
