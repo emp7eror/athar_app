@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:upgrader/upgrader.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../coach/coach_binding.dart';
+import '../coach/coach_view.dart';
 import '../home/home_view.dart';
 import '../home/home_binding.dart';
 import '../friends/friends_view.dart';
@@ -107,34 +109,89 @@ class _FloatingNavBar extends StatelessWidget {
       (Icons.person_outline, 'profile'.tr),
     ];
 
+    // The AI button rests on top of the bar's centre, dipping only into the
+    // bar's own padding so it never covers a tab. Its space above the bar is
+    // part of this widget, so the whole button stays tappable; the empty space
+    // either side of it lets taps through to the page.
+    const aiSize = 50.0;
+    const aiOverlap = 20.0;
+
     return SafeArea(
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: Theme.of(context).extension<AtharPalette>()!.card,
-            borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 24,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (var i = 0; i < items.length; i++)
-                _NavItem(
-                  icon: items[i].$1,
-                  label: items[i].$2,
-                  selected: i == index,
-                  onTap: () => onSelected(i),
+        child: Stack(
+          alignment: Alignment.topCenter,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: aiSize - aiOverlap),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).extension<AtharPalette>()!.card,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-            ],
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    for (var i = 0; i < items.length; i++)
+                      _NavItem(
+                        icon: items[i].$1,
+                        label: items[i].$2,
+                        selected: i == index,
+                        onTap: () => onSelected(i),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            const _AiButton(size: aiSize),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The AI coach, raised on top of the nav bar instead of set among the tabs,
+/// so it is one tap away from every tab.
+class _AiButton extends StatelessWidget {
+  const _AiButton({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = Theme.of(context).extension<AtharPalette>()!;
+
+    return Tooltip(
+      message: 'coach_title'.tr,
+      child: Material(
+        type: MaterialType.transparency,
+        elevation: 8,
+        shadowColor: Colors.black45,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () => Get.to(() => const CoachView(), binding: CoachBinding()),
+          child: Ink(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: palette.heroGradient,
+              // A ring in the bar's colour, so the button reads as sitting on
+              // the bar rather than floating over the page.
+              border: Border.all(color: palette.card, width: 4),
+            ),
+            child: const Icon(Icons.auto_awesome_rounded, color: Colors.white),
           ),
         ),
       ),

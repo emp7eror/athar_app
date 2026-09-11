@@ -6,8 +6,6 @@ import '../../core/constants/app_colors.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../widgets/framed_avatar.dart';
-import '../coach/coach_binding.dart';
-import '../coach/coach_view.dart';
 import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
@@ -22,25 +20,14 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Pinned to the right in both languages — the default `endFloat` would
-      // flip it to the left under Arabic's RTL layout.
-      floatingActionButtonLocation: const _AlwaysRightFabLocation(),
-      // Lifted clear of the shell's floating nav bar (the shell uses
-      // extendBody, so this Scaffold's bottom sits behind it).
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 78),
-        child: FloatingActionButton(
-          onPressed: () => Get.to(() => const CoachView(), binding: CoachBinding()),
-          tooltip: 'coach_title'.tr,
-          child: const Icon(Icons.auto_awesome_rounded),
-        ),
-      ),
+      // The AI coach button sits on the shell's nav bar, on every tab.
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
           onRefresh: controller.refreshAll,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
+            // Clear of the floating nav bar and the AI button raised on it.
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 160),
             children: [
 
               // ── الهيدر: صورة + اسم + أيقونة الإعدادات ──
@@ -694,21 +681,6 @@ class _TrailingState extends StatelessWidget {
     }
     return Icon(Icons.lock_outline_rounded,
         color: context.athar.primaryDark, size: 30);
-  }
-}
-
-/// Bottom-right FAB regardless of text direction. Flutter's built-in
-/// start/end locations are direction-aware, so under RTL `endFloat` lands on
-/// the left — this computes the offset from the physical right edge instead.
-class _AlwaysRightFabLocation extends StandardFabLocation with FabFloatOffsetY {
-  const _AlwaysRightFabLocation();
-
-  @override
-  double getOffsetX(ScaffoldPrelayoutGeometry geometry, double adjustment) {
-    return geometry.scaffoldSize.width -
-        geometry.floatingActionButtonSize.width -
-        kFloatingActionButtonMargin -
-        geometry.minInsets.right;
   }
 }
 
