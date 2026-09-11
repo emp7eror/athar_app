@@ -50,7 +50,17 @@ class QuranController extends GetxController {
   final dailyRewardPages = 1.obs;
   final rewardedToday = 0.obs;
 
-  bool get dailyRewardDone => rewardedToday.value >= dailyRewardPages.value;
+  /// The day [rewardedToday] was counted on. Once the date changes the reward
+  /// is open again, even before the server has said so.
+  DateTime _countsDay = _today();
+
+  bool get dailyRewardDone =>
+      _countsDay == _today() && rewardedToday.value >= dailyRewardPages.value;
+
+  static DateTime _today() {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day);
+  }
 
   /// The pagination the page images follow, as the server reports it. Page
   /// numbers in the mood and feeling lists are verified for the 604-page
@@ -83,6 +93,9 @@ class QuranController extends GetxController {
 
   String _template = '';
   Timer? _ticker;
+
+  /// A reward claim is on its way, so a second turn doesn't send another.
+  bool _claiming = false;
   bool _levelUpShowing = false;
 
   SurahInfo get currentSurah => surahForPage(page.value);
@@ -142,16 +155,18 @@ class QuranController extends GetxController {
           (res['completed_pages'] as List? ?? []).map((e) => _asInt(e, 0)),
         );
 
-      // Where they stopped: the server's record when it has one, otherwise the
-      // copy this device keeps.
-      var resume = _storage.quranLastPage;
+      // Where they stopped: this device's own record first — the server only
+      // hears about the page that earns the day's reward — then the server's.
+      final local = _storage.quranLastPageOrNull;
+      var resume = local ?? 1;
       final progress = res['progress'];
       if (progress is Map) {
         pagesCompleted.value = _asInt(progress['pages_completed'], 0);
         totalPoints.value = _asInt(progress['total_points'], 0);
         totalSeconds.value = _asInt(progress['total_seconds'], 0);
-        resume = _asInt(progress['last_page'], resume);
+        if (local == null) resume = _asInt(progress['last_page'], resume);
         rewardedToday.value = _asInt(progress['rewarded_today'], 0);
+        _countsDay = _today();
       }
       page.value = resume.clamp(1, totalPages.value);
       lastReadPage.value = page.value;
@@ -268,14 +283,10 @@ class QuranController extends GetxController {
     _storage.quranLastPage = page.value;
     lastReadPage.value = page.value;
 
-    // An already-banked page has nothing left to earn, so no clock is started.
-    if (isCurrentPageCompleted) return;
-
-    // Still opened on the server once today's reward is taken: the server
-    // decides, and a session that runs past midnight can earn again. Only the
-    // countdown is skipped.
-    unawaited(_notifyOpen(page.value));
-    if (dailyRewardDone) return;
+    // Opening a page sends nothing. The reading time is counted here, and only
+    // for a page that can still earn: not one already banked, and not once
+    // today's reward is taken.
+    if (isCurrentPageCompleted || dailyRewardDone) return;
 
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (isClosed) return;
@@ -284,22 +295,21 @@ class QuranController extends GetxController {
     });
   }
 
-  Future<void> _notifyOpen(int p) async {
-    try {
-      await _api.quranPageOpen(p);
-    } catch (e) {
-      // A failed open just means this page can't be rewarded yet; reading
-      // continues normally.
-      ErrorReporter.report(e, StackTrace.current);
-    }
-  }
-
-  /// Asks the server whether the page just left earned its points.
+  /// Claims today's reward for the page just left — the only time the server
+  /// hears about reading. Sent once, when the page was held long enough and
+  /// today's reward is still open; in every other case nothing is sent.
   Future<void> _completePage(int p) async {
-    if (completed.contains(p)) return;
+    final seconds = elapsed.value;
+    if (_claiming ||
+        completed.contains(p) ||
+        dailyRewardDone ||
+        seconds < requiredSeconds.value) {
+      return;
+    }
 
+    _claiming = true;
     try {
-      final res = await _api.quranPageComplete(p);
+      final res = await _api.quranPageComplete(p, seconds);
 
       // Every answer carries today's count — a refusal for the daily limit
       // included — so the reader learns the day is done either way.
@@ -313,6 +323,7 @@ class QuranController extends GetxController {
           today['rewarded_today'],
           rewardedToday.value,
         );
+        _countsDay = _today();
       }
       if (dailyRewardDone) {
         // The page now open was started before this answer arrived; its
@@ -340,6 +351,8 @@ class QuranController extends GetxController {
       unawaited(_maybeShowLevelUp(res));
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
+    } finally {
+      _claiming = false;
     }
   }
 

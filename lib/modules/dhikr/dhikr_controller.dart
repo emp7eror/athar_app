@@ -34,8 +34,8 @@ class DhikrController extends GetxController {
   static const _maxBatch = 100;
 
   /// Taps closer together than this are treated as frantic rather than mindful.
-  static const _rapidTapThreshold = Duration(milliseconds: 220);
-  static const _rapidTapsBeforeNudge = 8;
+  static const _rapidTapThreshold = Duration(milliseconds: 500);
+  static const _rapidTapsBeforeNudge = 5;
   static const _nudgeCooldown = Duration(seconds: 20);
 
   /// How long the counter stops accepting taps once a frantic run is detected,

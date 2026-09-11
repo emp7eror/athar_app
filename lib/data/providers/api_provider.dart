@@ -31,15 +31,11 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranWerd() async =>
       _unwrap(await _dio.get(ApiEndpoints.quranWerd));
 
-  /// Starts the server-side reading clock for [page]. The elapsed time is
-  /// measured against this call, not against anything the client reports.
-  Future<Map<String, dynamic>> quranPageOpen(int page) async =>
-      _unwrap(await _dio.post(ApiEndpoints.quranPageOpen, data: {'page': page}));
-
-  /// Called when the reader turns away from [page]. The server decides whether
-  /// the 60 seconds were actually served and whether the page still owes points.
-  Future<Map<String, dynamic>> quranPageComplete(int page) async =>
-      _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page}));
+  /// Claims today's reward for [page], read for [seconds]. The only reading
+  /// call: sent once a day, when the reward is due. The server checks the
+  /// daily limit and whether the page still owes points.
+  Future<Map<String, dynamic>> quranPageComplete(int page, int seconds) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page, 'seconds': seconds}));
 
   /// The "read by how you feel" index: sections, their feelings, and the
   /// passages for each, in both languages. Small enough to fetch whole.

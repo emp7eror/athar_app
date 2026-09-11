@@ -53,9 +53,12 @@ class StorageProvider extends GetxService {
   set dhikrPending(Map<String, dynamic> v) =>
       v.isEmpty ? _box.remove(_kDhikrPending) : _box.write(_kDhikrPending, v);
 
-  /// Last Mushaf page opened. Mirrored on the server, but kept here too so
-  /// "continue reading" works before the first request comes back.
+  /// Last Mushaf page opened on this device. The server only learns of the
+  /// page that earns the day's reward, so this is the reader's real place.
   int get quranLastPage => (_box.read(_kQuranLastPage) as num?)?.round() ?? 1;
+
+  /// The same, or null when no page was ever opened on this device.
+  int? get quranLastPageOrNull => (_box.read(_kQuranLastPage) as num?)?.round();
   set quranLastPage(int v) => _box.write(_kQuranLastPage, v);
 
   /// Night reading: dark ground, light script. Kept separate from the app's
