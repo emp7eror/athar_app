@@ -14,27 +14,25 @@ class QuranIndexView extends GetView<QuranController> {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: DefaultTabController(
-        length: 3,
-        child: Scaffold(
-          appBar: AppBar(
-            title: Text('quran_index'.tr),
-            bottom: TabBar(
-              indicatorColor: AppColors.primary,
-              labelColor: AppColors.primary,
-              unselectedLabelColor: context.athar.textMuted,
-              tabs: [
-                Tab(text: 'quran_tab_surah'.tr),
-                Tab(text: 'quran_tab_juz'.tr),
-                Tab(text: 'quran_tab_page'.tr),
-              ],
-            ),
+    // Follows the app's language, like the rest of the app's menus.
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text('quran_index'.tr),
+          bottom: TabBar(
+            indicatorColor: AppColors.primary,
+            labelColor: AppColors.primary,
+            unselectedLabelColor: context.athar.textMuted,
+            tabs: [
+              Tab(text: 'quran_tab_surah'.tr),
+              Tab(text: 'quran_tab_juz'.tr),
+              Tab(text: 'quran_tab_page'.tr),
+            ],
           ),
-          body: const TabBarView(
-            children: [_SurahList(), _JuzList(), _PagePicker()],
-          ),
+        ),
+        body: const TabBarView(
+          children: [_SurahList(), _JuzList(), _PagePicker()],
         ),
       ),
     );
@@ -42,8 +40,7 @@ class QuranIndexView extends GetView<QuranController> {
 }
 
 void _jumpTo(int page) {
-  // openAt works from the cover as well as from the reader, and never banks a
-  // reward: arriving via the index isn't "finishing" the page that was open.
+  // openAt works from the cover as well as from the reader.
   Get.find<QuranController>().openAt(page);
   Get.back<void>();
 }
@@ -56,11 +53,8 @@ class _SurahList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: kQuranSurahs.length,
-      separatorBuilder: (context, index) => Divider(
-        height: 1,
-        color: context.athar.beige,
-        indent: 68,
-      ),
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: context.athar.beige, indent: 68),
       itemBuilder: (context, i) {
         final s = kQuranSurahs[i];
         return ListTile(
@@ -92,11 +86,8 @@ class _JuzList extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: kJuzStartPages.length,
-      separatorBuilder: (context, index) => Divider(
-        height: 1,
-        color: context.athar.beige,
-        indent: 68,
-      ),
+      separatorBuilder: (context, index) =>
+          Divider(height: 1, color: context.athar.beige, indent: 68),
       itemBuilder: (context, i) {
         final page = kJuzStartPages[i];
         return ListTile(
@@ -107,9 +98,9 @@ class _JuzList extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
           subtitle: Text(
-            'quran_surah_n'.trParams(
-              {'name': surahForPage(page).localizedName},
-            ),
+            'quran_surah_n'.trParams({
+              'name': surahForPage(page).localizedName,
+            }),
             style: TextStyle(color: context.athar.textMuted, fontSize: 11.5),
           ),
           trailing: Text(
@@ -167,7 +158,10 @@ class _PagePickerState extends State<_PagePicker> {
           onSubmitted: (_) => _submit(),
           decoration: InputDecoration(
             hintText: '1 – $total',
-            hintStyle: TextStyle(color: context.athar.textMuted, fontWeight: FontWeight.w400),
+            hintStyle: TextStyle(
+              color: context.athar.textMuted,
+              fontWeight: FontWeight.w400,
+            ),
             errorText: _error,
             filled: true,
             fillColor: context.athar.beige,
@@ -218,7 +212,11 @@ class _NumberBadge extends StatelessWidget {
       ),
       child: Text(
         '$number',
-        style: const TextStyle(color: AppColors.primary, fontSize: 12.5, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          color: AppColors.primary,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }

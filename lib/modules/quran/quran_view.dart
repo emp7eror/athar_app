@@ -39,33 +39,31 @@ class QuranView extends GetView<QuranController> {
 
   @override
   Widget build(BuildContext context) {
-    // The Mushaf is read right-to-left regardless of the app's language.
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Obx(() {
-        final loading = controller.loading.value;
-        final failed = controller.failed.value;
-        final onCover = controller.coverVisible.value;
+    // The cover, the loading and error states follow the app's language; the
+    // reader decides for itself what must stay right-to-left.
+    return Obx(() {
+      final loading = controller.loading.value;
+      final failed = controller.failed.value;
+      final onCover = controller.coverVisible.value;
 
-        return PopScope(
-          // From the reader, back goes to page 0; only the cover (or a screen
-          // that never got as far as the reader) leaves the Mushaf.
-          canPop: onCover || loading || failed,
-          onPopInvokedWithResult: (didPop, _) {
-            if (!didPop) controller.showCover();
-          },
-          child: Scaffold(
-            body: loading
-                ? const Center(child: CircularProgressIndicator())
-                : failed
-                ? _ErrorState(onRetry: controller.load)
-                : onCover
-                ? const QuranCover()
-                : _Reader(onBack: controller.showCover),
-          ),
-        );
-      }),
-    );
+      return PopScope(
+        // From the reader, back goes to page 0; only the cover (or a screen
+        // that never got as far as the reader) leaves the Mushaf.
+        canPop: onCover || loading || failed,
+        onPopInvokedWithResult: (didPop, _) {
+          if (!didPop) controller.showCover();
+        },
+        child: Scaffold(
+          body: loading
+              ? const Center(child: CircularProgressIndicator())
+              : failed
+              ? _ErrorState(onRetry: controller.load)
+              : onCover
+              ? const QuranCover()
+              : _Reader(onBack: controller.showCover),
+        ),
+      );
+    });
   }
 }
 
@@ -77,11 +75,8 @@ class QuranPassageReaderView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: Scaffold(
-        body: _Reader(onBack: () => Get.back<void>(), browse: false),
-      ),
+    return Scaffold(
+      body: _Reader(onBack: () => Get.back<void>(), browse: false),
     );
   }
 }
@@ -182,16 +177,12 @@ class _ReaderState extends State<_Reader> {
       return;
     }
 
-    final forward = target > current;
-
     _index = index;
     // Kept in step so a rebuild — a rotation, or the night ground changing —
     // resumes on this page rather than the one the Mushaf was opened at.
     _settings.startPageIndex = index;
 
-    // Going back doesn't complete the page being left: the reward belongs to
-    // forward reading only.
-    controller.goTo(target, countPrevious: forward);
+    controller.goTo(target);
   }
 
   /// A tap on the page being read: select the ayah under it and show its
@@ -230,55 +221,60 @@ class _ReaderState extends State<_Reader> {
           Expanded(
             child: Stack(
               children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Center(
-                    child: Obx(() {
-                      final night = controller.nightMode.value;
-                      final current = controller.page.value;
-                      final highlight = controller.highlight.value;
-                      final selected = controller.selectedAyah.value;
-                      // The book paints its own ground under and behind the
-                      // pages; at night that has to be the dark paper, not
-                      // the white the package would otherwise flash.
-                      _settings.paperColor = QuranPalette.groundFor(night);
-                      return _Sheet(
-                        child: TurnablePage(
-                          controller: _flip,
-                          settings: _settings,
-                          pageCount: controller.totalPages.value,
-                          onPageChanged: _onPageChanged,
-                          // Bound on the right, like the printed Mushaf.
-                          readingDirection:
-                              TurnableReadingDirection.rightToLeft,
-                          // The Mushaf is 345x550; filling a differently
-                          // proportioned box would stretch the script.
-                          aspectRatio: 345 / 550,
-                          autoResponseSize: false,
-                          // Athar draws the paper and its shadow itself, in
-                          // _Sheet, so the book adds no edges of its own.
-                          pagesBoundaryIsEnabled: false,
-                          builder: (context, index, constraints) =>
-                              QuranPageSheet(
-                                // Keyed by page so each sheet keeps its own
-                                // loaded bytes instead of reloading on rebuild.
-                                key: ValueKey(index + 1),
-                                url: controller.imageUrlFor(index + 1),
-                                ground: QuranPalette.groundFor(night),
-                                nightMode: night,
-                                // The page either side is the most a turn can
-                                // reach, and matches what the controller warms.
-                                active: (index + 1 - current).abs() <= 1,
-                                highlight: highlight,
-                                selected: selected,
-                                // Only the page being read takes ayah taps.
-                                onAyahTap: index + 1 == current
-                                    ? _onAyahTap
-                                    : null,
-                              ),
-                        ),
-                      );
-                    }),
+                // The page turns like the printed Mushaf whatever the app's
+                // language; the bar above it and its sheets follow the language.
+                Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Center(
+                      child: Obx(() {
+                        final night = controller.nightMode.value;
+                        final current = controller.page.value;
+                        final highlight = controller.highlight.value;
+                        final selected = controller.selectedAyah.value;
+                        // The book paints its own ground under and behind the
+                        // pages; at night that has to be the dark paper, not
+                        // the white the package would otherwise flash.
+                        _settings.paperColor = QuranPalette.groundFor(night);
+                        return _Sheet(
+                          child: TurnablePage(
+                            controller: _flip,
+                            settings: _settings,
+                            pageCount: controller.totalPages.value,
+                            onPageChanged: _onPageChanged,
+                            // Bound on the right, like the printed Mushaf.
+                            readingDirection:
+                                TurnableReadingDirection.rightToLeft,
+                            // The Mushaf is 345x550; filling a differently
+                            // proportioned box would stretch the script.
+                            aspectRatio: 345 / 550,
+                            autoResponseSize: false,
+                            // Athar draws the paper and its shadow itself, in
+                            // _Sheet, so the book adds no edges of its own.
+                            pagesBoundaryIsEnabled: false,
+                            builder: (context, index, constraints) =>
+                                QuranPageSheet(
+                                  // Keyed by page so each sheet keeps its own
+                                  // loaded bytes instead of reloading on rebuild.
+                                  key: ValueKey(index + 1),
+                                  url: controller.imageUrlFor(index + 1),
+                                  ground: QuranPalette.groundFor(night),
+                                  nightMode: night,
+                                  // The page either side is the most a turn can
+                                  // reach, and matches what the controller warms.
+                                  active: (index + 1 - current).abs() <= 1,
+                                  highlight: highlight,
+                                  selected: selected,
+                                  // Only the page being read takes ayah taps.
+                                  onAyahTap: index + 1 == current
+                                      ? _onAyahTap
+                                      : null,
+                                ),
+                          ),
+                        );
+                      }),
+                    ),
                   ),
                 ),
                 const Positioned(
@@ -290,13 +286,18 @@ class _ReaderState extends State<_Reader> {
               ],
             ),
           ),
-          _BottomBar(
-            // Back from page 1 has no earlier page to flip to, so the arrow
-            // goes where back goes — page 0, or the list.
-            onPrevious: () {
-              if (!_flip.previousPage()) widget.onBack();
-            },
-            onNext: _flip.nextPage,
+          // Page arrows point the way the Mushaf turns, so they stay
+          // right-to-left in every language.
+          Directionality(
+            textDirection: TextDirection.rtl,
+            child: _BottomBar(
+              // Back from page 1 has no earlier page to flip to, so the arrow
+              // goes where back goes — page 0, or the list.
+              onPrevious: () {
+                if (!_flip.previousPage()) widget.onBack();
+              },
+              onNext: _flip.nextPage,
+            ),
           ),
         ],
       ),
@@ -584,79 +585,51 @@ class _ReadingIndicator extends StatelessWidget {
     return Obx(() {
       final controller = Get.find<QuranController>();
 
-      if (controller.isCurrentPageCompleted) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              size: 14,
-              color: context.athar.success,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'quran_page_done'.tr,
-              style: context.text.bodySmall?.copyWith(
-                color: context.athar.textMuted,
-              ),
-            ),
-          ],
-        );
-      }
-
-      // Today's reward is already banked: say so, instead of counting down
-      // toward points this page can't earn.
-      if (controller.dailyRewardDone) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle_rounded,
-              size: 14,
-              color: context.athar.success,
-            ),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text(
-                'quran_daily_done'.tr,
-                overflow: TextOverflow.ellipsis,
-                style: context.text.bodySmall?.copyWith(
-                  color: context.athar.textMuted,
-                ),
-              ),
-            ),
-          ],
-        );
-      }
-
+      // A page counts as read the moment its reading time is up — no turn
+      // needed. Until then, say whether it will also earn points: only a page
+      // not rewarded before, while today's reward is open.
       final ready = controller.readingProgress >= 1;
+      final canEarn =
+          !controller.isCurrentPageCompleted && !controller.dailyRewardDone;
 
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(
-            width: 16,
-            height: 16,
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: controller.readingProgress),
-              duration: const Duration(milliseconds: 900),
-              builder: (context, value, child) => CircularProgressIndicator(
-                value: value,
-                strokeWidth: 2,
-                backgroundColor: context.athar.beige,
-                valueColor: AlwaysStoppedAnimation(context.colors.primary),
+          if (ready)
+            Icon(
+              Icons.check_circle_rounded,
+              size: 16,
+              color: context.athar.success,
+            )
+          else
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: controller.readingProgress),
+                duration: const Duration(milliseconds: 900),
+                builder: (context, value, child) => CircularProgressIndicator(
+                  value: value,
+                  strokeWidth: 2,
+                  backgroundColor: context.athar.beige,
+                  valueColor: AlwaysStoppedAnimation(context.colors.primary),
+                ),
               ),
             ),
-          ),
           const SizedBox(width: 8),
-          Text(
-            ready
-                ? 'quran_turn_to_earn'.trParams({
-                    'points': '${controller.pagePoints.value}',
-                  })
-                : 'quran_keep_reading'.tr,
-            style: context.text.bodySmall?.copyWith(
-              color: context.athar.textMuted,
+          Flexible(
+            child: Text(
+              ready
+                  ? 'quran_page_read_done'.tr
+                  : canEarn
+                  ? 'quran_read_to_earn'.trParams({
+                      'points': '${controller.pagePoints.value}',
+                    })
+                  : 'quran_keep_reading'.tr,
+              overflow: TextOverflow.ellipsis,
+              style: context.text.bodySmall?.copyWith(
+                color: context.athar.textMuted,
+              ),
             ),
           ),
         ],

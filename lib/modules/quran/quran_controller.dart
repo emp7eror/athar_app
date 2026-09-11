@@ -15,10 +15,10 @@ import 'quran_page_cache.dart';
 
 /// Quran Werd — reading state, page caching and the page-completion reward.
 ///
-/// The reward is decided entirely by the server: opening a page starts a clock
-/// there, and turning the page asks whether it was served. This controller
-/// keeps a local timer only so the UI can show progress; it never decides that
-/// points are due.
+/// Every page held for the required time and then turned is reported to the
+/// server, which records it for the reader's statistics and decides whether it
+/// also earns the day's points. The local timer only measures the reading; it
+/// never decides that points are due.
 class QuranController extends GetxController {
   final _api = Get.find<ApiProvider>();
   final _storage = Get.find<StorageProvider>();
@@ -31,6 +31,14 @@ class QuranController extends GetxController {
   final requiredSeconds = 60.obs;
   final pagePoints = 20.obs;
 
+  /// Short pages with their own, shorter reading time — Al-Fatiha and the
+  /// opening of Al-Baqarah — as the server sets them. Other pages use
+  /// [requiredSeconds].
+  final requiredSecondsByPage = <int, int>{}.obs;
+
+  int requiredSecondsFor(int p) =>
+      requiredSecondsByPage[p] ?? requiredSeconds.value;
+
   /// Seconds spent on the current page, for the subtle reading indicator.
   final elapsed = 0.obs;
 
@@ -40,6 +48,11 @@ class QuranController extends GetxController {
   final pagesCompleted = 0.obs;
   final totalPoints = 0.obs;
   final totalSeconds = 0.obs;
+
+  /// Different pages read toward the current khatma, and khatmas finished. The
+  /// count starts over from 0 each time every page has been read.
+  final khatmaPages = 0.obs;
+  final khatmasCompleted = 0.obs;
 
   /// Set briefly when a page is rewarded, so the view can play its animation.
   final rewardFlash = 0.obs;
@@ -93,9 +106,6 @@ class QuranController extends GetxController {
 
   String _template = '';
   Timer? _ticker;
-
-  /// A reward claim is on its way, so a second turn doesn't send another.
-  bool _claiming = false;
   bool _levelUpShowing = false;
 
   SurahInfo get currentSurah => surahForPage(page.value);
@@ -119,7 +129,7 @@ class QuranController extends GetxController {
 
   /// 0..1 toward the required reading time.
   double get readingProgress {
-    final r = requiredSeconds.value;
+    final r = requiredSecondsFor(page.value);
     if (r <= 0) return 1;
     return (elapsed.value / r).clamp(0.0, 1.0);
   }
@@ -145,6 +155,15 @@ class QuranController extends GetxController {
       _template = res['page_image_template']?.toString() ?? '';
       totalPages.value = _asInt(res['total_pages'], 604);
       requiredSeconds.value = _asInt(res['required_seconds'], 60);
+      final byPage = res['required_seconds_by_page'];
+      requiredSecondsByPage.assignAll({
+        if (byPage is Map)
+          for (final entry in byPage.entries)
+            ?int.tryParse('${entry.key}'): _asInt(
+              entry.value,
+              requiredSeconds.value,
+            ),
+      });
       pagePoints.value = _asInt(res['page_points'], 20);
       dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 1);
       pageEdition.value = res['page_edition']?.toString() ?? '';
@@ -155,18 +174,14 @@ class QuranController extends GetxController {
           (res['completed_pages'] as List? ?? []).map((e) => _asInt(e, 0)),
         );
 
-      // Where they stopped: this device's own record first — the server only
-      // hears about the page that earns the day's reward — then the server's.
+      // Where they stopped: this device's own record first — it also knows
+      // pages opened but not finished — then the server's.
       final local = _storage.quranLastPageOrNull;
       var resume = local ?? 1;
       final progress = res['progress'];
       if (progress is Map) {
-        pagesCompleted.value = _asInt(progress['pages_completed'], 0);
-        totalPoints.value = _asInt(progress['total_points'], 0);
-        totalSeconds.value = _asInt(progress['total_seconds'], 0);
+        _applyProgress(progress);
         if (local == null) resume = _asInt(progress['last_page'], resume);
-        rewardedToday.value = _asInt(progress['rewarded_today'], 0);
-        _countsDay = _today();
       }
       page.value = resume.clamp(1, totalPages.value);
       lastReadPage.value = page.value;
@@ -198,23 +213,17 @@ class QuranController extends GetxController {
 
   // ── Navigation ─────────────────────────────────────────────────────────
 
-  /// Moves to [target]. Completing the page the reader is leaving is handled
-  /// first, so the reward lands on the page actually read.
-  Future<void> goTo(int target, {bool countPrevious = true}) async {
+  /// Moves to [target]. The page being left needs nothing more: a page counts
+  /// as read the moment its reading time is up, whether or not it is turned.
+  void goTo(int target) {
     final clamped = target.clamp(1, totalPages.value);
     if (clamped == page.value) return;
 
-    final leaving = page.value;
     page.value = clamped;
-
-    if (countPrevious) unawaited(_completePage(leaving));
     _openCurrentPage();
   }
 
   /// Opens the reader on [target] — from page 0, or a jump from the index.
-  ///
-  /// Arriving by a jump isn't "finishing" the page that was open, so it never
-  /// banks a reward.
   void openAt(int target) {
     final wasReading = !coverVisible.value;
     coverVisible.value = false;
@@ -238,16 +247,16 @@ class QuranController extends GetxController {
   void _startReadingAt(int target, {required bool alreadyReading}) {
     final p = target.clamp(1, totalPages.value);
     if (p != page.value) {
-      goTo(p, countPrevious: false);
+      goTo(p);
     } else if (!alreadyReading) {
       _openCurrentPage();
     }
   }
 
-  /// The reader has closed. The page being left is not completed — the reward
-  /// belongs to reading forward — and its clock stops, so no time counts while
-  /// nothing is on screen. A highlighted passage and a tapped ayah belong to
-  /// that reading, so they go too.
+  /// The reader has closed. The page's clock stops, so no time counts while
+  /// nothing is on screen — a page whose reading time wasn't up isn't counted.
+  /// A highlighted passage and a tapped ayah belong to that reading, so they
+  /// go too.
   void stopReading() {
     _ticker?.cancel();
     elapsed.value = 0;
@@ -283,77 +292,68 @@ class QuranController extends GetxController {
     _storage.quranLastPage = page.value;
     lastReadPage.value = page.value;
 
-    // Opening a page sends nothing. The reading time is counted here, and only
-    // for a page that can still earn: not one already banked, and not once
-    // today's reward is taken.
-    if (isCurrentPageCompleted || dailyRewardDone) return;
-
+    // Opening a page sends nothing. Once the page has been on screen for its
+    // reading time it is reported straight away — no turn needed — whether or
+    // not it can still earn points. The clock then stops, so it is reported
+    // once per visit.
+    final p = page.value;
+    final required = requiredSecondsFor(p);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (isClosed) return;
       elapsed.value = elapsed.value + 1;
-      if (elapsed.value >= requiredSeconds.value) _ticker?.cancel();
+      if (elapsed.value >= required) {
+        _ticker?.cancel();
+        unawaited(_completePage(p, elapsed.value));
+      }
     });
   }
 
-  /// Claims today's reward for the page just left — the only time the server
-  /// hears about reading. Sent once, when the page was held long enough and
-  /// today's reward is still open; in every other case nothing is sent.
-  Future<void> _completePage(int p) async {
-    final seconds = elapsed.value;
-    if (_claiming ||
-        completed.contains(p) ||
-        dailyRewardDone ||
-        seconds < requiredSeconds.value) {
-      return;
-    }
-
-    _claiming = true;
+  /// Reports [p], read for [seconds] — its full reading time. The server
+  /// records every such page and adds points only when today's reward is still
+  /// open.
+  Future<void> _completePage(int p, int seconds) async {
     try {
       final res = await _api.quranPageComplete(p, seconds);
 
-      // Every answer carries today's count — a refusal for the daily limit
-      // included — so the reader learns the day is done either way.
       dailyRewardPages.value = _asInt(
         res['daily_rewarded_pages'],
         dailyRewardPages.value,
       );
-      final today = res['progress'];
-      if (today is Map) {
-        rewardedToday.value = _asInt(
-          today['rewarded_today'],
-          rewardedToday.value,
-        );
-        _countsDay = _today();
-      }
-      if (dailyRewardDone) {
-        // The page now open was started before this answer arrived; its
-        // countdown would promise a reward the server will refuse.
-        _ticker?.cancel();
-        elapsed.value = 0;
-      }
+      // Every answer carries the totals and today's count, whether or not
+      // this page earned anything.
+      final progress = res['progress'];
+      if (progress is Map) _applyProgress(progress);
 
       if (res['status']?.toString() != 'rewarded') return;
 
       completed.add(p);
-      pagesCompleted.value = pagesCompleted.value + 1;
       rewardFlash.value = _asInt(res['points_awarded'], pagePoints.value);
-
-      final progress = res['progress'];
-      if (progress is Map) {
-        totalPoints.value = _asInt(progress['total_points'], totalPoints.value);
-        totalSeconds.value = _asInt(
-          progress['total_seconds'],
-          totalSeconds.value,
-        );
-      }
 
       _syncCachedUser(res);
       unawaited(_maybeShowLevelUp(res));
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
-    } finally {
-      _claiming = false;
     }
+  }
+
+  /// The reader's totals and today's reward count, as the server reports them.
+  void _applyProgress(Map<dynamic, dynamic> progress) {
+    pagesCompleted.value = _asInt(
+      progress['pages_completed'],
+      pagesCompleted.value,
+    );
+    totalPoints.value = _asInt(progress['total_points'], totalPoints.value);
+    totalSeconds.value = _asInt(progress['total_seconds'], totalSeconds.value);
+    khatmaPages.value = _asInt(progress['khatma_pages'], khatmaPages.value);
+    khatmasCompleted.value = _asInt(
+      progress['khatmas_completed'],
+      khatmasCompleted.value,
+    );
+    rewardedToday.value = _asInt(
+      progress['rewarded_today'],
+      rewardedToday.value,
+    );
+    _countsDay = _today();
   }
 
   // ── Image caching ──────────────────────────────────────────────────────
