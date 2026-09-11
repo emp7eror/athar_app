@@ -10,8 +10,8 @@ import 'quran_mood_view.dart';
 /// "Page 0" — what the Mushaf opens on, in three parts:
 ///  1. the reader's statistics;
 ///  2. where they left off, today's reward and the khatma so far;
-///  3. ways into the Mushaf — the index, reading by how you feel, a random
-///     page and the bookmark.
+///  3. ways into the Mushaf — continuing where they left off, the index,
+///     reading by how you feel, a random page and the bookmark.
 ///
 /// Nothing is opened and no reading clock runs until one is chosen. The cover
 /// follows the app's language direction; only the Mushaf itself is always
@@ -45,10 +45,10 @@ class QuranCover extends GetView<QuranController> {
                       children: [
                         _SectionTitle(text: 'quran_cover_stats'.tr),
                         const SizedBox(height: 12),
-                        const _Stats(),
-                        const SizedBox(height: 20),
                         const _ContinueCard(),
-                        const SizedBox(height: 26),
+                        const SizedBox(height: 12),
+                        const _Stats(),
+                        const SizedBox(height: 12),
                         _SectionTitle(text: 'quran_cover_ways'.tr),
                         const SizedBox(height: 12),
                         const _Ways(),
@@ -114,7 +114,8 @@ class _SectionTitle extends StatelessWidget {
 }
 
 /// Where the reader left off, whether today's reward is taken, and how far
-/// through the current khatma they are — with one tap back into reading.
+/// through the current khatma they are. Continuing is the first of the ways
+/// below.
 class _ContinueCard extends GetView<QuranController> {
   const _ContinueCard();
 
@@ -156,28 +157,27 @@ class _ContinueCard extends GetView<QuranController> {
                     points: controller.pagePoints.value,
                   ),
                   const SizedBox(height: 14),
-                  Text(
-                    'quran_cover_title'.tr,
-                    style: context.text.titleLarge?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Text(
-                    'quran_last_read'.tr,
-                    style: context.text.bodySmall?.copyWith(
-                      color: Colors.white70,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        'quran_last_read'.tr,
+                        style: context.text.titleSmall?.copyWith(
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        QuranCover.where(last),
+                        style: context.text.titleSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    QuranCover.where(last),
-                    style: context.text.titleMedium?.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+
                   const SizedBox(height: 18),
                   Semantics(
                     label: 'quran_khatma_progress'.tr,
@@ -230,23 +230,6 @@ class _ContinueCard extends GetView<QuranController> {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => controller.openAt(last),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: context.athar.primaryDark,
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                      icon: const Icon(Icons.auto_stories_rounded),
-                      label: Text(
-                        'quran_continue'.tr,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -305,8 +288,9 @@ class _RewardBadge extends StatelessWidget {
   }
 }
 
-/// The ways into the Mushaf, as tiles: two per row on a phone, four on wider
-/// screens.
+/// The five ways into the Mushaf, as a compact list: one column on a phone,
+/// two on wider screens. Continuing where the reader left off comes first,
+/// across the full width.
 class _Ways extends GetView<QuranController> {
   const _Ways();
 
@@ -314,8 +298,8 @@ class _Ways extends GetView<QuranController> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        const spacing = 12.0;
-        final columns = constraints.maxWidth >= 560 ? 4 : 2;
+        const spacing = 10.0;
+        final columns = constraints.maxWidth >= 560 ? 2 : 1;
         final width =
             (constraints.maxWidth - spacing * (columns - 1)) / columns;
 
@@ -325,6 +309,20 @@ class _Ways extends GetView<QuranController> {
           spacing: spacing,
           runSpacing: spacing,
           children: [
+            SizedBox(
+              width: constraints.maxWidth,
+              child: Obx(() {
+                final last = controller.lastReadPage.value;
+                return _WayTile(
+                  icon: Icons.auto_stories_rounded,
+                  color: context.colors.primary,
+                  title: 'quran_continue'.tr,
+                  subtitle: QuranCover.where(last),
+                  highlighted: false,
+                  onTap: () => controller.openAt(last),
+                );
+              }),
+            ),
             sized(
               _WayTile(
                 icon: Icons.menu_book_rounded,
@@ -375,8 +373,9 @@ class _Ways extends GetView<QuranController> {
   }
 }
 
-/// One way into the Mushaf. Dimmed and inert when [onTap] is null — the
-/// bookmark before one has been set.
+/// One way into the Mushaf, as a compact row. Dimmed and inert when [onTap] is
+/// null — the bookmark before one has been set. [highlighted] fills the row in
+/// the primary colour, for continuing where the reader left off.
 class _WayTile extends StatelessWidget {
   const _WayTile({
     required this.icon,
@@ -384,6 +383,7 @@ class _WayTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.highlighted = false,
   });
 
   final IconData icon;
@@ -391,66 +391,72 @@ class _WayTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final VoidCallback? onTap;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
+    final muted = highlighted ? Colors.white70 : context.athar.textMuted;
+
     return Material(
-      color: context.athar.card,
+      color: highlighted ? context.colors.primary : context.athar.card,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: context.colors.outline),
+        borderRadius: BorderRadius.circular(16),
+        side: highlighted
+            ? BorderSide.none
+            : BorderSide(color: context.colors.outline),
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Opacity(
           opacity: onTap == null ? 0.5 : 1,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 142),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: highlighted
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : color.withValues(alpha: 0.14),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 20,
+                    color: highlighted ? Colors.white : color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: color.withValues(alpha: 0.14),
+                      Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: highlighted ? Colors.white : null,
                         ),
-                        child: Icon(icon, color: color),
                       ),
-                      const Spacer(),
-                      // Mirrors with the text direction, so it points onward.
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 14,
-                        color: context.athar.textMuted,
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.bodySmall?.copyWith(color: muted),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    title,
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: context.text.bodySmall?.copyWith(
-                      color: context.athar.textMuted,
-                      height: 1.4,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 8),
+                // Mirrors with the text direction, so it points onward.
+                Icon(Icons.arrow_forward_ios_rounded, size: 14, color: muted),
+              ],
             ),
           ),
         ),
@@ -513,7 +519,7 @@ class _StatCard extends StatelessWidget {
       label: '$value $label',
       excludeSemantics: true,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
           color: context.athar.beige,
           borderRadius: BorderRadius.circular(16),

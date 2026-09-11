@@ -493,11 +493,6 @@ class _TopBar extends StatelessWidget {
             ),
             if (index != null) ...[
               IconButton(
-                onPressed: controller.randomPage,
-                tooltip: 'quran_random_page'.tr,
-                icon: const Icon(Icons.shuffle_rounded),
-              ),
-              IconButton(
                 onPressed: index,
                 tooltip: 'quran_index'.tr,
                 icon: const Icon(Icons.menu_book_rounded),
