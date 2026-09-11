@@ -42,7 +42,7 @@ class AchievementCard extends StatelessWidget {
             ),
           ),
           Positioned.fill(
-            child: CustomPaint(painter: _IslamicMotifPainter()),
+            child: CustomPaint(painter: IslamicMotifPainter()),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
@@ -143,7 +143,8 @@ class AchievementCard extends StatelessWidget {
 
 /// A restrained repeating 8-point-star motif along the card's border,
 /// evoking Islamic geometric ornamentation without being visually heavy.
-class _IslamicMotifPainter extends CustomPainter {
+/// Shared by the shareable cards.
+class IslamicMotifPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()

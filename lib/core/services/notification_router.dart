@@ -8,10 +8,14 @@ import '../../modules/profile_preview/profile_preview_modal.dart';
 ///   * background (app in memory) → FirebaseMessaging.onMessageOpenedApp
 ///   * terminated (cold start)     → FirebaseMessaging.instance.getInitialMessage()
 class NotificationRouter {
+  /// Friend activity whose notification opens that friend's profile: a level
+  /// reached, the day's Quran reward taken, a khatma completed.
+  static const profileTypes = {'level_up', 'quran_reward', 'quran_khatma'};
+
   /// Inspects a raw FCM [data] payload and navigates if it recognizes the
   /// `type`. Unknown/missing types are ignored.
   static void routeFromData(Map<String, dynamic> data) {
-    if (data['type'] != 'level_up') return;
+    if (!profileTypes.contains(data['type'])) return;
     final id = int.tryParse('${data['user_id']}');
     if (id != null) openLevelUpProfile(id);
   }

@@ -295,7 +295,8 @@ class NotificationService extends GetxService {
     FirebaseMessaging.onMessage.listen((message) {
       final n = message.notification;
       if (n == null) return;
-      if (message.data['type'] == 'level_up') {
+      // Payload keeps the `level_up:` prefix for every friend-profile type.
+      if (NotificationRouter.profileTypes.contains(message.data['type'])) {
         showPlain(n.title ?? 'app_name'.tr, n.body ?? '',
             payload: 'level_up:${message.data['user_id']}');
       } else {

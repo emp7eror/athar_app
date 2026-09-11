@@ -10,6 +10,7 @@ import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../level_up/level_up_popup.dart';
+import 'khatma_popup.dart';
 import 'quran_ayah_geometry.dart';
 import 'quran_page_cache.dart';
 
@@ -324,13 +325,14 @@ class QuranController extends GetxController {
       final progress = res['progress'];
       if (progress is Map) _applyProgress(progress);
 
-      if (res['status']?.toString() != 'rewarded') return;
+      if (res['status']?.toString() == 'rewarded') {
+        completed.add(p);
+        rewardFlash.value = _asInt(res['points_awarded'], pagePoints.value);
+        _syncCachedUser(res);
+      }
 
-      completed.add(p);
-      rewardFlash.value = _asInt(res['points_awarded'], pagePoints.value);
-
-      _syncCachedUser(res);
-      unawaited(_maybeShowLevelUp(res));
+      // A khatma can finish on any page, rewarded or not.
+      unawaited(_celebrate(res));
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
     }
@@ -394,6 +396,18 @@ class QuranController extends GetxController {
     if (res['score'] != null) updated['score'] = res['score'];
     if (res['level'] is Map) updated['level'] = res['level'];
     _storage.cachedUser = updated;
+  }
+
+  /// One celebration at a time: a completed khatma first, then a level-up.
+  Future<void> _celebrate(Map<String, dynamic> res) async {
+    if (res['khatma_completed'] == true) {
+      await KhatmaPopup.show(
+        name: (_storage.cachedUser?['name'] as String?) ?? '',
+        khatmas: khatmasCompleted.value,
+        totalPages: totalPages.value,
+      );
+    }
+    await _maybeShowLevelUp(res);
   }
 
   Future<void> _maybeShowLevelUp(Map<String, dynamic> res) async {
