@@ -46,12 +46,22 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranMoods() async =>
       _unwrap(await _dio.get(ApiEndpoints.quranMoods));
 
+  /// Passages the AI suggested for a category picked from the list, waiting
+  /// for an admin's review — a category whose passages are those suggestions
+  /// (possibly none). Slow when the AI is asked, so it waits longer than usual.
+  Future<Map<String, dynamic>> quranMoodSuggestions(String categoryId, {CancelToken? cancelToken}) async =>
+      _unwrap(await _dio.post(
+        ApiEndpoints.quranMoodSuggestions,
+        data: {'category_id': categoryId},
+        cancelToken: cancelToken,
+        options: Options(receiveTimeout: const Duration(seconds: 75)),
+      ));
+
   /// "Find passages by feeling". The body is one bilingual category; the rest
-  /// arrives in headers — whether urgent safety guidance leads it, and a
-  /// short-lived token for offering a generated result for review. Generation
-  /// can take a while, so this waits longer than usual; [cancelToken] lets the
-  /// screen abandon it.
-  Future<({Map<String, dynamic> category, bool urgent, String? suggestionToken, bool more})> quranFeeling(
+  /// arrives in headers — whether urgent safety guidance leads it, and whether
+  /// passages suited to what was written can be asked for next. Generation can take a while, so this
+  /// waits longer than usual; [cancelToken] lets the screen abandon it.
+  Future<({Map<String, dynamic> category, bool generated, bool urgent, bool personal})> quranFeeling(
     String feeling,
     String locale, {
     CancelToken? cancelToken,
@@ -65,28 +75,30 @@ class ApiProvider {
     final category = await _unwrap(res);
     return (
       category: category,
+      // Written for this feeling, rather than a saved category.
+      generated: res.headers.value('x-quran-feeling-source') == 'generated',
       urgent: res.headers.value('x-quran-feeling-safety') == 'urgent',
-      suggestionToken: res.headers.value('x-quran-feeling-suggestion'),
-      // A catalog result the server can look for more passages for.
-      more: res.headers.value('x-quran-feeling-more') == '1',
+      // A saved category, so passages suited to what was written can follow.
+      personal: res.headers.value('x-quran-feeling-personal') == '1',
     );
   }
 
-  /// More passages for a catalog result. The server adds them to the category
-  /// for everyone and answers with the category as it now stands. Slow when
-  /// it asks the model, so it waits longer than usual.
-  Future<Map<String, dynamic>> quranFeelingMore(String categoryId, {CancelToken? cancelToken}) async =>
+  /// Passages suited to what was written, beyond the general category already
+  /// shown ([categoryId]). Nothing is saved for the person. Slow, since it
+  /// asks the model, so it waits longer than usual.
+  Future<Map<String, dynamic>> quranFeelingPersonal(
+    String feeling,
+    String categoryId,
+    String locale, {
+    CancelToken? cancelToken,
+  }) async =>
       _unwrap(await _dio.post(
-        ApiEndpoints.quranFeelingMore,
-        data: {'category_id': categoryId},
+        ApiEndpoints.quranFeelingPersonal,
+        data: {'feeling': feeling, 'category_id': categoryId, 'locale': locale},
         cancelToken: cancelToken,
         options: Options(receiveTimeout: const Duration(seconds: 75)),
       ));
 
-  /// Offers a generated result for the shared list. Only the result is sent —
-  /// the token stands for it on the server — never what the person wrote.
-  Future<Map<String, dynamic>> quranFeelingSuggest(String token) async =>
-      _unwrap(await _dio.post(ApiEndpoints.quranFeelingSuggestions, data: {'token': token}));
 
   // --- Dhikr ---
 

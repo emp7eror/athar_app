@@ -8,8 +8,6 @@ import '../../core/utils/error_reporter.dart';
 import '../../data/providers/api_provider.dart';
 import 'quran_mood_models.dart';
 
-enum FeelingSuggestState { idle, sending, sent, failed, closed }
-
 /// "Read by how you feel": one way from a feeling to passages.
 ///
 /// Pick what's closest from the list (two questions), or describe it in your
@@ -36,6 +34,13 @@ class QuranMoodController extends GetxController {
   final section = Rxn<MoodSection>();
   final category = Rxn<MoodCategory>();
 
+  /// For a category picked from the list: passages the AI suggested for its
+  /// topic, shown as suggestions while an admin reviews them.
+  final suggestedLoading = false.obs;
+  final suggested = Rxn<MoodCategory>();
+  final suggestedFailed = false.obs;
+  CancelToken? _suggestCancel;
+
   // ── In your own words ─────────────────────────────────────────────────────
 
   /// Matches the server's limit.
@@ -52,16 +57,15 @@ class QuranMoodController extends GetxController {
   /// The server led the result with urgent safety guidance.
   final urgent = false.obs;
 
-  final suggestState = FeelingSuggestState.idle.obs;
-  final suggestMessage = RxnString();
-  final canSuggest = false.obs;
-  String? _suggestionToken;
+  /// The result was written for this feeling rather than taken from a saved
+  /// category, so its passages are already the personal ones.
+  final foundIsPersonal = false.obs;
 
-  /// A catalog result is shown at once while more passages are looked for;
-  /// what turns up is added to the category for everyone.
-  final loadingMore = false.obs;
-  final moreAdded = 0.obs;
-  final moreFailed = false.obs;
+  /// Passages suited to what was written, beyond the general category shown —
+  /// looked for while the general ones are already on screen.
+  final personalLoading = false.obs;
+  final personal = Rxn<MoodCategory>();
+  final personalFailed = false.obs;
 
   CancelToken? _cancel;
 
@@ -115,11 +119,48 @@ class QuranMoodController extends GetxController {
   }
 
   void chooseSection(MoodSection s) {
+    _clearSuggested();
     category.value = null;
     section.value = s;
   }
 
-  void chooseCategory(MoodCategory c) => category.value = c;
+  void chooseCategory(MoodCategory c) {
+    category.value = c;
+    unawaited(_loadSuggested(c));
+  }
+
+  /// Asks for passages suggested for [picked]'s topic. Only the category is
+  /// sent — nothing the reader typed.
+  Future<void> _loadSuggested(MoodCategory picked) async {
+    _clearSuggested();
+    final cancel = _suggestCancel = CancelToken();
+    suggestedLoading.value = true;
+
+    try {
+      final res = await _api.quranMoodSuggestions(
+        picked.id,
+        cancelToken: cancel,
+      );
+      if (!identical(_suggestCancel, cancel)) return;
+      suggested.value = MoodCategory.fromJson(res);
+    } on DioException catch (e) {
+      if (!CancelToken.isCancel(e) && identical(_suggestCancel, cancel)) {
+        suggestedFailed.value = true;
+      }
+    } catch (_) {
+      if (identical(_suggestCancel, cancel)) suggestedFailed.value = true;
+    } finally {
+      if (identical(_suggestCancel, cancel)) suggestedLoading.value = false;
+    }
+  }
+
+  void _clearSuggested() {
+    _suggestCancel?.cancel();
+    _suggestCancel = null;
+    suggestedLoading.value = false;
+    suggested.value = null;
+    suggestedFailed.value = false;
+  }
 
   /// One step back. False when already on the first step — the screen itself
   /// should close then.
@@ -129,6 +170,7 @@ class QuranMoodController extends GetxController {
       return true;
     }
     if (category.value != null) {
+      _clearSuggested();
       category.value = null;
       return true;
     }
@@ -162,23 +204,19 @@ class QuranMoodController extends GetxController {
     final cancel = _cancel = CancelToken();
     searching.value = true;
 
+    final locale = Get.locale?.languageCode == 'ar' ? 'ar' : 'en';
+
     try {
-      final res = await _api.quranFeeling(
-        feeling,
-        Get.locale?.languageCode == 'ar' ? 'ar' : 'en',
-        cancelToken: cancel,
-      );
+      final res = await _api.quranFeeling(feeling, locale, cancelToken: cancel);
       final result = MoodCategory.fromJson(res.category);
 
       found.value = result;
+      foundIsPersonal.value = res.generated;
       urgent.value = res.urgent;
-      _suggestionToken = res.suggestionToken;
-      canSuggest.value =
-          !res.urgent &&
-          res.suggestionToken != null &&
-          result.passages.isNotEmpty;
 
-      if (res.more) unawaited(_loadMore(result, cancel));
+      if (res.personal) {
+        unawaited(_loadPersonal(feeling, result, locale, cancel));
+      }
     } on DioException catch (e) {
       if (!CancelToken.isCancel(e)) searchError.value = _messageFor(e);
     } on ApiException catch (e) {
@@ -194,74 +232,41 @@ class QuranMoodController extends GetxController {
     }
   }
 
-  /// Asks for more passages for the catalog result already on screen, and
-  /// appends them when they arrive. The title and explanation stay as shown —
-  /// including any urgent guidance that leads them.
-  Future<void> _loadMore(MoodCategory shown, CancelToken cancel) async {
-    loadingMore.value = true;
-    moreAdded.value = 0;
-    moreFailed.value = false;
+  /// Asks for passages suited to what was written, while the general passages
+  /// of [general] are already on screen. The text is sent again for this and
+  /// isn't kept here afterwards.
+  Future<void> _loadPersonal(
+    String feeling,
+    MoodCategory general,
+    String locale,
+    CancelToken cancel,
+  ) async {
+    personalLoading.value = true;
+    personal.value = null;
+    personalFailed.value = false;
 
     try {
-      final res = await _api.quranFeelingMore(shown.id, cancelToken: cancel);
+      final res = await _api.quranFeelingPersonal(
+        feeling,
+        general.id,
+        locale,
+        cancelToken: cancel,
+      );
       if (!identical(_cancel, cancel)) return;
-
-      final updated = MoodCategory.fromJson(res);
-      final added = updated.passages.length - shown.passages.length;
-      if (added > 0) {
-        found.value = MoodCategory(
-          id: shown.id,
-          sectionId: shown.sectionId,
-          title: shown.title,
-          relevance: shown.relevance,
-          pages: updated.pages,
-          passages: updated.passages,
-          sourceUrls: updated.sourceUrls,
-        );
-        moreAdded.value = added;
-      }
+      personal.value = MoodCategory.fromJson(res);
     } on DioException catch (e) {
       if (!CancelToken.isCancel(e) && identical(_cancel, cancel)) {
-        moreFailed.value = true;
+        personalFailed.value = true;
       }
     } catch (_) {
-      if (identical(_cancel, cancel)) moreFailed.value = true;
+      if (identical(_cancel, cancel)) personalFailed.value = true;
     } finally {
-      if (identical(_cancel, cancel)) loadingMore.value = false;
+      if (identical(_cancel, cancel)) personalLoading.value = false;
     }
   }
 
   /// Stops the request and goes back to writing.
   void cancelSearch() => _clearSearch();
-
-  /// Offers the result for the shared list, at the person's own choice.
-  Future<void> suggest() async {
-    final token = _suggestionToken;
-    if (token == null || suggestState.value == FeelingSuggestState.sending) {
-      return;
-    }
-
-    suggestState.value = FeelingSuggestState.sending;
-    suggestMessage.value = null;
-
-    try {
-      final res = await _api.quranFeelingSuggest(token);
-      _suggestionToken = null;
-      suggestMessage.value = res['message']?.toString();
-      suggestState.value = FeelingSuggestState.sent;
-    } on ApiException catch (e) {
-      suggestMessage.value = e.message;
-      if (e.status == 429) {
-        suggestState.value = FeelingSuggestState.failed;
-      } else {
-        // Expired or no longer valid: sending it again can't help.
-        _suggestionToken = null;
-        suggestState.value = FeelingSuggestState.closed;
-      }
-    } catch (_) {
-      suggestState.value = FeelingSuggestState.failed;
-    }
-  }
 
   void _clearSearch() {
     _cancel?.cancel();
@@ -270,13 +275,10 @@ class QuranMoodController extends GetxController {
     searchError.value = null;
     found.value = null;
     urgent.value = false;
-    canSuggest.value = false;
-    loadingMore.value = false;
-    moreAdded.value = 0;
-    moreFailed.value = false;
-    _suggestionToken = null;
-    suggestState.value = FeelingSuggestState.idle;
-    suggestMessage.value = null;
+    foundIsPersonal.value = false;
+    personalLoading.value = false;
+    personal.value = null;
+    personalFailed.value = false;
   }
 
   String _messageFor(DioException e) {
@@ -301,6 +303,7 @@ class QuranMoodController extends GetxController {
   @override
   void onClose() {
     _cancel?.cancel();
+    _suggestCancel?.cancel();
     input.dispose();
     focus.dispose();
     super.onClose();

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'quran_mood_controller.dart';
@@ -593,7 +592,8 @@ class _PickedResultStep extends GetView<QuranMoodController> {
           category: category,
           urgent: false,
           guidance: controller.guidance.toList(),
-          suggestible: false,
+          passagesTitle: '📖  ${'quran_feel_general'.tr}',
+          footer: const _SuggestedSection(),
         ),
       ],
     );
@@ -630,8 +630,13 @@ class _SearchResultStep extends GetView<QuranMoodController> {
               category: found,
               urgent: controller.urgent.value,
               guidance: controller.guidance.toList(),
-              suggestible: true,
-              footer: const _MoreStatus(),
+              // Written for this feeling, the passages are already personal;
+              // from a saved category they're the general ones, with the
+              // personal passages following underneath.
+              passagesTitle: controller.foundIsPersonal.value
+                  ? '✨  ${'quran_feel_personal'.tr}'
+                  : '📖  ${'quran_feel_general'.tr}',
+              footer: const _PersonalSection(),
             );
           } else {
             // Left while animating out after going back.
@@ -697,18 +702,19 @@ class _Searching extends StatelessWidget {
   }
 }
 
-/// "Looking for more passages…" under a catalog result, then how many were
-/// added. A quiet note if none could be fetched — the result above stands.
-class _MoreStatus extends GetView<QuranMoodController> {
-  const _MoreStatus();
+/// "Suggested passages", under a category picked from the list: passages the
+/// AI suggested for its topic, shown while an admin reviews them. Nothing is
+/// shown when there are none; a quiet note if they couldn't be fetched.
+class _SuggestedSection extends GetView<QuranMoodController> {
+  const _SuggestedSection();
 
   @override
   Widget build(BuildContext context) {
     return Obx(() {
+      final suggested = controller.suggested.value;
       final Widget child;
-      final added = controller.moreAdded.value;
 
-      if (controller.loadingMore.value) {
+      if (controller.suggestedLoading.value) {
         child = Semantics(
           key: const ValueKey('loading'),
           liveRegion: true,
@@ -724,7 +730,7 @@ class _MoreStatus extends GetView<QuranMoodController> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'quran_feel_more_loading'.tr,
+                    'quran_mood_suggested_loading'.tr,
                     style: context.text.bodySmall?.copyWith(
                       color: context.athar.textMuted,
                     ),
@@ -734,30 +740,173 @@ class _MoreStatus extends GetView<QuranMoodController> {
             ),
           ),
         );
-      } else if (added > 0) {
+      } else if (suggested != null && suggested.passages.isNotEmpty) {
         child = Semantics(
-          key: const ValueKey('added'),
+          key: const ValueKey('suggested'),
           liveRegion: true,
-          child: _Note(
-            emoji: '✨',
-            text: 'quran_feel_more_added'.trParams({'n': '$added'}),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _ResponsiveGrid(
+                minTileWidth: 320,
+                maxColumns: 2,
+                runSpacing: 0,
+                children: [
+                  for (final passage in suggested.passages)
+                    QuranPassageCard(passage: passage),
+                ],
+              ),
+              _Note(emoji: 'ℹ️', text: 'quran_mood_suggested_note'.tr),
+            ],
           ),
         );
-      } else if (controller.moreFailed.value) {
+      } else if (controller.suggestedFailed.value) {
         child = _Note(
           key: const ValueKey('failed'),
-          text: 'quran_feel_more_failed'.tr,
+          text: 'quran_mood_suggested_failed'.tr,
         );
       } else {
-        child = const SizedBox.shrink(key: ValueKey('idle'));
+        return const SizedBox.shrink();
       }
 
-      return AnimatedSize(
-        duration: const Duration(milliseconds: 220),
-        alignment: Alignment.topCenter,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          child: child,
+      return Padding(
+        padding: const EdgeInsets.only(top: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(
+                '✨  ${'quran_mood_suggested'.tr}',
+                style: context.text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: child,
+              ),
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// "For your situation", under the general passages of a saved category:
+/// a loader while passages suited to what was written are looked for, then
+/// those passages — or a note when nothing more fits or they couldn't be
+/// fetched. The general passages above stand either way.
+class _PersonalSection extends GetView<QuranMoodController> {
+  const _PersonalSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final personal = controller.personal.value;
+      final Widget child;
+
+      if (controller.personalLoading.value) {
+        child = Semantics(
+          key: const ValueKey('loading'),
+          liveRegion: true,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'quran_feel_personal_loading'.tr,
+                    style: context.text.bodySmall?.copyWith(
+                      color: context.athar.textMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      } else if (personal != null && personal.passages.isNotEmpty) {
+        child = Semantics(
+          key: const ValueKey('personal'),
+          liveRegion: true,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (personal.relevance.text.isNotEmpty) ...[
+                Text(
+                  personal.relevance.text,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: context.athar.textMuted,
+                    height: 1.7,
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+              _ResponsiveGrid(
+                minTileWidth: 320,
+                maxColumns: 2,
+                runSpacing: 0,
+                children: [
+                  for (final passage in personal.passages)
+                    QuranPassageCard(passage: passage),
+                ],
+              ),
+            ],
+          ),
+        );
+      } else if (personal != null) {
+        child = _Note(
+          key: const ValueKey('none'),
+          emoji: '🔍',
+          text: 'quran_feel_personal_none'.tr,
+        );
+      } else if (controller.personalFailed.value) {
+        child = _Note(
+          key: const ValueKey('failed'),
+          text: 'quran_feel_personal_failed'.tr,
+        );
+      } else {
+        // Not asked for: a result written for this feeling, or urgent input.
+        return const SizedBox.shrink();
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              header: true,
+              child: Text(
+                '✨  ${'quran_feel_personal'.tr}',
+                style: context.text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              alignment: Alignment.topCenter,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: child,
+              ),
+            ),
+          ],
         ),
       );
     });
@@ -770,7 +919,7 @@ class _Result extends StatelessWidget {
     required this.category,
     required this.urgent,
     required this.guidance,
-    required this.suggestible,
+    this.passagesTitle,
     this.footer,
   });
 
@@ -778,10 +927,10 @@ class _Result extends StatelessWidget {
   final bool urgent;
   final List<LocalizedText> guidance;
 
-  /// A written-feeling result, which its recipient may offer for review.
-  final bool suggestible;
+  /// The heading over the passages; "Passages to reflect on" when unset.
+  final String? passagesTitle;
 
-  /// Shown right under the passages — the search's "looking for more" status.
+  /// Shown right under the passages — a search's personal passages.
   final Widget? footer;
 
   @override
@@ -838,7 +987,7 @@ class _Result extends StatelessWidget {
           Semantics(
             header: true,
             child: Text(
-              '📖  ${'quran_mood_results'.tr}',
+              passagesTitle ?? '📖  ${'quran_mood_results'.tr}',
               style: context.text.titleSmall?.copyWith(
                 fontWeight: FontWeight.w700,
               ),
@@ -861,8 +1010,6 @@ class _Result extends StatelessWidget {
         const SizedBox(height: 6),
         _Note(emoji: '💡', text: 'quran_feel_reflection_note'.tr),
         for (final note in guidance) _Note(text: note.text),
-        if (category.sourceUrls.isNotEmpty) _Sources(urls: category.sourceUrls),
-        if (suggestible) const _Suggest(),
       ],
     );
   }
@@ -994,124 +1141,6 @@ class _Note extends StatelessWidget {
         ],
       ),
     );
-  }
-}
-
-/// Links are opened only as http(s), outside the app, and shown as plain text.
-class _Sources extends StatelessWidget {
-  const _Sources({required this.urls});
-
-  final List<String> urls;
-
-  @override
-  Widget build(BuildContext context) {
-    final links = [
-      for (final url in urls)
-        if (Uri.tryParse(url) case final uri?
-            when (uri.scheme == 'https' || uri.scheme == 'http') &&
-                uri.host.isNotEmpty)
-          uri,
-    ];
-    if (links.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(top: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Semantics(
-            header: true,
-            child: Text(
-              '🔗  ${'quran_feel_sources'.tr}',
-              style: context.text.labelLarge?.copyWith(
-                color: context.athar.textMuted,
-              ),
-            ),
-          ),
-          for (final uri in links)
-            TextButton.icon(
-              onPressed: () =>
-                  launchUrl(uri, mode: LaunchMode.externalApplication),
-              icon: const Icon(Icons.open_in_new_rounded, size: 16),
-              label: Text(
-                '${uri.host}${uri.path}',
-                overflow: TextOverflow.ellipsis,
-                textDirection: TextDirection.ltr,
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Suggest extends GetView<QuranMoodController> {
-  const _Suggest();
-
-  @override
-  Widget build(BuildContext context) {
-    return Obx(() {
-      if (!controller.canSuggest.value) return const SizedBox.shrink();
-
-      final state = controller.suggestState.value;
-      final message = controller.suggestMessage.value;
-
-      return Container(
-        margin: const EdgeInsets.only(top: 18),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: context.athar.card,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: context.colors.outline),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'quran_feel_suggest_note'.tr,
-              style: context.text.bodySmall?.copyWith(
-                color: context.athar.textMuted,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 10),
-            switch (state) {
-              FeelingSuggestState.idle => OutlinedButton.icon(
-                onPressed: controller.suggest,
-                icon: const ExcludeSemantics(child: Text('📨')),
-                label: Text('quran_feel_suggest'.tr),
-              ),
-              FeelingSuggestState.sending => const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(strokeWidth: 2.4),
-              ),
-              FeelingSuggestState.sent => Semantics(
-                liveRegion: true,
-                child: Text('✅  ${message ?? 'quran_feel_suggest_sent'.tr}'),
-              ),
-              FeelingSuggestState.failed => Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Semantics(
-                    liveRegion: true,
-                    child: Text(message ?? 'quran_feel_suggest_failed'.tr),
-                  ),
-                  TextButton(
-                    onPressed: controller.suggest,
-                    child: Text('retry'.tr),
-                  ),
-                ],
-              ),
-              FeelingSuggestState.closed => Semantics(
-                liveRegion: true,
-                child: Text(message ?? 'quran_feel_suggest_failed'.tr),
-              ),
-            },
-          ],
-        ),
-      );
-    });
   }
 }
 
