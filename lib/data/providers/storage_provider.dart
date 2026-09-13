@@ -39,7 +39,21 @@ class StorageProvider extends GetxService {
   static const _kTimezone = 'timezone';
   static const _kTimezoneReportedAt = 'timezone_reported_at';
 
+  // ── Home: last /prayers/today response, shown before the network answers ──
+  static const _kTodayPrayersCache = 'today_prayers_cache';
+
   String? get token => _box.read(_kToken);
+
+  /// The last successful `/prayers/today` response, shaped as
+  /// `{'date': 'YYYY-MM-DD', 'res': {...}}` — `date` is the prayer day it
+  /// belongs to, so a stale day's completion state is never shown as today's.
+  Map<String, dynamic>? get todayPrayersCache {
+    final raw = _box.read(_kTodayPrayersCache);
+    return raw is Map ? Map<String, dynamic>.from(raw) : null;
+  }
+
+  void saveTodayPrayers(String date, Map<String, dynamic> res) =>
+      _box.write(_kTodayPrayersCache, {'date': date, 'res': res});
   set token(String? v) => v == null ? _box.remove(_kToken) : _box.write(_kToken, v);
 
   /// Taps recorded on device but not yet confirmed by the server, shaped as

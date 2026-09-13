@@ -101,16 +101,20 @@ class HomeController extends GetxController {
     final referenceDate = isBeforeFajr ? now.subtract(const Duration(days: 1)) : now;
     final date = isBeforeFajr ? _formatDate(referenceDate) : null;
     final times = isBeforeFajr ? _adhan.getTodayPrayerTimes(date: referenceDate) : _adhan.getTodayPrayerTimes();
+    final dayKey = _formatDate(referenceDate);
+
+    // Show prayer times right away — before the network answers. Times are
+    // computed on-device; completion/points come from the last cached server
+    // response for this same prayer day, if there is one. The request below
+    // then replaces this with the server's current state.
+    if (_checklistDay != dayKey) _seedChecklist(dayKey, times);
 
     try {
       final tz = await _tz;
       final res = await _api.todayPrayers(tz, date: date);
-      checklist.value = (res['checklist'] as List)
-          .map((e) => PrayerChecklistItem.fromJson(e as Map<String, dynamic>))
-          .map((item) => item.copyWith(time: _timeFor(item.prayerName, times))) // ← أضف الوقت
-          .toList();
-      pointsToday.value = res['points_today'] ?? 0;
-      forgotToMarkUsed.value = res['forgot_to_mark_used'] == true;
+      _applyToday(res, times);
+      _checklistDay = dayKey;
+      _storage.saveTodayPrayers(dayKey, res);
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
@@ -340,6 +344,58 @@ class HomeController extends GetxController {
     avatarUrl.value = (u?['avatar_url'] as String?) ?? '';
     if (u?['level'] is Map) level.value = LevelInfo.fromJson(u!['level']);
     totalPoints.value = (u?['total_points'] as int?) ?? totalPoints.value;
+  }
+
+  /// The prayer day (`YYYY-MM-DD`) the current [checklist] belongs to.
+  String? _checklistDay;
+
+  /// Fills [checklist] instantly, without the network: the cached server
+  /// response when it's for [dayKey], otherwise on-device times with nothing
+  /// completed yet (base points borrowed from any earlier response).
+  void _seedChecklist(String dayKey, PrayerTimes times) {
+    final cache = _storage.todayPrayersCache;
+    final res = cache?['res'];
+
+    if (res is Map && cache!['date'] == dayKey) {
+      try {
+        _applyToday(Map<String, dynamic>.from(res), times);
+        _checklistDay = dayKey;
+        return;
+      } catch (e) {
+        ErrorReporter.report(e, StackTrace.current); // bad cache → local times
+      }
+    }
+
+    final basePoints = <String, int>{};
+    if (res is Map && res['checklist'] is List) {
+      for (final e in res['checklist'] as List) {
+        if (e is Map && e['prayer_name'] is String) {
+          basePoints[e['prayer_name'] as String] = (e['points'] as num?)?.toInt() ?? 0;
+        }
+      }
+    }
+
+    checklist.value = [
+      for (final key in const ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'])
+        PrayerChecklistItem(
+          prayerName: key,
+          points: basePoints[key] ?? 0,
+          pointsEarned: 0,
+          isCompleted: false,
+          time: _timeFor(key, times),
+        ),
+    ];
+    pointsToday.value = 0;
+  }
+
+  /// Applies a `/prayers/today` response (live or cached) to the checklist.
+  void _applyToday(Map<String, dynamic> res, PrayerTimes times) {
+    checklist.value = (res['checklist'] as List)
+        .map((e) => PrayerChecklistItem.fromJson(Map<String, dynamic>.from(e as Map)))
+        .map((item) => item.copyWith(time: _timeFor(item.prayerName, times)))
+        .toList();
+    pointsToday.value = (res['points_today'] as num?)?.toInt() ?? 0;
+    forgotToMarkUsed.value = res['forgot_to_mark_used'] == true;
   }
 
   String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

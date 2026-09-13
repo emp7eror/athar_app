@@ -327,8 +327,19 @@ class QuranController extends GetxController {
 
       if (res['status']?.toString() == 'rewarded') {
         completed.add(p);
-        rewardFlash.value = _asInt(res['points_awarded'], pagePoints.value);
+        final points = _asInt(res['points_awarded'], pagePoints.value);
+        rewardFlash.value = points;
         _syncCachedUser(res);
+        // Clear the flash once its animation has played. Left set, the view
+        // replays "+points" on every later page (its key follows
+        // pagesCompleted, which grows for unrewarded pages too) and whenever
+        // the reader is reopened.
+        Future.delayed(const Duration(milliseconds: 2000), () {
+          if (!isClosed && rewardFlash.value == points) rewardFlash.value = 0;
+        });
+      } else {
+        // Not rewarded (daily limit / already rewarded): nothing to show.
+        rewardFlash.value = 0;
       }
 
       // A khatma can finish on any page, rewarded or not.

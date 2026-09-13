@@ -246,7 +246,7 @@ class AppTranslations extends Translations {
           // ── الأذكار (التسبيح والاستغفار) ──
           'dhikr_title':            'الأذكار',
           'dhikr_home_card_title':  'التسبيح والاستغفار',
-          'dhikr_home_card_sub':    'أكمل 100 تسبيحة واكسب 20 نقطة يومياً',
+          'dhikr_home_card_sub':    'مساحتك لتجديد الروح بذكرٍ يحيي القلب واستغفارٍ يمحو الذنوب',
           'dhikr_tasbeeh':          'سُبْحَانَ اللهِ وَبِحَمْدِهِ',
           'dhikr_istighfar':        'أَسْتَغْفِرُ اللهَ',
           'dhikr_tasbeeh_short':    'التسبيح',
@@ -269,7 +269,7 @@ class AppTranslations extends Translations {
           // ── ورد القرآن ──
           'quran_title':            'المصحف الشريف',
           'quran_home_card_title':   'المصحف الشريف',
-          'quran_home_card_sub':    'اقرأ صفحة واكسب 20 نقطة',
+          'quran_home_card_sub':    'وردك اليومي من القرآن، نورٌ يرافقك وهدايةٌ تثري طريقك',
           'quran_continue':         'متابعة القراءة',
           'quran_index':            'الفهرس',
           'quran_tab_surah':        'السور',
@@ -607,7 +607,7 @@ class AppTranslations extends Translations {
           // ── Dhikr (tasbeeh & istighfar) ──
           'dhikr_title':            'Dhikr',
           'dhikr_home_card_title':  'Tasbeeh & Istighfar',
-          'dhikr_home_card_sub':    'Complete 100 and earn 20 points daily',
+          'dhikr_home_card_sub':    'Your space to renew the soul, with dhikr that revives the heart and istighfar that erases sins',
           'dhikr_tasbeeh':          'Subhan Allah wa bihamdih',
           'dhikr_istighfar':        'Astaghfirullah',
           'dhikr_tasbeeh_short':    'Tasbeeh',
@@ -630,7 +630,7 @@ class AppTranslations extends Translations {
           // ── Quran Werd ──
           'quran_title':            'The Holy Quran',
           'quran_home_card_title':  'The Holy Quran',
-          'quran_home_card_sub':    'Read a page and earn 20 points',
+          'quran_home_card_sub':    'Your daily portion of the Quran, a light that walks with you and guidance that enriches your path',
           'quran_continue':         'Continue reading',
           'quran_index':            'Index',
           'quran_tab_surah':        'Surahs',

@@ -95,9 +95,33 @@ class HomeView extends GetView<HomeController> {
               )),
               // const _QuoteCard(),
               const SizedBox(height: 12),
-              const _DhikrCard(),
-              const SizedBox(height: 10),
-              const _QuranCard(),
+              // Dhikr + Quran side by side, equal height.
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _HomeGridCard(
+                        icon: Icons.brightness_7_rounded,
+                        title: 'dhikr_home_card_title'.tr,
+                        subtitle: 'dhikr_home_card_sub'.tr,
+                        colors: const [Color(0xFF243329), Color(0xFF15201A)],
+                        onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _HomeGridCard(
+                        icon: Icons.menu_book_rounded,
+                        title: 'quran_home_card_title'.tr,
+                        subtitle: 'quran_home_card_sub'.tr,
+                        colors: const [Color(0xFF243329), Color(0xFF15201A)],
+                        onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -106,103 +130,104 @@ class HomeView extends GetView<HomeController> {
   }
 }
 
-/// Entry point to the tasbeeh / istighfar counters. Sits under the prayer list
-/// and the quote, matching the beige section styling used elsewhere on Home.
-class _DhikrCard extends StatelessWidget {
-  const _DhikrCard();
+/// Half-width entry card (tasbeeh / Quran Werd) for the Home grid, matching
+/// the beige section styling used elsewhere on Home.
+class _HomeGridCard extends StatelessWidget {
+  const _HomeGridCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    required this.colors,
+  });
+
+  /// Background gradient behind the text.
+  final List<Color> colors;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
-      child: Container(
-        padding: const EdgeInsets.all(14),
+    final gold = context.athar.gold;
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
         decoration: BoxDecoration(
-          color: context.athar.beige,
+          gradient: LinearGradient(
+            begin: AlignmentDirectional.topStart,
+            end: AlignmentDirectional.bottomEnd,
+            colors: colors,
+          ),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.athar.primaryDark.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(Icons.brightness_7_rounded, color: context.athar.success, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'dhikr_home_card_title'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+        child: InkWell(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 132),
+            child: Stack(
+              children: [
+                // Large faded watermark instead of an icon badge.
+                PositionedDirectional(
+                  end: -18,
+                  bottom: -18,
+                  child: Icon(icon, size: 110, color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                // Soft gold glow in the top corner.
+                PositionedDirectional(
+                  top: -40,
+                  start: -40,
+                  child: Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [gold.withValues(alpha: 0.22), gold.withValues(alpha: 0)],
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'dhikr_home_card_sub'.tr,
-                    style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 3,
+                        decoration: BoxDecoration(
+                          color: gold,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: context.text.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Icon(Icons.chevron_right_rounded, color: context.athar.textMuted),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Entry point to Quran Werd, alongside the dhikr counters.
-class _QuranCard extends StatelessWidget {
-  const _QuranCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: context.athar.beige,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: context.athar.primaryDark.withValues(alpha: 0.16),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(Icons.menu_book_rounded, color: context.athar.success, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'quran_home_card_title'.tr,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'quran_home_card_sub'.tr,
-                    style: context.text.bodySmall?.copyWith(color: context.athar.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: context.athar.textMuted),
-          ],
+          ),
         ),
       ),
     );
