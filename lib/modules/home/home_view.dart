@@ -12,6 +12,7 @@ import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
 import '../shell/shell_view.dart';
 import 'home_controller.dart';
+import 'prayer_sky_theme.dart';
 import 'prayer_visual_theme.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -266,21 +267,69 @@ class _NextPrayerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
-    final athar = context.athar;
 
-    return Container(
-      padding: const EdgeInsets.all(24),
+    return Obx(() {
+      // The card takes on the sky of the prayer it's counting down to.
+      final sky = PrayerSkyTheme.of(controller.nextPrayerKey.value);
+
+      return AnimatedContainer(
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeInOut,
       decoration: BoxDecoration(
-        gradient: athar.heroGradient,
+        gradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: sky.colors.length == 2 ? [...sky.colors, sky.colors.last] : sky.colors,
+        ),
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: context.colors.primary.withValues(alpha: 0.28), blurRadius: 24, offset: const Offset(0, 12))],
+        boxShadow: [BoxShadow(color: sky.colors.last.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 12))],
       ),
-      child: Stack(
-        clipBehavior: Clip.none,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
         children: [
-          // Decorative ripple rings echoing the brand moodboard.
-          Positioned(top: -60, right: -40, child: _RippleRings(color: Colors.white.withValues(alpha: 0.06))),
-          Column(
+          // Stars (dawn, sunset, night).
+          Positioned.fill(
+            child: IgnorePointer(
+              child: CustomPaint(painter: SkyStarsPainter(count: sky.stars)),
+            ),
+          ),
+          // Light source glow behind the watermark.
+          PositionedDirectional(
+            end: -50,
+            bottom: -60,
+            child: IgnorePointer(
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [sky.glow.withValues(alpha: 0.35), sky.glow.withValues(alpha: 0)],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Sun / moon / twilight watermark.
+          PositionedDirectional(
+            end: -20,
+            bottom: -28,
+            child: IgnorePointer(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 600),
+                child: Icon(
+                  sky.watermark,
+                  key: ValueKey(sky.watermark),
+                  size: 130,
+                  color: Colors.white.withValues(alpha: 0.12),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
@@ -288,7 +337,7 @@ class _NextPrayerCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.mosque_outlined, size: 18, color: athar.gold),
+                      Icon(Icons.mosque_outlined, size: 18, color: sky.accent),
                       const SizedBox(width: 6),
                       Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
                     ],
@@ -334,7 +383,7 @@ class _NextPrayerCard extends StatelessWidget {
                         () => Text(
                       controller.countdown.value,
                       style: context.text.displayMedium?.copyWith(
-                        color: athar.gold,
+                        color: sky.accent,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         letterSpacing: 2,
                       ),
@@ -347,9 +396,12 @@ class _NextPrayerCard extends StatelessWidget {
               // const _DailyProgressBar(),
             ],
           ),
+          ),
         ],
+        ),
       ),
     );
+    });
   }
 }
 
@@ -392,33 +444,6 @@ class _DailyProgressBar extends StatelessWidget {
   }
 }
 
-class _RippleRings extends StatelessWidget {
-  const _RippleRings({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      height: 160,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          for (final size in const [160.0, 120.0, 80.0])
-            Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: color, width: 1.5),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────
 // Section header
