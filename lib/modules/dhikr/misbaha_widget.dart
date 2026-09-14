@@ -98,8 +98,13 @@ class MisbahaStrand extends StatefulWidget {
     required this.count,
     required this.onTap,
     required this.enabled,
+    this.strike = 0,
     this.motion = const MisbahaMotion(),
   });
+
+  /// Bumped from outside — e.g. a counted phone shake — to play the same pull
+  /// a tap does.
+  final int strike;
 
   /// Current tally — decides which bead is struck.
   final int count;
@@ -134,11 +139,23 @@ class _MisbahaStrandState extends State<MisbahaStrand> with SingleTickerProvider
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(MisbahaStrand oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // A shake was counted: [count] already includes it, so the pushed bead is
+    // the one before.
+    if (widget.strike != oldWidget.strike) _pull(widget.count - 1);
+  }
+
   void _handleTap() {
     if (!widget.onTap()) return;
 
     // The bead that has just been counted is the one the thumb pushed.
-    _struck = _activeIndex(widget.count);
+    _pull(widget.count);
+  }
+
+  void _pull(int countedAt) {
+    _struck = _activeIndex(countedAt);
     _pulse.forward(from: 0);
   }
 

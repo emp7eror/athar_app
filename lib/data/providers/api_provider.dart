@@ -9,7 +9,15 @@ import '../../core/utils/error_reporter.dart';
 class ApiException implements Exception {
   final int? status;
   final String message;
-  ApiException(this.message, {this.status});
+
+  /// The decoded error body — e.g. a `reason` or `retry_after` the caller can
+  /// act on. Empty when the server sent none.
+  final Map<String, dynamic> data;
+
+  /// Machine-readable `reason` from the error body, if any.
+  String? get reason => data['reason']?.toString();
+
+  ApiException(this.message, {this.status, this.data = const {}});
   @override
   String toString() => message;
 }
@@ -22,8 +30,33 @@ class ApiProvider {
     if (res.statusCode != null && res.statusCode! >= 200 && res.statusCode! < 300) {
       return data;
     }
-    throw ApiException(data['message']?.toString() ?? 'Request failed', status: res.statusCode);
+    throw ApiException(data['message']?.toString() ?? 'Request failed', status: res.statusCode, data: data);
   }
+
+  // --- Forgot password (public) ---
+
+  /// Emails a 6-digit reset code. The server answers the same way whether or
+  /// not the address is registered.
+  Future<Map<String, dynamic>> forgotPassword(String email) async =>
+      _unwrap(await _dio.post(ApiEndpoints.passwordForgot, data: {'email': email}));
+
+  /// Checks a code without using it up (wrong guesses still count).
+  Future<Map<String, dynamic>> verifyResetCode(String email, String code) async =>
+      _unwrap(await _dio.post(ApiEndpoints.passwordVerify, data: {'email': email, 'code': code}));
+
+  /// Sets the new password; signs the account out everywhere.
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+    required String confirmation,
+  }) async =>
+      _unwrap(await _dio.post(ApiEndpoints.passwordReset, data: {
+        'email': email,
+        'code': code,
+        'password': password,
+        'password_confirmation': confirmation,
+      }));
 
   // --- Quran Werd ---
 

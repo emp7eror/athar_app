@@ -10,6 +10,8 @@ import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../data/models/user_model.dart';
+import 'forgot_password_controller.dart';
+import 'forgot_password_view.dart';
 
 class AuthController extends GetxController {
   final _api = Get.find<ApiProvider>();
@@ -26,6 +28,25 @@ class AuthController extends GetxController {
   final gender = Rxn<String>();
 
   void toggleMode() => isRegister.toggle();
+
+  /// Opens "forgot password" with whatever email is typed; on success, comes
+  /// back with the address filled in, ready to log in with the new password.
+  Future<void> openForgotPassword() async {
+    if (loading.value) return;
+    final typed = email.text.trim();
+    final resetEmail = await Get.to<String>(
+      () => const ForgotPasswordView(),
+      binding: BindingsBuilder(() {
+        Get.put(ForgotPasswordController(initialEmail: typed));
+      }),
+    );
+    if (resetEmail == null || isClosed) return;
+
+    isRegister.value = false;
+    email.text = resetEmail;
+    password.clear();
+    AppSnackbar.show('forgot_password_title'.tr, 'reset_done'.tr);
+  }
 
   Future<void> submit() async {
     if (loading.value) return;
@@ -87,6 +108,17 @@ class AuthController extends GetxController {
 
   Future<void> _registerFcmToken() async {
     try {
+      if (Platform.isIOS) {
+        // On iOS, FCM can only mint a token once APNs has handed the app its
+        // device token; asking earlier throws `apns-token-not-set`. Give APNs
+        // a few seconds (it's usually instant on a real device).
+        String? apns;
+        for (var i = 0; i < 10 && apns == null; i++) {
+          apns = await FirebaseMessaging.instance.getAPNSToken();
+          if (apns == null) await Future.delayed(const Duration(seconds: 1));
+        }
+        if (apns == null) return; // simulator / push capability missing
+      }
       final t = await FirebaseMessaging.instance.getToken();
       if (t != null) await _api.updateFcmToken(t);
     } catch (e) {

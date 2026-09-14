@@ -6,6 +6,8 @@ import '../../core/theme/app_theme.dart';
 import 'quran_controller.dart';
 import 'quran_index_view.dart';
 import 'quran_mood_view.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 /// "Page 0" — what the Mushaf opens on, in three parts:
 ///  1. the reader's statistics;
@@ -29,7 +31,9 @@ class QuranCover extends GetView<QuranController> {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
+    return TourAutoStart(
+      pageId: TourPages.quran,
+      child: SafeArea(
       child: Column(
         children: [
           const _Header(),
@@ -45,13 +49,13 @@ class QuranCover extends GetView<QuranController> {
                       children: [
                         _SectionTitle(text: 'quran_cover_stats'.tr),
                         const SizedBox(height: 12),
-                        const _ContinueCard(),
+                        const TourTarget(id: TourTargets.quranContinue, child: _ContinueCard()),
                         const SizedBox(height: 12),
-                        const _Stats(),
+                        const TourTarget(id: TourTargets.quranStats, child: _Stats()),
                         const SizedBox(height: 12),
                         _SectionTitle(text: 'quran_cover_ways'.tr),
                         const SizedBox(height: 12),
-                        const _Ways(),
+                        const TourTarget(id: TourTargets.quranWays, child: _Ways()),
                       ],
                     ),
                   ),
@@ -61,6 +65,7 @@ class QuranCover extends GetView<QuranController> {
           ),
         ],
       ),
+    ),
     );
   }
 }
@@ -88,8 +93,14 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          // Balances the back button so the title sits in the middle.
-          const SizedBox(width: 48),
+          // Replays the page tour; kept the back button's width so the title
+          // stays centred.
+          const SizedBox(
+            width: 48,
+            child: Center(
+              child: TourHelpButton(pageId: TourPages.quran, style: TourHelpStyle.appBar),
+            ),
+          ),
         ],
       ),
     );

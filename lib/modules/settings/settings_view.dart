@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
@@ -11,6 +12,8 @@ import '../../data/providers/api_provider.dart';
 import '../home/home_controller.dart';
 import 'legal_document_view.dart';
 import 'notification_settings_view.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -26,15 +29,26 @@ class SettingsView extends StatelessWidget {
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(20),
+          // Keeps the whole page built so tour steps can scroll to any tile.
+          scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
           children: [
-            Text('settings'.tr,
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text('settings'.tr,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                ),
+                const TourHelpButton(pageId: TourPages.settings),
+              ],
+            ),
             const SizedBox(height: 24),
 
             _SectionHeader('general'.tr),
             const SizedBox(height: 12),
 
-            _SettingsTile(
+            TourTarget(
+              id: TourTargets.settingsLocation,
+              child: _SettingsTile(
               icon: Icons.location_on_outlined,
               title: 'location'.tr,
               trailing: Obx(() => home.updatingLocation.value
@@ -50,6 +64,7 @@ class SettingsView extends StatelessWidget {
               onTap: () {
                 if (!home.updatingLocation.value) home.updateLocation();
               },
+            ),
             ),
 
             const SizedBox(height: 8),
@@ -75,7 +90,9 @@ class SettingsView extends StatelessWidget {
             _SectionHeader('appearance'.tr),
             const SizedBox(height: 12),
 
-            _SettingsTile(
+            TourTarget(
+              id: TourTargets.settingsLanguage,
+              child: _SettingsTile(
               icon: Icons.language_outlined,
               title: 'language'.tr,
               trailing: Obx(() => Text(
@@ -86,10 +103,13 @@ class SettingsView extends StatelessWidget {
               )),
               onTap: lang.toggle,
             ),
+            ),
 
             const SizedBox(height: 8),
 
-            _SettingsTile(
+            TourTarget(
+              id: TourTargets.settingsTheme,
+              child: _SettingsTile(
               icon: Icons.dark_mode_outlined,
               title: 'theme'.tr,
               trailing: GetBuilder<ThemeController>(
@@ -115,17 +135,21 @@ class SettingsView extends StatelessWidget {
               ),
               onTap: theme.toggle,
             ),
+            ),
 
             const SizedBox(height: 24),
 
             _SectionHeader('notifications'.tr),
             const SizedBox(height: 12),
 
-            _SettingsTile(
-              icon: Icons.notifications_outlined,
-              title: 'prayer_reminders'.tr,
-              trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
-              onTap: () => Get.to(() => const NotificationSettingsView()),
+            TourTarget(
+              id: TourTargets.settingsReminders,
+              child: _SettingsTile(
+                icon: Icons.notifications_outlined,
+                title: 'prayer_reminders'.tr,
+                trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+                onTap: () => Get.to(() => const NotificationSettingsView()),
+              ),
             ),
 
             const SizedBox(height: 24),

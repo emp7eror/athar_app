@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../constants/notification_sounds.dart';
 import '../utils/error_reporter.dart';
@@ -292,6 +293,17 @@ class NotificationService extends GetxService {
   // in the foreground we render them ourselves so friend reminders (and
   // friend level-ups) are never swallowed.
   void _bindForegroundMessages() {
+    // FCM rotates tokens (reinstall, restore, APNs change). Keep the server's
+    // copy current, or pushes silently stop reaching this device.
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+      if (!Get.find<StorageProvider>().isLoggedIn) return;
+      try {
+        await Get.find<ApiProvider>().updateFcmToken(token);
+      } catch (e) {
+        ErrorReporter.report(e, StackTrace.current);
+      }
+    });
+
     FirebaseMessaging.onMessage.listen((message) {
       final n = message.notification;
       if (n == null) return;

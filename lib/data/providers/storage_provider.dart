@@ -29,6 +29,7 @@ class StorageProvider extends GetxService {
 
   // ── Dhikr (taps counted locally but not yet accepted by the server) ──
   static const _kDhikrPending = 'dhikr_pending';
+  static const _kDhikrShake = 'dhikr_shake_enabled';
 
   // ── Quran Werd ──
   static const _kQuranLastPage = 'quran_last_page';
@@ -41,6 +42,24 @@ class StorageProvider extends GetxService {
 
   // ── Home: last /prayers/today response, shown before the network answers ──
   static const _kTodayPrayersCache = 'today_prayers_cache';
+
+  // ── Product tours: completed/skipped page ids, per user ──
+  static const _kToursCompleted = 'tours_completed';
+
+  /// Page ids whose tour [userKey] has completed or skipped. Kept across
+  /// logout so each account sees each tour once on this device.
+  Set<String> completedTours(String userKey) {
+    final raw = _box.read(_kToursCompleted);
+    final list = raw is Map ? raw[userKey] : null;
+    return list is List ? {for (final e in list) '$e'} : <String>{};
+  }
+
+  void markTourCompleted(String userKey, String pageId) {
+    final raw = _box.read(_kToursCompleted);
+    final all = raw is Map ? Map<String, dynamic>.from(raw) : <String, dynamic>{};
+    all[userKey] = {...completedTours(userKey), pageId}.toList();
+    _box.write(_kToursCompleted, all);
+  }
 
   String? get token => _box.read(_kToken);
 
@@ -66,6 +85,10 @@ class StorageProvider extends GetxService {
 
   set dhikrPending(Map<String, dynamic> v) =>
       v.isEmpty ? _box.remove(_kDhikrPending) : _box.write(_kDhikrPending, v);
+
+  /// Whether the dhikr counter also counts phone shakes.
+  bool get dhikrShakeEnabled => _box.read(_kDhikrShake) ?? false;
+  set dhikrShakeEnabled(bool v) => _box.write(_kDhikrShake, v);
 
   /// Last Mushaf page opened on this device. The server only learns of the
   /// page that earns the day's reward, so this is the reader's real place.

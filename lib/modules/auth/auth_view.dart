@@ -43,6 +43,14 @@ class AuthView extends GetView<AuthController> {
                       ],
                       _field(controller.email, 'email'.tr),
                       _field(controller.password, 'password'.tr, obscure: true),
+                      if (!controller.isRegister.value)
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: TextButton(
+                            onPressed: controller.openForgotPassword,
+                            child: Text('forgot_password'.tr),
+                          ),
+                        ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,

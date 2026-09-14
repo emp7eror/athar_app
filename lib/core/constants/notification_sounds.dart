@@ -5,7 +5,9 @@
 /// - [id]         : the value we persist in storage.
 /// - [androidRaw] : the bare `res/raw` resource name (no extension) used by
 ///                  [RawResourceAndroidNotificationSound].
-/// - [iosFile]    : the bundled filename used by `DarwinNotificationDetails`.
+/// - [iosFile]    : the bundled filename used by `DarwinNotificationDetails` —
+///                  `.caf`, generated from the res/raw mp3 by the iOS
+///                  "Bundle Notification Sounds" build phase.
 /// - [labelKey]   : localization key for the human-readable name.
 class NotificationSound {
   final String id;
@@ -27,19 +29,19 @@ abstract final class NotificationSounds {
     NotificationSound(
       id: 'athan1',
       androidRaw: 'athan1',
-      iosFile: 'athan1.mp3',
+      iosFile: 'athan1.caf',
       labelKey: 'sound_athan1',
     ),
     NotificationSound(
       id: 'athan2',
       androidRaw: 'athan2',
-      iosFile: 'athan2.mp3',
+      iosFile: 'athan2.caf',
       labelKey: 'sound_athan2',
     ),
     NotificationSound(
       id: 'athan3',
       androidRaw: 'athan3',
-      iosFile: 'athan3.mp3',
+      iosFile: 'athan3.caf',
       labelKey: 'sound_athan3',
     ),
   ];
@@ -49,13 +51,13 @@ abstract final class NotificationSounds {
     NotificationSound(
       id: 'athan_reminder_1',
       androidRaw: 'athan_reminder_1',
-      iosFile: 'athan_reminder_1.mp3',
+      iosFile: 'athan_reminder_1.caf',
       labelKey: 'sound_reminder1',
     ),
     NotificationSound(
       id: 'athan_reminder_2',
       androidRaw: 'athan_reminder_2',
-      iosFile: 'athan_reminder_2.mp3',
+      iosFile: 'athan_reminder_2.caf',
       labelKey: 'sound_reminder2',
     ),
   ];

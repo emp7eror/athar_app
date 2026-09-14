@@ -7,6 +7,8 @@ import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
 import '../profile_preview/profile_preview_modal.dart';
 import 'leaderboard_controller.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class LeaderboardView extends GetView<LeaderboardController> {
   const LeaderboardView({super.key});
@@ -23,11 +25,20 @@ class LeaderboardView extends GetView<LeaderboardController> {
           child: Column(children: [
             Padding(
               padding: const EdgeInsets.all(16),
-              child: Text('leaderboard'.tr,
-                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text('leaderboard'.tr,
+                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  ),
+                  const TourHelpButton(pageId: TourPages.leaderboard),
+                ],
+              ),
             ),
             // Primary axis — what the ranking is based on.
-            Obx(() => Padding(
+            TourTarget(
+              id: TourTargets.leaderboardMetric,
+              child: Obx(() => Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -37,10 +48,16 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 ],
               ),
             )),
+            ),
             const SizedBox(height: 8),
             // Secondary refinements. Period only affects the points ranking —
             // streaks are always all-time on the backend — so it's hidden
             // rather than shown as a no-op while the streak tab is active.
+            TourTarget(
+              id: TourTargets.leaderboardFilters,
+              child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
             Obx(() => AnimatedSize(
               duration: const Duration(milliseconds: 180),
               alignment: Alignment.topCenter,
@@ -68,6 +85,9 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 ],
               ),
             )),
+              ],
+              ),
+            ),
             const SizedBox(height: 4),
             const Divider(height: 1, indent: 16, endIndent: 16),
             const SizedBox(height: 4),
@@ -84,13 +104,18 @@ class LeaderboardView extends GetView<LeaderboardController> {
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: controller.rankings.length,
-                    itemBuilder: (_, i) => _row(
-                      controller.rankings[i],
-                      isAr,
-                      controller.tab.value == 'streak' ? _Metric.streak
-                          : controller.period.value == 'all' ? _Metric.totalPoints
-                          : _Metric.score,
-                    ),
+                    itemBuilder: (_, i) {
+                      final row = _row(
+                        controller.rankings[i],
+                        isAr,
+                        controller.tab.value == 'streak' ? _Metric.streak
+                            : controller.period.value == 'all' ? _Metric.totalPoints
+                            : _Metric.score,
+                      );
+                      return i == 0
+                          ? TourTarget(id: TourTargets.leaderboardFirst, child: row)
+                          : row;
+                    },
                   ),
                 );
               }),

@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import 'package:upgrader/upgrader.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 import '../coach/coach_binding.dart';
 import '../coach/coach_view.dart';
 import '../home/home_view.dart';
@@ -79,7 +81,13 @@ class ShellView extends StatelessWidget {
           ),
           child: Scaffold(
             extendBody: true,
-            body: IndexedStack(index: c.index.value, children: pages),
+            // Starts a tab's product tour the first time that tab is selected
+            // (all tabs stay mounted, so it can't be done on build).
+            body: TourTabAutoStart(
+              index: c.index,
+              tabs: TourPages.shellTabs,
+              child: IndexedStack(index: c.index.value, children: pages),
+            ),
             bottomNavigationBar: _FloatingNavBar(
               index: c.index.value,
               onSelected: (i) => c.index.value = i,
@@ -125,7 +133,9 @@ class _FloatingNavBar extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: aiSize - aiOverlap),
-              child: Container(
+              child: TourTarget(
+                id: TourTargets.shellNav,
+                child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 decoration: BoxDecoration(
                   color: Theme.of(context).extension<AtharPalette>()!.card,
@@ -151,8 +161,9 @@ class _FloatingNavBar extends StatelessWidget {
                   ],
                 ),
               ),
+              ),
             ),
-            const _AiButton(size: aiSize),
+            const TourTarget(id: TourTargets.shellCoach, child: _AiButton(size: aiSize)),
           ],
         ),
       ),

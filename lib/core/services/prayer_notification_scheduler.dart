@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 
 import '../../data/providers/storage_provider.dart';
@@ -17,7 +18,10 @@ class PrayerNotificationScheduler extends GetxService {
 
   /// How many days ahead to schedule. Covers long stretches without the app
   /// being opened; re-run on each app resume tops this back up.
-  static const _daysAhead = 7;
+  ///
+  /// iOS keeps only the 64 soonest pending local notifications and silently
+  /// drops the rest, so it gets 4 days (4 x 5 prayers x 3 types = 60).
+  static final _daysAhead = defaultTargetPlatform == TargetPlatform.iOS ? 4 : 7;
 
   // Deterministic id layout keeps rescheduling collision-free and lets us
   // cancel the whole set without touching friend-nudge ids (which are epoch

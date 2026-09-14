@@ -11,6 +11,8 @@ import '../services/permission_service.dart';
 import '../services/prayer_notification_scheduler.dart';
 import '../services/sound_service.dart';
 import '../services/timezone_service.dart';
+import '../tour/tour_service.dart';
+import '../../modules/tour/app_tours.dart';
 
 /// Registered once at app start (from `main()`, before `runApp`).
 ///
@@ -22,6 +24,8 @@ class InitialBinding extends Bindings {
   void dependencies() {
     // Core singletons (permanent for app lifetime).
     Get.put(StorageProvider(), permanent: true);
+    // Product tours (coach marks) — configured in modules/tour/app_tours.dart.
+    Get.put(TourService(AppTours.all), permanent: true);
     Get.put(LocalizationController(), permanent: true);
     Get.put(ThemeController(), permanent: true);
     Get.put(DioClient(), permanent: true);

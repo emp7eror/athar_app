@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
 import '../../widgets/gender_selector.dart';
 import 'profile_controller.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -17,17 +20,27 @@ class ProfileView extends GetView<ProfileController> {
           onRefresh: controller.refreshAll,
           child: ListView(
             padding: const EdgeInsets.all(16),
+            // Keeps the whole page built so tour steps can scroll to any item.
+            scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
             children: [
               Row(children: [
-                Text('profile'.tr,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Text('profile'.tr,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                ),
+                const TourHelpButton(pageId: TourPages.profile),
               ]),
               const SizedBox(height: 24),
               _avatarCard(context),
               const SizedBox(height: 24),
-              if (controller.editing.value) _editForm(context) else _infoCard(context),
+              if (controller.editing.value)
+                _editForm(context)
+              else
+                TourTarget(id: TourTargets.profileInfo, child: _infoCard(context)),
               const SizedBox(height: 32),
-              OutlinedButton.icon(
+              TourTarget(
+                id: TourTargets.profileLogout,
+                child: OutlinedButton.icon(
                 onPressed: () => _confirmLogout(context),
                 icon: Icon(Icons.logout, color: colors.error),
                 label: Text('logout'.tr,
@@ -37,6 +50,7 @@ class ProfileView extends GetView<ProfileController> {
                   side: BorderSide(color: colors.error),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
+              ),
               ),
             ],
           ),
@@ -48,7 +62,11 @@ class ProfileView extends GetView<ProfileController> {
   Widget _avatarCard(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Center(
-      child: Stack(children: [
+      // Target the avatar itself (not the full-width Center) so the
+      // spotlight hugs the picture and its camera button.
+      child: TourTarget(
+        id: TourTargets.profileAvatar,
+        child: Stack(children: [
         Obx(() => controller.uploading.value
             ? Container(
             width: 100, height: 100,
@@ -68,6 +86,7 @@ class ProfileView extends GetView<ProfileController> {
           ),
         ),
       ]),
+      ),
     );
   }
 

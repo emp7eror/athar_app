@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 
@@ -14,6 +15,8 @@ import '../shell/shell_view.dart';
 import 'home_controller.dart';
 import 'prayer_sky_theme.dart';
 import 'prayer_visual_theme.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -29,13 +32,17 @@ class HomeView extends GetView<HomeController> {
           child: ListView(
             // Clear of the floating nav bar and the AI button raised on it.
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 160),
+            // Keeps the whole page built so tour steps can scroll to any card.
+            scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
             children: [
 
               // ── الهيدر: صورة + اسم + أيقونة الإعدادات ──
               Row(
                 children: [
                   // الصورة والاسم → ينقل لصفحة الملف الشخصي
-                  GestureDetector(
+                  TourTarget(
+                    id: TourTargets.homeProfile,
+                    child: GestureDetector(
                     onTap: () => Get.find<ShellController>().index.value = 4,
                     child: Obx(() {
                       final name      = controller.userName.value;
@@ -65,11 +72,18 @@ class HomeView extends GetView<HomeController> {
                       ]);
                     }),
                   ),
+                  ),
                   const Spacer(),
+                  // Replays this page's product tour.
+                  const TourHelpButton(pageId: TourPages.home),
+                  const SizedBox(width: 10),
                   // أيقونة الإعدادات → ينقل لصفحة الإعدادات
-                  _CircleIconButton(
-                    icon: Icons.settings_outlined,
-                    onTap: () => Get.find<ShellController>().index.value = 5,
+                  TourTarget(
+                    id: TourTargets.homeSettings,
+                    child: _CircleIconButton(
+                      icon: Icons.settings_outlined,
+                      onTap: () => Get.find<ShellController>().index.value = 5,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   _CircleIconButton(
@@ -82,11 +96,13 @@ class HomeView extends GetView<HomeController> {
               // const SizedBox(height: 10),
               // Obx(() => LevelProgressCard(level: controller.level.value)),
               const SizedBox(height: 10),
-              const _NextPrayerCard(),
+              const TourTarget(id: TourTargets.homeNextPrayer, child: _NextPrayerCard()),
               const SizedBox(height: 15),
               _SectionHeader('today'.tr),
               const SizedBox(height: 12),
-              Obx(() => Column(
+              TourTarget(
+                id: TourTargets.homePrayers,
+                child: Obx(() => Column(
                 children: controller.checklist
                     .map((item) => Padding(
                   padding: const EdgeInsets.only(bottom: 5),
@@ -94,10 +110,13 @@ class HomeView extends GetView<HomeController> {
                 ))
                     .toList(),
               )),
+              ),
               // const _QuoteCard(),
               const SizedBox(height: 12),
               // Dhikr + Quran side by side, equal height.
-              IntrinsicHeight(
+              TourTarget(
+                id: TourTargets.homePractices,
+                child: IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -122,6 +141,7 @@ class HomeView extends GetView<HomeController> {
                     ),
                   ],
                 ),
+              ),
               ),
             ],
           ),

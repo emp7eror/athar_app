@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
@@ -10,6 +11,8 @@ import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
 import '../profile_preview/profile_preview_modal.dart';
 import 'friends_controller.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class FriendsView extends GetView<FriendsController> {
   const FriendsView({super.key});
@@ -23,12 +26,23 @@ class FriendsView extends GetView<FriendsController> {
           child: Obx(
             () => ListView(
               padding: const EdgeInsets.all(16),
+              // Keeps the whole page built so tour steps can scroll to any item.
+              scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
               children: [
-                Text('friends'.tr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 12),
-                _myCodeCard(),
-                const SizedBox(height: 12),
                 Row(
+                  children: [
+                    Expanded(
+                      child: Text('friends'.tr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    ),
+                    const TourHelpButton(pageId: TourPages.friends),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                TourTarget(id: TourTargets.friendsCode, child: _myCodeCard()),
+                const SizedBox(height: 12),
+                TourTarget(
+                  id: TourTargets.friendsAdd,
+                  child: Row(
                   children: [
                     Expanded(
                       child: TextField(
@@ -46,13 +60,17 @@ class FriendsView extends GetView<FriendsController> {
                     ),
                   ],
                 ),
+                ),
                 const SizedBox(height: 16),
                 if (controller.pending.isNotEmpty) ...[
                   const Text('Pending requests', style: TextStyle(fontWeight: FontWeight.w600)),
                   ...controller.pending.map(_pendingTile),
                   const SizedBox(height: 16),
                 ],
-                ...controller.friends.map((f) => _friendTile(context, f)),
+                for (final (i, f) in controller.friends.indexed)
+                  i == 0
+                      ? TourTarget(id: TourTargets.friendsFirst, child: _friendTile(context, f))
+                      : _friendTile(context, f),
               ],
             ),
           ),

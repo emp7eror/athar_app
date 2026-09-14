@@ -1,11 +1,14 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/level_progress_card.dart';
 import 'stats_controller.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 
 class StatsView extends GetView<StatsController> {
   const StatsView({super.key});
@@ -18,20 +21,42 @@ class StatsView extends GetView<StatsController> {
           onRefresh: controller.refreshAll,
           child: Obx(() => controller.loading.value
               ? const Center(child: CircularProgressIndicator())
-              : ListView(padding: const EdgeInsets.all(16), children: [
-                  Text('stats'.tr,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              : ListView(
+                  padding: const EdgeInsets.all(16),
+                  // Keeps the whole page built so tour steps can scroll to any card.
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
+                  children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text('stats'.tr,
+                            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                      ),
+                      const TourHelpButton(pageId: TourPages.stats),
+                    ],
+                  ),
                   const SizedBox(height: 16),
-                  _statsRow(context),
+                  TourTarget(id: TourTargets.statsSummary, child: _statsRow(context)),
                   const SizedBox(height: 16),
-                  LevelProgressCard(level: _cachedUser()?.level),
+                  TourTarget(
+                    id: TourTargets.statsLevel,
+                    child: LevelProgressCard(level: _cachedUser()?.level),
+                  ),
                   const SizedBox(height: 24),
                    Text('last_7_days'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 12),
-                  SizedBox(height: 200, child: _weeklyChart()),
+                  TourTarget(
+                    id: TourTargets.statsWeekly,
+                    child: SizedBox(height: 200, child: _weeklyChart()),
+                  ),
                   const SizedBox(height: 24),
                    Text('thirty_day_per_prayer'.tr, style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
+                  TourTarget(
+                    id: TourTargets.statsMonthly,
+                    child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   ...controller.monthly.map((m) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(children: [
@@ -51,6 +76,8 @@ class StatsView extends GetView<StatsController> {
                           Text('${m['avg_percent']}%'),
                         ]),
                       )),
+                  ]),
+                  ),
                 ])),
         ),
       ),

@@ -5,6 +5,9 @@ class ApiEndpoints {
   static const String register = '/auth/register';
   static const String login = '/auth/login';
   static const String anonymousLogin = '/auth/anonymous';
+  static const String passwordForgot = '/auth/password/forgot';
+  static const String passwordVerify = '/auth/password/verify';
+  static const String passwordReset = '/auth/password/reset';
   static const String logout = '/auth/logout';
   static const String fcmToken = '/auth/fcm-token';
   static const String location = '/user/location';

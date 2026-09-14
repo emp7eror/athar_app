@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../core/services/timezone_service.dart';
+import '../../core/tour/tour_service.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/dhikr_model.dart';
@@ -11,6 +13,7 @@ import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../level_up/level_up_popup.dart';
+import 'shake_detector.dart';
 
 /// Tasbeeh / istighfar counters.
 ///
@@ -22,7 +25,7 @@ import '../level_up/level_up_popup.dart';
 ///
 /// Anything counted past the target is flushed when the user leaves the page,
 /// purely to keep the stored total honest — it carries no reward.
-class DhikrController extends GetxController {
+class DhikrController extends GetxController with WidgetsBindingObserver {
   DhikrController();
 
   static const tasbeeh = 'tasbeeh';
@@ -61,6 +64,16 @@ class DhikrController extends GetxController {
   /// True while taps are being ignored after a frantic run.
   final cooldown = false.obs;
 
+  /// Count by shaking the phone as well as tapping. Remembered on the device.
+  final shakeEnabled = false.obs;
+
+  /// Bumped for every shake that was counted, so the strand plays the same
+  /// bead animation a tap does.
+  final shakeStrikes = 0.obs;
+
+  final _shake = ShakeDetector();
+  bool _appActive = true;
+
   final _syncing = <String, bool>{};
   Timer? _cooldownTimer;
 
@@ -90,11 +103,15 @@ class DhikrController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    shakeEnabled.value = _storage.dhikrShakeEnabled;
+    WidgetsBinding.instance.addObserver(this);
     load();
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _shake.stop();
     _cooldownTimer?.cancel();
     // Counted-past-the-target taps are sent as the page closes so the stored
     // total matches what the user actually did. Fire-and-forget: nothing here
@@ -142,7 +159,58 @@ class DhikrController extends GetxController {
       failed.value = true;
     } finally {
       loading.value = false;
+      _syncShakeListening();
     }
+  }
+
+  // ── Shake to count ─────────────────────────────────────────────────────
+
+  void toggleShake() {
+    shakeEnabled.toggle();
+    _storage.dhikrShakeEnabled = shakeEnabled.value;
+    HapticFeedback.selectionClick();
+    if (shakeEnabled.value) {
+      AppSnackbar.show('dhikr_shake_on'.tr, 'dhikr_shake_hint'.tr);
+    }
+    _syncShakeListening();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _appActive = state == AppLifecycleState.resumed;
+    _syncShakeListening();
+  }
+
+  /// The sensor only runs while shake counting is on, the counters have
+  /// loaded, and the app is in the foreground — never in the background.
+  void _syncShakeListening() {
+    final listen = shakeEnabled.value &&
+        _appActive &&
+        !loading.value &&
+        !failed.value &&
+        !isClosed;
+    if (listen) {
+      _shake.start(onShake: _onShake, onUnavailable: _onShakeUnavailable);
+    } else {
+      _shake.stop();
+    }
+  }
+
+  void _onShake() {
+    // A product tour is covering the counter — not a moment to count.
+    if (Get.isRegistered<TourService>() &&
+        Get.find<TourService>().running.value != null) {
+      return;
+    }
+    // Same path as a tap: cooldown, midnight rollover, reward and sync all apply.
+    if (tap(viaShake: true)) shakeStrikes.value++;
+  }
+
+  void _onShakeUnavailable() {
+    shakeEnabled.value = false;
+    _storage.dhikrShakeEnabled = false;
+    _shake.stop();
+    AppSnackbar.error('dhikr_title'.tr, 'dhikr_shake_unavailable'.tr);
   }
 
   /// One tap on the active dhikr. Local only, unless this is the tap that
@@ -151,7 +219,10 @@ class DhikrController extends GetxController {
   /// Returns false when the tap was ignored, so the view can skip the haptic
   /// and the bead animation rather than acknowledging something that didn't
   /// count.
-  bool tap() {
+  ///
+  /// [viaShake] marks a count from shaking the phone: it gets a stronger
+  /// vibration, since the user isn't looking at the screen.
+  bool tap({bool viaShake = false}) {
     if (cooldown.value) return false;
 
     // A frantic run stops the count here — the offending tap isn't recorded.
@@ -163,7 +234,7 @@ class DhikrController extends GetxController {
 
     final key = selected.value;
 
-    HapticFeedback.lightImpact();
+    viaShake ? HapticFeedback.mediumImpact() : HapticFeedback.lightImpact();
 
     _pending[key] = (_pending[key] ?? 0) + 1;
     _pending.refresh();
