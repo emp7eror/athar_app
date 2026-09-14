@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../core/constants/quran_surahs.dart';
 import '../../core/theme/app_theme.dart';
@@ -494,17 +495,36 @@ class _Stats extends GetView<QuranController> {
         ),
       ];
 
-      return Row(
+      final number = NumberFormat.decimalPattern(Get.locale?.languageCode);
+      // Only once the server has the per-page counts — never a row of zeros.
+      final words = [
+        if (controller.wordCountsAvailable.value) ...[
+          ('✍️', number.format(controller.wordsRead.value), 'quran_stat_words'.tr),
+          ('🔤', number.format(controller.lettersRead.value), 'quran_stat_letters'.tr),
+        ],
+      ];
+
+      Widget row(List<(String, String, String)> items) => Row(
         children: [
-          for (var i = 0; i < stats.length; i++) ...[
+          for (var i = 0; i < items.length; i++) ...[
             if (i > 0) const SizedBox(width: 10),
             Expanded(
               child: _StatCard(
-                emoji: stats[i].$1,
-                value: stats[i].$2,
-                label: stats[i].$3,
+                emoji: items[i].$1,
+                value: items[i].$2,
+                label: items[i].$3,
               ),
             ),
+          ],
+        ],
+      );
+
+      return Column(
+        children: [
+          row(stats),
+          if (words.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            row(words),
           ],
         ],
       );

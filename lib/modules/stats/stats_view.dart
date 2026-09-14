@@ -2,6 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:get/get.dart';
+import 'package:intl/intl.dart' show NumberFormat;
 import '../../core/constants/app_colors.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/storage_provider.dart';
@@ -78,6 +79,8 @@ class StatsView extends GetView<StatsController> {
                       )),
                   ]),
                   ),
+                  _qualitySection(context),
+                  _quranSection(context),
                 ])),
         ),
       ),
@@ -90,6 +93,75 @@ class StatsView extends GetView<StatsController> {
   UserModel? _cachedUser() {
     final u = Get.find<StorageProvider>().cachedUser;
     return u != null ? UserModel.fromJson(u) : null;
+  }
+
+  /// How the last 30 days' prayers were performed — from the answers given
+  /// when marking them. Only rates the user has actually answered are shown.
+  Widget _qualitySection(BuildContext context) {
+    return Obx(() {
+      final q = controller.quality.value;
+      if (q == null) return const SizedBox.shrink();
+
+      final rates = [
+        (Icons.groups_rounded, q['congregation_rate'], 'quality_jamaah'.tr),
+        (Icons.mosque_rounded, q['mosque_rate'], 'quality_mosque'.tr),
+      ].where((r) => r.$2 is num).toList();
+      if (rates.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          Text('prayer_quality_title'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          for (var i = 0; i < rates.length; i += 2) ...[
+            if (i > 0) const SizedBox(height: 10),
+            Row(children: [
+              _statChip(context, rates[i].$1, '${(rates[i].$2 as num).round()}%', rates[i].$3),
+              const SizedBox(width: 10),
+              if (i + 1 < rates.length)
+                _statChip(context, rates[i + 1].$1, '${(rates[i + 1].$2 as num).round()}%', rates[i + 1].$3)
+              else
+                const Spacer(),
+            ]),
+          ],
+        ],
+      );
+    });
+  }
+
+  /// Quran reading totals from /stats. Words and letters appear once the server
+  /// has the per-page counts; the whole section hides until /stats sends it.
+  Widget _quranSection(BuildContext context) {
+    return Obx(() {
+      final q = controller.quran.value;
+      if (q == null) return const SizedBox.shrink();
+
+      final number = NumberFormat.decimalPattern(Get.locale?.languageCode);
+      String value(String key) => number.format((q[key] as num?)?.toInt() ?? 0);
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 24),
+          Text('quran_stats_title'.tr, style: const TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 12),
+          Row(children: [
+            _statChip(context, Icons.menu_book_rounded, value('pages_read'), 'quran_stat_pages'.tr),
+            const SizedBox(width: 10),
+            _statChip(context, Icons.timer_outlined, value('minutes'), 'quran_stat_minutes'.tr),
+          ]),
+          if (q['word_counts_available'] == true) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              _statChip(context, Icons.short_text_rounded, value('words_read'), 'quran_stat_words'.tr),
+              const SizedBox(width: 10),
+              _statChip(context, Icons.abc_rounded, value('letters_read'), 'quran_stat_letters'.tr),
+            ]),
+          ],
+        ],
+      );
+    });
   }
 
   Widget _statsRow(BuildContext context) {

@@ -7,19 +7,32 @@ import '../../widgets/choice_chip_group.dart';
 enum PrayerDifficulty { easy, medium, hard }
 enum PrayerMood       { focused, distracted, tired, peaceful }
 
+/// Where the prayer was performed. Sent as its name.
+enum PrayerPlace { mosque, home, work, other }
+
+/// Prayed in congregation or alone. Sent as its name.
+enum PrayerCongregation { jamaah, alone }
+
 class PrayerConfirmResult {
-  final PrayerDifficulty difficulty;
-  final PrayerMood       mood;
-  final String           note;
+  final PrayerDifficulty   difficulty;
+  final PrayerMood         mood;
+  final PrayerPlace        place;
+  final PrayerCongregation congregation;
+  final String note;
 
   const PrayerConfirmResult({
     required this.difficulty,
     required this.mood,
+    required this.place,
+    required this.congregation,
     required this.note,
   });
 }
 
 // ── الـ Dialog ──────────────────────────────────────────────────
+/// Confirms an on-time prayer. Nothing is pre-selected: every question has to
+/// be answered on purpose, so the analytics reflect what really happened
+/// rather than whatever was selected by default.
 class PrayerConfirmDialog extends StatefulWidget {
   final String prayerName;
   final int    points;
@@ -43,13 +56,37 @@ class PrayerConfirmDialog extends StatefulWidget {
 }
 
 class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
-  PrayerDifficulty _difficulty = PrayerDifficulty.easy;
-  PrayerMood       _mood       = PrayerMood.focused;
-  final _noteCtrl              = TextEditingController();
+  PrayerDifficulty?   _difficulty;
+  PrayerMood?         _mood;
+  PrayerPlace?        _place;
+  PrayerCongregation? _congregation;
+  final _noteCtrl = TextEditingController();
+
+  /// Set after a confirm attempt with unanswered questions, so each one shows
+  /// its own "choose an answer" line.
+  bool _showErrors = false;
+
+  bool get _complete =>
+      _difficulty != null && _mood != null && _place != null && _congregation != null;
 
   @override
   void dispose() { _noteCtrl.dispose(); super.dispose(); }
 
+  void _submit() {
+    if (!_complete) {
+      setState(() => _showErrors = true);
+      return;
+    }
+    Get.back(
+      result: PrayerConfirmResult(
+        difficulty:   _difficulty!,
+        mood:         _mood!,
+        place:        _place!,
+        congregation: _congregation!,
+        note:         _noteCtrl.text.trim(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,33 +134,45 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
               ),
             ),
 
-            const SizedBox(height: 24),
-
-            // ── الصعوبة ──
-            _SectionLabel(label: 'prayer_difficulty'.tr),
-            const SizedBox(height: 10),
-            ChoiceChipGroup<PrayerDifficulty>(
-              options: const [
-                PrayerDifficulty.easy,
-                PrayerDifficulty.medium,
-                PrayerDifficulty.hard,
-              ],
-              labels: [
-                'difficulty_easy'.tr,
-                'difficulty_medium'.tr,
-                'difficulty_hard'.tr,
-              ],
-              emojis: const ['😊', '😐', '😓'],
-              selected: _difficulty,
-              onSelected: (v) => setState(() => _difficulty = v),
-            ),
-
+            const SizedBox(height: 12),
+            Text('prayer_required_hint'.tr,
+                style: TextStyle(fontSize: 12.5, color: athar.textMuted)),
             const SizedBox(height: 20),
 
+            // ── أين صليت؟ ──
+            _Question<PrayerPlace>(
+              label: 'prayer_place'.tr,
+              showError: _showErrors && _place == null,
+              options: PrayerPlace.values,
+              labels: [
+                'place_mosque'.tr,
+                'place_home'.tr,
+                'place_work'.tr,
+                'place_other'.tr,
+              ],
+              emojis: const ['🕌', '🏠', '💼', '📍'],
+              selected: _place,
+              onSelected: (v) => setState(() => _place = v),
+            ),
+
+            // ── جماعة أم منفردًا؟ ──
+            _Question<PrayerCongregation>(
+              label: 'prayer_congregation'.tr,
+              showError: _showErrors && _congregation == null,
+              options: PrayerCongregation.values,
+              labels: [
+                'congregation_jamaah'.tr,
+                'congregation_alone'.tr,
+              ],
+              emojis: const ['👥', '🧍'],
+              selected: _congregation,
+              onSelected: (v) => setState(() => _congregation = v),
+            ),
+
             // ── الحالة النفسية ──
-            _SectionLabel(label: 'prayer_mood'.tr),
-            const SizedBox(height: 10),
-            ChoiceChipGroup<PrayerMood>(
+            _Question<PrayerMood>(
+              label: 'prayer_mood'.tr,
+              showError: _showErrors && _mood == null,
               options: const [
                 PrayerMood.focused,
                 PrayerMood.peaceful,
@@ -141,7 +190,20 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
               onSelected: (v) => setState(() => _mood = v),
             ),
 
-            const SizedBox(height: 20),
+            // ── الصعوبة ──
+            _Question<PrayerDifficulty>(
+              label: 'prayer_difficulty'.tr,
+              showError: _showErrors && _difficulty == null,
+              options: PrayerDifficulty.values,
+              labels: [
+                'difficulty_easy'.tr,
+                'difficulty_medium'.tr,
+                'difficulty_hard'.tr,
+              ],
+              emojis: const ['😊', '😐', '😓'],
+              selected: _difficulty,
+              onSelected: (v) => setState(() => _difficulty = v),
+            ),
 
             // ── ملاحظة اختيارية ──
             _SectionLabel(label: 'prayer_note'.tr),
@@ -188,23 +250,23 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                 const SizedBox(width: 12),
                 Expanded(
                   flex: 2,
-                  child: ElevatedButton(
-                    onPressed: () => Get.back(
-                      result: PrayerConfirmResult(
-                        difficulty: _difficulty,
-                        mood:       _mood,
-                        note:       _noteCtrl.text.trim(),
+                  child: AnimatedOpacity(
+                    // Looks unavailable until everything is answered, but stays
+                    // tappable so a tap can point out what's missing.
+                    opacity: _complete ? 1 : 0.55,
+                    duration: const Duration(milliseconds: 200),
+                    child: ElevatedButton(
+                      onPressed: _submit,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 0,
                       ),
+                      child: Text('confirm_prayer'.tr,
+                          style: const TextStyle(fontWeight: FontWeight.w800,
+                              fontSize: 15)),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                      elevation: 0,
-                    ),
-                    child: Text('confirm_prayer'.tr,
-                        style: const TextStyle(fontWeight: FontWeight.w800,
-                            fontSize: 15)),
                   ),
                 ),
               ],
@@ -217,6 +279,60 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
 }
 
 // ── Widgets مساعدة ──────────────────────────────────────────────
+
+/// One required single-choice question: label with a red asterisk, the chips,
+/// and a "choose an answer" line when it was skipped.
+class _Question<T> extends StatelessWidget {
+  const _Question({
+    required this.label,
+    required this.showError,
+    required this.options,
+    required this.labels,
+    required this.emojis,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String label;
+  final bool showError;
+  final List<T> options;
+  final List<String> labels;
+  final List<String> emojis;
+  final T? selected;
+  final void Function(T) onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Flexible(child: _SectionLabel(label: label)),
+              Text(' *', style: TextStyle(color: error, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ChoiceChipGroup<T>(
+            options: options,
+            labels: labels,
+            emojis: emojis,
+            selected: selected,
+            onSelected: onSelected,
+          ),
+          if (showError) ...[
+            const SizedBox(height: 6),
+            Text('prayer_choice_required'.tr,
+                style: TextStyle(fontSize: 12, color: error)),
+          ],
+        ],
+      ),
+    );
+  }
+}
 
 class _SectionLabel extends StatelessWidget {
   final String label;

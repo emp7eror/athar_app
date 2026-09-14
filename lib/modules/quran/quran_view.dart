@@ -584,13 +584,15 @@ class _ReadingIndicator extends StatelessWidget {
       // needed. Until then, say whether it will also earn points: only a page
       // not rewarded before, while today's reward is open.
       final ready = controller.readingProgress >= 1;
+      // Read on an earlier visit: say so while this visit's time runs.
+      final readBefore = !ready && controller.isCurrentPageRead;
       final canEarn =
           !controller.isCurrentPageCompleted && !controller.dailyRewardDone;
 
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (ready)
+          if (ready || readBefore)
             Icon(
               Icons.check_circle_rounded,
               size: 16,
@@ -616,6 +618,8 @@ class _ReadingIndicator extends StatelessWidget {
             child: Text(
               ready
                   ? 'quran_page_read_done'.tr
+                  : readBefore
+                  ? 'quran_page_read_before'.tr
                   : canEarn
                   ? 'quran_read_to_earn'.trParams({
                       'points': '${controller.pagePoints.value}',

@@ -70,6 +70,11 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranPageComplete(int page, int seconds) async =>
       _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page, 'seconds': seconds}));
 
+  /// Extra reading time on a page already counted as read — the reader stayed
+  /// on it. Adds time only: no second read, no points.
+  Future<Map<String, dynamic>> quranPageTime(int page, int seconds) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranPageTime, data: {'page': page, 'seconds': seconds}));
+
   /// The "read by how you feel" index: sections, their feelings, and the
   /// passages for each, in both languages. Small enough to fetch whole.
   Future<Map<String, dynamic>> quranMoods() async =>
@@ -224,6 +229,8 @@ class ApiProvider {
         String? prayerTime,
         String? difficulty,
         String? mood,
+        String? place,
+        String? congregation,
         String? note,
         bool? performedOutsideTime,
         String? reason,
@@ -242,6 +249,8 @@ class ApiProvider {
             if (prayerTime != null)                  'prayer_time': prayerTime,
             if (difficulty != null)                  'difficulty':  difficulty,
             if (mood != null)                        'mood':        mood,
+            'place':        ?place,
+            'congregation': ?congregation,
             if (note != null && note.isNotEmpty)     'note':        note,
             if (performedOutsideTime == true)        'performed_outside_time': true,
             if (reason != null && reason.isNotEmpty) 'reason':      reason,

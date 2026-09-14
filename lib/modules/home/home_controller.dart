@@ -197,6 +197,8 @@ class HomeController extends GetxController {
         prayerTime: item.time?.toIso8601String(),
         difficulty: result.difficulty.name,
         mood: result.mood.name,
+        place: result.place.name,
+        congregation: result.congregation.name,
         note: result.note.isEmpty ? null : result.note,
       );
 

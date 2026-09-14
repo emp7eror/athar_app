@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get/get.dart';
 
 import '../../core/constants/quran_surahs.dart';
@@ -20,7 +20,7 @@ import 'quran_page_cache.dart';
 /// server, which records it for the reader's statistics and decides whether it
 /// also earns the day's points. The local timer only measures the reading; it
 /// never decides that points are due.
-class QuranController extends GetxController {
+class QuranController extends GetxController with WidgetsBindingObserver {
   final _api = Get.find<ApiProvider>();
   final _storage = Get.find<StorageProvider>();
 
@@ -43,12 +43,37 @@ class QuranController extends GetxController {
   /// Seconds spent on the current page, for the subtle reading indicator.
   final elapsed = 0.obs;
 
-  /// Pages already banked — shown in the index and used to hide the timer.
+  /// Pages that have earned their reward — they can't earn again.
   final completed = <int>{}.obs;
+
+  /// Every page ever counted as read, rewarded or not.
+  final readPages = <int>{}.obs;
 
   final pagesCompleted = 0.obs;
   final totalPoints = 0.obs;
   final totalSeconds = 0.obs;
+
+  /// Words and letters of every page read (re-reads included), and whether
+  /// the server has the per-page counts to work them out.
+  final wordsRead = 0.obs;
+  final lettersRead = 0.obs;
+  final wordCountsAvailable = false.obs;
+
+  /// The most extra time one visit to a page may add, as the server caps it.
+  int _maxCreditedSeconds = 1800;
+
+  // ── The current page visit ──
+  /// The page being timed, or null when nothing is being read.
+  int? _visitPage;
+
+  /// Whether this visit has already been counted as a read.
+  bool _visitCounted = false;
+
+  /// Of [elapsed], how much has already been sent to the server.
+  int _reportedSeconds = 0;
+
+  /// The clock was stopped because the app left the foreground.
+  bool _pausedByApp = false;
 
   /// Different pages read toward the current khatma, and khatmas finished. The
   /// count starts over from 0 each time every page has been read.
@@ -118,6 +143,9 @@ class QuranController extends GetxController {
 
   bool get isCurrentPageCompleted => completed.contains(page.value);
 
+  /// Read on an earlier visit (or already in this one).
+  bool get isCurrentPageRead => readPages.contains(page.value);
+
   bool get isCurrentPageBookmarked => bookmarkPage.value == page.value;
 
   /// Bookmarks the page being read, or clears the bookmark if it is already
@@ -138,13 +166,34 @@ class QuranController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+    WidgetsBinding.instance.addObserver(this);
     load();
   }
 
   @override
   void onClose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
+    _flushExtraTime();
     super.onClose();
+  }
+
+  /// Time with the app in the background isn't reading: stop the clock and
+  /// send what was read so far, then carry on from there when it returns.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final page = _visitPage;
+    if (page == null) return;
+
+    if (state == AppLifecycleState.resumed) {
+      if (!_pausedByApp) return;
+      _pausedByApp = false;
+      _startTicker(page);
+    } else if (!_pausedByApp) {
+      _pausedByApp = true;
+      _ticker?.cancel();
+      _flushExtraTime();
+    }
   }
 
   Future<void> load() async {
@@ -167,6 +216,7 @@ class QuranController extends GetxController {
       });
       pagePoints.value = _asInt(res['page_points'], 20);
       dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 1);
+      _maxCreditedSeconds = _asInt(res['max_credited_seconds'], 1800);
       pageEdition.value = res['page_edition']?.toString() ?? '';
 
       completed
@@ -174,6 +224,13 @@ class QuranController extends GetxController {
         ..addAll(
           (res['completed_pages'] as List? ?? []).map((e) => _asInt(e, 0)),
         );
+      readPages
+        ..clear()
+        ..addAll(
+          (res['read_pages'] as List? ?? []).map((e) => _asInt(e, 0)),
+        )
+        // Older servers only send rewarded pages.
+        ..addAll(completed);
 
       // Where they stopped: this device's own record first — it also knows
       // pages opened but not finished — then the server's.
@@ -220,6 +277,8 @@ class QuranController extends GetxController {
     final clamped = target.clamp(1, totalPages.value);
     if (clamped == page.value) return;
 
+    // Leaving the page: whatever was read past its counted time goes now.
+    _flushExtraTime();
     page.value = clamped;
     _openCurrentPage();
   }
@@ -260,6 +319,9 @@ class QuranController extends GetxController {
   /// go too.
   void stopReading() {
     _ticker?.cancel();
+    _flushExtraTime();
+    _visitPage = null;
+    _pausedByApp = false;
     elapsed.value = 0;
     highlight.value = null;
     selectedAyah.value = null;
@@ -288,25 +350,63 @@ class QuranController extends GetxController {
   void _openCurrentPage() {
     _ticker?.cancel();
     elapsed.value = 0;
+    _visitPage = page.value;
+    _visitCounted = false;
+    _reportedSeconds = 0;
+    _pausedByApp = false;
 
     _precacheAround(page.value);
     _storage.quranLastPage = page.value;
     lastReadPage.value = page.value;
 
-    // Opening a page sends nothing. Once the page has been on screen for its
-    // reading time it is reported straight away — no turn needed — whether or
-    // not it can still earn points. The clock then stops, so it is reported
-    // once per visit.
-    final p = page.value;
+    _startTicker(page.value);
+  }
+
+  /// Opening a page sends nothing. Once the page has been on screen for its
+  /// reading time it is reported straight away — no turn needed — whether or
+  /// not it can still earn points. The clock keeps running after that: time
+  /// spent on the page beyond it is sent when the reader leaves the page (or
+  /// the app), up to the server's per-visit cap.
+  void _startTicker(int p) {
+    _ticker?.cancel();
     final required = requiredSecondsFor(p);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (isClosed) return;
+      if (isClosed || _visitPage != p) return;
       elapsed.value = elapsed.value + 1;
-      if (elapsed.value >= required) {
-        _ticker?.cancel();
+
+      if (!_visitCounted && elapsed.value >= required) {
+        _visitCounted = true;
+        _reportedSeconds = elapsed.value;
         unawaited(_completePage(p, elapsed.value));
+      } else if (_visitCounted && elapsed.value - required >= _maxCreditedSeconds) {
+        // Left open far longer than anyone reads a page — stop counting.
+        _ticker?.cancel();
       }
     });
+  }
+
+  /// Sends the time read on the current page since it was last reported.
+  /// Nothing for a page not yet counted as read this visit, and nothing for a
+  /// few stray seconds.
+  void _flushExtraTime() {
+    final p = _visitPage;
+    if (p == null || !_visitCounted) return;
+
+    final extra = min(elapsed.value - _reportedSeconds, _maxCreditedSeconds);
+    if (extra < 5) return;
+
+    _reportedSeconds += extra;
+    unawaited(_sendExtraTime(p, extra));
+  }
+
+  Future<void> _sendExtraTime(int p, int seconds) async {
+    try {
+      final res = await _api.quranPageTime(p, seconds);
+      final progress = res['progress'];
+      if (progress is Map && !isClosed) _applyProgress(progress);
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+    }
   }
 
   /// Reports [p], read for [seconds] — its full reading time. The server
@@ -324,6 +424,9 @@ class QuranController extends GetxController {
       // this page earned anything.
       final progress = res['progress'];
       if (progress is Map) _applyProgress(progress);
+
+      // Recorded as read whether or not it earned anything.
+      if (res['recorded'] == true) readPages.add(p);
 
       if (res['status']?.toString() == 'rewarded') {
         completed.add(p);
@@ -366,6 +469,9 @@ class QuranController extends GetxController {
       progress['rewarded_today'],
       rewardedToday.value,
     );
+    wordsRead.value = _asInt(progress['words_read'], wordsRead.value);
+    lettersRead.value = _asInt(progress['letters_read'], lettersRead.value);
+    wordCountsAvailable.value = progress['word_counts_available'] == true;
     _countsDay = _today();
   }
 

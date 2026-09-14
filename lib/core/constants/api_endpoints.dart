@@ -21,6 +21,7 @@ class ApiEndpoints {
 
   static const String quranWerd = '/quran/werd';
   static const String quranPageComplete = '/quran/page-complete';
+  static const String quranPageTime = '/quran/page-time';
   static const String quranMoods = '/quran/moods';
   static const String quranMoodSuggestions = '/quran/moods/more';
   static const String quranFeelings = '/quran/feelings';

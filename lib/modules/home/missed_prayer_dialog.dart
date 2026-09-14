@@ -11,7 +11,7 @@ import '../../widgets/choice_chip_group.dart';
 /// performed on time, the user just didn't record it in the app. It's logged
 /// as an on-time prayer — so no late halving — but earns no on-time bonus
 /// either, since punctuality can't be verified after the fact.
-enum MissedReason { asleep, forgot, busy, traveling, forgotToMark }
+enum MissedReason { asleep, forgot, busy, traveling, sick, lazy, occasion, forgotToMark }
 
 extension MissedReasonX on MissedReason {
   /// Wire value. `name` would send camelCase for [forgotToMark].
@@ -153,6 +153,9 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
                 MissedReason.forgot,
                 MissedReason.busy,
                 MissedReason.traveling,
+                MissedReason.sick,
+                MissedReason.lazy,
+                MissedReason.occasion,
                 if (widget.allowForgotToMark) MissedReason.forgotToMark,
               ],
               labels: [
@@ -160,6 +163,9 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
                 'reason_forgot'.tr,
                 'reason_busy'.tr,
                 'reason_traveling'.tr,
+                'reason_sick'.tr,
+                'reason_lazy'.tr,
+                'reason_occasion'.tr,
                 if (widget.allowForgotToMark) 'reason_forgot_to_mark'.tr,
               ],
               emojis: [
@@ -167,6 +173,9 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
                 '🤔',
                 '💼',
                 '✈️',
+                '🤒',
+                '🥱',
+                '🎉',
                 if (widget.allowForgotToMark) '📝',
               ],
               selected: _reason,
