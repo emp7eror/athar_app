@@ -40,7 +40,7 @@ const _demo = PageTour(
 
 Widget _app() => MaterialApp(
       // Plain theme + the brand palette (AppTheme itself pulls Google Fonts).
-      theme: ThemeData(extensions: const [AtharPalette.light]),
+      theme: ThemeData(extensions: [AtharPalette.light]),
       home: Scaffold(
         body: ListView(
           scrollCacheExtent: const ScrollCacheExtent.pixels(4000),
@@ -193,7 +193,7 @@ void main() {
 
   testWidgets('no Help button for a page without a tour', (tester) async {
     await tester.pumpWidget(MaterialApp(
-      theme: ThemeData(extensions: const [AtharPalette.light]),
+      theme: ThemeData(extensions: [AtharPalette.light]),
       home: const Scaffold(body: TourHelpButton(pageId: 'nothing-here')),
     ));
     expect(find.byIcon(Icons.help_outline_rounded), findsNothing);

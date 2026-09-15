@@ -1,31 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../design/athar_tokens.dart';
+import '../theme/app_theme.dart';
+
+/// Short confirmations and errors, in the active theme's colours.
 class AppSnackbar {
   AppSnackbar._();
 
   static void show(
-      String title,      // ← positional
-      String message,    // ← positional
-          {
-        SnackPosition position = SnackPosition.BOTTOM,
-        bool isError = false,
-      }
-      ) {
-    final theme = Theme.of(Get.context!).snackBarTheme;
+    String title,
+    String message, {
+    SnackPosition position = SnackPosition.BOTTOM,
+    bool isError = false,
+  }) {
+    final context = Get.context!;
+    final scheme = Theme.of(context).colorScheme;
+    final background = isError ? scheme.error : scheme.inverseSurface;
+    final foreground = isError ? scheme.onError : scheme.onInverseSurface;
 
     Get.snackbar(
       title,
       message,
       snackPosition: position,
-      backgroundColor: isError ? const Color(0xFFB00020) : theme.backgroundColor,
-      colorText: theme.contentTextStyle?.color ?? Colors.white,
-      borderRadius: 14,
-      margin: const EdgeInsets.all(16),
-      duration: const Duration(seconds: 5),
+      backgroundColor: background,
+      colorText: foreground,
+      borderRadius: AtharRadius.md,
+      margin: const EdgeInsets.all(AtharSpace.md),
+      duration: const Duration(seconds: 4),
       icon: Icon(
-        isError ? Icons.error_outline : Icons.check_circle_outline,
-        color: isError ? Colors.white70 : const Color(0xFFE0A458),
+        isError ? Icons.error_outline_rounded : Icons.check_circle_rounded,
+        color: isError ? foreground : context.athar.gold,
       ),
       isDismissible: true,
       forwardAnimationCurve: Curves.easeOutCubic,

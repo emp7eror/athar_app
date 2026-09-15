@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 
-/// Post-completion feedback popup shown *after* a successful API save.
+/// Post-completion feedback shown *after* a successful save.
 ///
-/// Two visual variants share the same layout so both feel like one component:
-///  * [showOnTime]      — success-tinted, congratulatory verse.
-///  * [showOutsideTime] — gold/warning-tinted, reflective verse + du'a.
-///
-/// All copy is translated; nothing user-facing is hardcoded here.
+/// Two variants share one layout:
+///  * [showOnTime]      — success tone, congratulatory verse.
+///  * [showOutsideTime] — gold tone, reflective verse and a gentle note.
 class PrayerDoneDialog extends StatelessWidget {
   final String titleKey;
   final String verseKey;
@@ -48,120 +46,73 @@ class PrayerDoneDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final athar = context.athar;
-    // Success (sage/green) for on-time, gold (warm/reflective) for late.
-    final accent = outsideTime ? athar.gold : athar.success;
+    final tone = outsideTime ? AtharTone.gold : AtharTone.success;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: athar.card,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Header ──
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(14),
-                border:
-                Border.all(color: accent.withValues(alpha: 0.25), width: 1),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    verseKey.tr,
-                    textAlign: TextAlign.center,
-                    style: context.text.titleMedium?.copyWith(
-                      height: 1.9,
-                      fontWeight: FontWeight.w700,
+      insetPadding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.lg),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AtharSpace.lg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0.8, end: 1),
+                  duration: AtharMotion.emphasis,
+                  curve: Curves.easeOutBack,
+                  builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(color: tone.background(context), shape: BoxShape.circle),
+                    child: Icon(
+                      outsideTime ? Icons.schedule_rounded : Icons.check_circle_rounded,
+                      size: 34,
+                      color: tone.foreground(context),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    referenceKey.tr,
-                    textAlign: TextAlign.center,
-                    style: context.text.labelLarge?.copyWith(
-                      color: accent,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // ── Verse ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [accent, athar.primaryDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    outsideTime
-                        ? Icons.access_time_rounded
-                        : Icons.check_circle_rounded,
-                    color: Colors.white,
-                    size: 28,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      titleKey.tr,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 17,
-                        fontWeight: FontWeight.w800,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Extra message (outside-time only) ──
-            if (messageKey != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                messageKey!.tr,
-                textAlign: TextAlign.center,
-                style: context.text.bodyMedium?.copyWith(
-                  color: athar.textMuted,
-                  height: 1.6,
                 ),
               ),
+              const SizedBox(height: AtharSpace.md),
+              Semantics(
+                header: true,
+                liveRegion: true,
+                child: Text(titleKey.tr, textAlign: TextAlign.center, style: context.text.titleLarge),
+              ),
+              if (messageKey != null) ...[
+                const SizedBox(height: AtharSpace.xs),
+                Text(
+                  messageKey!.tr,
+                  textAlign: TextAlign.center,
+                  style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
+                ),
+              ],
+              const SizedBox(height: AtharSpace.lg),
+              AtharCard(
+                tone: AtharCardTone.surface,
+                child: Column(
+                  children: [
+                    Text(
+                      verseKey.tr,
+                      textAlign: TextAlign.center,
+                      style: context.text.titleMedium?.copyWith(height: 1.9),
+                    ),
+                    const SizedBox(height: AtharSpace.xs),
+                    Text(
+                      referenceKey.tr,
+                      textAlign: TextAlign.center,
+                      style: context.text.labelMedium?.copyWith(color: tone.foreground(context)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AtharSpace.lg),
+              AtharButton(label: 'prayer_done_ok'.tr, expand: true, onPressed: () => Get.back()),
             ],
-
-            const SizedBox(height: 20),
-
-            ElevatedButton(
-              onPressed: () => Get.back(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: accent,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-              ),
-              child: Text(
-                'prayer_done_ok'.tr,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 15),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

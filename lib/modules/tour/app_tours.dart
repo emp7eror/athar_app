@@ -14,7 +14,7 @@ abstract final class TourPages {
   static const quran = 'quran';
 
   /// The shell's IndexedStack order — index → page id.
-  static const shellTabs = [home, friends, leaderboard, stats, profile, settings];
+  static const shellTabs = [home, friends, leaderboard, stats, profile];
 }
 
 /// Ids of the `TourTarget` widgets placed in the UI.
@@ -265,7 +265,6 @@ abstract final class AppTours {
 
   static const settings = PageTour(
     pageId: TourPages.settings,
-    isTab: true,
     steps: [
       TourStep(
         target: TourTargets.settingsLocation,

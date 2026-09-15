@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/localization/localization_controller.dart';
-import '../../core/theme/app_theme.dart';
 import '../../core/theme/theme_controller.dart';
+import '../../core/ui/athar_ui.dart';
 import 'onboarding_controller.dart';
 
+/// A first, calm introduction to Athar: one idea per page, with the language
+/// and appearance within reach.
 class OnboardingView extends GetView<OnboardingController> {
   const OnboardingView({super.key});
 
@@ -47,7 +49,7 @@ class OnboardingView extends GetView<OnboardingController> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Top bar: language toggle + Skip (auto-flips with text direction)
+// Top bar: language, light/dark, and skip
 // ─────────────────────────────────────────────────────────────────────────
 class _TopControls extends StatelessWidget {
   const _TopControls();
@@ -55,44 +57,35 @@ class _TopControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<OnboardingController>();
+    final theme = Get.find<ThemeController>();
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      padding: const EdgeInsets.fromLTRB(AtharSpace.sm, AtharSpace.xs, AtharSpace.sm, 0),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            children: [
-              TextButton.icon(
-                onPressed: Get.find<LocalizationController>().toggle,
-                icon: Icon(Icons.language_outlined, size: 18, color: context.colors.primary),
-                label: Text(
-                  'AR / EN',
-                  style: context.text.labelLarge?.copyWith(color: context.colors.primary),
-                ),
-              ),
-              IconButton(
-                onPressed: Get.find<ThemeController>().toggle,
-                icon: Icon(
-                  Get.find<ThemeController>().isDark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
-                  size: 20,
-                  color: context.colors.primary,
-                ),
-              ),
-            ],
+          AtharIconButton(
+            icon: Icons.translate_rounded,
+            tooltip: 'language'.tr,
+            onPressed: Get.find<LocalizationController>().toggle,
           ),
-          Obx(() => AnimatedOpacity(
-                duration: const Duration(milliseconds: 250),
-                opacity: controller.isLast ? 0 : 1,
-                child: TextButton(
-                  onPressed: controller.isLast ? null : controller.skip,
-                  child: Text(
-                    'skip'.tr,
-                    style: context.text.labelLarge?.copyWith(color: context.athar.textMuted),
-                  ),
-                ),
-              )),
+          GetBuilder<ThemeController>(
+            builder: (t) => AtharIconButton(
+              icon: t.isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+              tooltip: 'appearance_mode'.tr,
+              onPressed: theme.toggle,
+            ),
+          ),
+          const Spacer(),
+          Obx(
+            () => AnimatedOpacity(
+              duration: AtharMotion.base,
+              opacity: controller.isLast ? 0 : 1,
+              child: TextButton(
+                onPressed: controller.isLast ? null : controller.skip,
+                child: Text('skip'.tr),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -136,7 +129,7 @@ class _AnimatedPage extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Single page content: motif emblem + title + subtitle
+// Single page: motif emblem, title, subtitle
 // ─────────────────────────────────────────────────────────────────────────
 class OnboardingCard extends StatelessWidget {
   const OnboardingCard({super.key, required this.page});
@@ -145,29 +138,26 @@ class OnboardingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.xl, vertical: AtharSpace.lg),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _MotifEmblem(motif: page.motif),
-          const SizedBox(height: 48),
-          Text(
-            page.titleKey.tr,
-            textAlign: TextAlign.center,
-            style: context.text.headlineMedium?.copyWith(
-              color: context.colors.primary,
-              height: 1.3,
+          const SizedBox(height: AtharSpace.xxl),
+          Semantics(
+            header: true,
+            child: Text(
+              page.titleKey.tr,
+              textAlign: TextAlign.center,
+              style: context.text.headlineMedium?.copyWith(color: context.colors.primary),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AtharSpace.md),
           Text(
             page.subtitleKey.tr,
             textAlign: TextAlign.center,
-            style: context.text.bodyLarge?.copyWith(
-              color: context.athar.textMuted,
-              height: 1.7,
-            ),
+            style: context.text.bodyLarge?.copyWith(color: context.colors.onSurfaceVariant),
           ),
         ],
       ),
@@ -185,6 +175,8 @@ class _MotifEmblem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final primary = context.colors.primary;
+
     return SizedBox(
       width: 220,
       height: 220,
@@ -198,25 +190,25 @@ class _MotifEmblem extends StatelessWidget {
               height: d,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: context.colors.primary.withValues(alpha: d == 220 ? 0.04 : 0.06),
+                color: primary.withValues(alpha: d == 220 ? 0.04 : 0.06),
               ),
             ),
           // Beige core disc.
           Container(
             width: 140,
             height: 140,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
               color: context.athar.beige,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: context.colors.primary.withValues(alpha: 0.12),
+                  color: primary.withValues(alpha: 0.12),
                   blurRadius: 30,
                   offset: const Offset(0, 14),
                 ),
               ],
             ),
-            alignment: Alignment.center,
             child: _MotifGraphic(motif: motif),
           ),
         ],
@@ -249,11 +241,12 @@ class _MotifGraphic extends StatelessWidget {
           alignment: Alignment.center,
           clipBehavior: Clip.none,
           children: [
-            Text(
-              'app_name'.tr,
-              style: context.text.displayLarge?.copyWith(color: primary, fontSize: 56),
+            Text('app_name'.tr, style: context.text.displayMedium?.copyWith(color: primary)),
+            PositionedDirectional(
+              top: -2,
+              end: -6,
+              child: Icon(Icons.auto_awesome_rounded, size: 22, color: gold),
             ),
-            Positioned(top: -2, right: -6, child: Icon(Icons.auto_awesome, size: 22, color: gold)),
           ],
         );
     }
@@ -261,7 +254,7 @@ class _MotifGraphic extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Bottom: page indicator + primary CTA
+// Bottom: page indicator and the way onward
 // ─────────────────────────────────────────────────────────────────────────
 class _BottomControls extends StatelessWidget {
   const _BottomControls();
@@ -269,60 +262,28 @@ class _BottomControls extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<OnboardingController>();
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+      padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.xs, AtharSpace.lg, AtharSpace.lg),
       child: Column(
         children: [
-          Obx(() => PageIndicator(
-                count: OnboardingController.pages.length,
-                activeIndex: controller.current.value,
-              )),
-          const SizedBox(height: 28),
-          Obx(() {
-            final last = controller.isLast;
-            return SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: controller.next,
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  child: Row(
-                    key: ValueKey(last),
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        last ? 'begin_journey'.tr : 'next'.tr,
-                        style: context.text.titleMedium?.copyWith(color: Colors.white),
-                      ),
-                      if (!last) ...[
-                        const SizedBox(width: 8),
-                        _DirectionalArrow(color: Colors.white),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
+          Obx(
+            () => PageIndicator(
+              count: OnboardingController.pages.length,
+              activeIndex: controller.current.value,
+            ),
+          ),
+          const SizedBox(height: AtharSpace.lg),
+          Obx(
+            () => AtharButton(
+              label: controller.isLast ? 'begin_journey'.tr : 'next'.tr,
+              icon: controller.isLast ? null : Icons.arrow_forward_rounded,
+              expand: true,
+              onPressed: controller.next,
+            ),
+          ),
         ],
       ),
-    );
-  }
-}
-
-/// Forward arrow that flips to match the ambient text direction.
-class _DirectionalArrow extends StatelessWidget {
-  const _DirectionalArrow({required this.color});
-
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final rtl = Directionality.of(context) == TextDirection.rtl;
-    return Transform.flip(
-      flipX: rtl,
-      child: Icon(Icons.arrow_forward_rounded, size: 20, color: color),
     );
   }
 }
@@ -338,22 +299,26 @@ class PageIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (var i = 0; i < count; i++)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            width: i == activeIndex ? 26 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: i == activeIndex ? context.colors.primary : context.athar.beige,
-              borderRadius: BorderRadius.circular(4),
+    return Semantics(
+      label: '${activeIndex + 1} / $count',
+      excludeSemantics: true,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          for (var i = 0; i < count; i++)
+            AnimatedContainer(
+              duration: AtharMotion.slow,
+              curve: AtharMotion.standard,
+              margin: const EdgeInsets.symmetric(horizontal: AtharSpace.xxs),
+              width: i == activeIndex ? 26 : 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: i == activeIndex ? context.colors.primary : context.athar.beige,
+                borderRadius: BorderRadius.circular(AtharRadius.pill),
+              ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -385,7 +350,9 @@ class _RipplePainter extends CustomPainter {
     canvas.drawCircle(
       center,
       9,
-      Paint()..color = gold.withValues(alpha: 0.25)..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+      Paint()
+        ..color = gold.withValues(alpha: 0.25)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
     canvas.drawCircle(center, 6, Paint()..color = gold);
   }
@@ -439,8 +406,8 @@ class _StreakPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Full-screen faint concentric ripples radiating from the bottom —
-/// the ambient "impact" pattern behind every page.
+/// Full-screen faint concentric ripples radiating from the bottom — the
+/// ambient "impact" pattern behind every page.
 class _AmbientRipples extends StatelessWidget {
   const _AmbientRipples();
 
@@ -449,10 +416,7 @@ class _AmbientRipples extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(color: Theme.of(context).scaffoldBackgroundColor),
       child: CustomPaint(
-        painter: _AmbientRipplePainter(
-          context.colors.primary,
-          context.athar.gold,
-        ),
+        painter: _AmbientRipplePainter(context.colors.primary, context.athar.gold),
       ),
     );
   }

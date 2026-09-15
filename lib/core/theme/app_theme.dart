@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-import '../constants/app_colors.dart';
+import '../design/athar_theme_presets.dart';
+import '../design/athar_tokens.dart';
+import '../design/athar_typography.dart';
 
-/// Custom brand colors that don't map cleanly onto Material's [ColorScheme].
+/// Brand colours that don't map cleanly onto Material's [ColorScheme].
 ///
-/// Access from any widget via `Theme.of(context).extension<AtharPalette>()!`
-/// or the `context.athar` getter below. Light & dark variants are provided so
-/// widgets never need to branch on brightness themselves.
+/// Read from any widget with `context.athar`. Every value is derived from the
+/// active theme preset and brightness, so widgets never branch on either.
 @immutable
 class AtharPalette extends ThemeExtension<AtharPalette> {
   const AtharPalette({
+    required this.brand,
     required this.gold,
+    required this.goldText,
     required this.danger,
     required this.warning,
+    required this.info,
     required this.sage,
     required this.beige,
     required this.card,
@@ -23,57 +26,57 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
     required this.heroGradient,
   });
 
-  final Color gold; // Soft Gold — high-impact accents
-  final Color danger; // strong red — errors
-  final Color warning; // warm amber — missed / Qada state
-  final Color sage; // Sage Green — subtle status / success
-  final Color beige; // section surface (beige in light, deep green in dark)
-  final Color card; // raised surface (white in light, elevated green in dark)
-  final Color primaryDark; // deep emerald shade for gradients
-  final Color textMuted; // secondary text
-  final Color success; // completed / positive states
-  final Gradient heroGradient; // emerald hero-card gradient
+  /// The preset's deep identity colour.
+  final Color brand;
 
-  static const light = AtharPalette(
-    gold: AppColors.secondary,
-    danger: AppColors.danger,
-    warning: AppColors.warning,
-    sage: AppColors.sage,
-    beige: AppColors.surface,
-    card: Colors.white,
-    primaryDark: AppColors.primaryDark,
-    textMuted: AppColors.textMuted,
-    success: AppColors.success,
-    heroGradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [AppColors.primary, AppColors.primaryDark],
-    ),
-  );
+  /// Soft gold — achievements, rewards, selected emphasis. Fills and icons.
+  final Color gold;
 
-  static const dark = AtharPalette(
-    gold: AppColors.secondary,
-    danger: AppColors.danger,
-    // Slightly brighter amber for dark surfaces so it stays legible.
-    warning: Color(0xFFE0A65C),
-    sage: AppColors.sage,
-    beige: Color(0xFF1E2C24), // deep green section surface
-    card: Color(0xFF243329), // elevated green surface
-    primaryDark: Color(0xFF0A4D36),
-    textMuted: Color(0xFF97A69C),
-    success: Color(0xFF3BA776),
-    heroGradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Color(0xFF127E58), Color(0xFF0A4D36)],
-    ),
-  );
+  /// Gold that is readable as text on this brightness's surfaces.
+  final Color goldText;
+
+  final Color danger;
+
+  /// Warm amber — missed / Qada states.
+  final Color warning;
+
+  final Color info;
+
+  /// Sage — quiet decorative accent.
+  final Color sage;
+
+  /// Grouped section surface (a step off the background).
+  final Color beige;
+
+  /// Raised surface: cards, sheets, dialogs.
+  final Color card;
+
+  /// A deep shade of the action colour, dark enough for white text.
+  final Color primaryDark;
+
+  /// Secondary text.
+  final Color textMuted;
+
+  /// Completed / positive states.
+  final Color success;
+
+  /// The brand hero surface.
+  final Gradient heroGradient;
+
+  static AtharPalette get light =>
+      AppTheme.paletteFor(AtharThemePreset.defaultPreset, Brightness.light);
+
+  static AtharPalette get dark =>
+      AppTheme.paletteFor(AtharThemePreset.defaultPreset, Brightness.dark);
 
   @override
   AtharPalette copyWith({
+    Color? brand,
     Color? gold,
+    Color? goldText,
     Color? danger,
     Color? warning,
+    Color? info,
     Color? sage,
     Color? beige,
     Color? card,
@@ -83,9 +86,12 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
     Gradient? heroGradient,
   }) {
     return AtharPalette(
+      brand: brand ?? this.brand,
       gold: gold ?? this.gold,
+      goldText: goldText ?? this.goldText,
       danger: danger ?? this.danger,
       warning: warning ?? this.warning,
+      info: info ?? this.info,
       sage: sage ?? this.sage,
       beige: beige ?? this.beige,
       card: card ?? this.card,
@@ -100,9 +106,12 @@ class AtharPalette extends ThemeExtension<AtharPalette> {
   AtharPalette lerp(ThemeExtension<AtharPalette>? other, double t) {
     if (other is! AtharPalette) return this;
     return AtharPalette(
+      brand: Color.lerp(brand, other.brand, t)!,
       gold: Color.lerp(gold, other.gold, t)!,
+      goldText: Color.lerp(goldText, other.goldText, t)!,
       danger: Color.lerp(danger, other.danger, t)!,
       warning: Color.lerp(warning, other.warning, t)!,
+      info: Color.lerp(info, other.info, t)!,
       sage: Color.lerp(sage, other.sage, t)!,
       beige: Color.lerp(beige, other.beige, t)!,
       card: Color.lerp(card, other.card, t)!,
@@ -121,122 +130,77 @@ extension AtharThemeX on BuildContext {
   TextTheme get text => Theme.of(this).textTheme;
 }
 
-/// Central theme factory for the Athar app.
+/// Builds Athar's light and dark themes for any preset.
+///
+/// Each preset supplies a few hand-picked colours; everything else — surfaces,
+/// text, outlines, states — is derived here by one set of rules, so all six
+/// presets share the same hierarchy. Contrast targets: body and muted text at
+/// least 4.5:1 on every surface, action colours at least 4.5:1 against their
+/// label colour.
 abstract final class AppTheme {
-  static const _radius = 20.0;
+  static const _gold = Color(0xFFC8A95B);
 
-  // ── Public entry points ──────────────────────────────────────────
-  static ThemeData get light => _build(
-        scheme: _lightScheme,
-        scaffold: AppColors.bg,
-        palette: AtharPalette.light,
-        onColor: AppColors.textDark,
-      );
+  static Color _mix(Color a, Color b, double t) => Color.lerp(a, b, t)!;
 
-  static ThemeData get dark => _build(
-        scheme: _darkScheme,
-        scaffold: const Color(0xFF15201A),
-        palette: AtharPalette.dark,
-        onColor: const Color(0xFFF1EDE4),
-      );
-
-  // ── Color schemes ────────────────────────────────────────────────
-  static const _lightScheme = ColorScheme(
-    brightness: Brightness.light,
-    primary: AppColors.primary,
-    onPrimary: Colors.white,
-    secondary: AppColors.secondary,
-    onSecondary: AppColors.textDark,
-    tertiary: AppColors.sage,
-    onTertiary: AppColors.textDark,
-    surface: AppColors.surface,
-    onSurface: AppColors.textDark,
-    surfaceContainerLowest: Colors.white,
-    surfaceContainerHighest: AppColors.surface,
-    error: AppColors.danger,
-    onError: Colors.white,
-    outline: Color(0xFFE3D8C4),
-  );
-
-  static const _darkScheme = ColorScheme(
-    brightness: Brightness.dark,
-    primary: Color(0xFF2E9E74), // brighter emerald for contrast on dark
-    onPrimary: Colors.white,
-    secondary: AppColors.secondary,
-    onSecondary: Color(0xFF1E1E1E),
-    tertiary: AppColors.sage,
-    onTertiary: Color(0xFF15201A),
-    surface: Color(0xFF1E2C24),
-    onSurface: Color(0xFFF1EDE4),
-    surfaceContainerLowest: Color(0xFF243329),
-    surfaceContainerHighest: Color(0xFF1E2C24),
-    error: Color(0xFFE07A63),
-    onError: Color(0xFF15201A),
-    outline: Color(0xFF33453A),
-  );
-
-  // ── Shared builder ───────────────────────────────────────────────
-  static ThemeData _build({
-    required ColorScheme scheme,
-    required Color scaffold,
-    required AtharPalette palette,
-    required Color onColor,
+  static ThemeData build(
+    AtharThemePreset preset,
+    Brightness brightness, {
+    required bool arabic,
   }) {
-    final base = ThemeData(
+    final scheme = colorScheme(preset, brightness);
+    final palette = paletteFor(preset, brightness);
+    final scaffold = brightness == Brightness.light ? preset.lightBackground : darkBackground(preset);
+    final text = AtharTypography.textTheme(arabic: arabic, color: scheme.onSurface);
+
+    const controlShape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(AtharRadius.md)),
+    );
+    const buttonPadding = EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.sm);
+    const buttonMinimum = Size(64, 48);
+
+    WidgetStateProperty<Color> selected(Color on, Color off) =>
+        WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.selected) ? on : off);
+
+    return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       colorScheme: scheme,
       scaffoldBackgroundColor: scaffold,
-      splashFactory: InkSparkle.splashFactory,
-    );
-
-    return base.copyWith(
+      canvasColor: scaffold,
+      textTheme: text,
+      primaryTextTheme: text,
       extensions: [palette],
-      textTheme: _textTheme(base.textTheme, onColor),
+      splashFactory: InkSparkle.splashFactory,
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      iconTheme: IconThemeData(color: scheme.onSurface, size: 24),
+      dividerTheme: DividerThemeData(color: scheme.outlineVariant, thickness: 1, space: 1),
       appBarTheme: AppBarTheme(
         backgroundColor: scaffold,
+        foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: false,
-        foregroundColor: onColor,
+        toolbarHeight: 60,
+        titleTextStyle: text.titleLarge,
       ),
       cardTheme: CardThemeData(
-        color: scheme.surface,
+        color: palette.card,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(_radius),
+          borderRadius: BorderRadius.circular(AtharRadius.card),
+          side: BorderSide(color: scheme.outlineVariant),
         ),
       ),
-      dividerTheme: DividerThemeData(
-        color: scheme.outline,
-        thickness: 1,
-        space: 1,
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        height: 68,
-        backgroundColor: palette.card,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        indicatorColor: scheme.primary.withValues(alpha: 0.14),
-        indicatorShape: const StadiumBorder(),
-        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
-        iconTheme: WidgetStateProperty.resolveWith(
-          (states) => IconThemeData(
-            size: 24,
-            color: states.contains(WidgetState.selected)
-                ? scheme.primary
-                : palette.textMuted,
-          ),
-        ),
-        labelTextStyle: WidgetStateProperty.resolveWith(
-          (states) => GoogleFonts.tajawal(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: states.contains(WidgetState.selected)
-                ? scheme.primary
-                : palette.textMuted,
-          ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          minimumSize: buttonMinimum,
+          padding: buttonPadding,
+          shape: controlShape,
+          textStyle: text.labelLarge,
+          elevation: 0,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -244,65 +208,316 @@ abstract final class AppTheme {
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          textStyle: GoogleFonts.tajawal(fontWeight: FontWeight.w700, fontSize: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          minimumSize: buttonMinimum,
+          padding: buttonPadding,
+          shape: controlShape,
+          textStyle: text.labelLarge,
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: scheme.onSurface,
+          side: BorderSide(color: scheme.outline),
+          minimumSize: buttonMinimum,
+          padding: buttonPadding,
+          shape: controlShape,
+          textStyle: text.labelLarge,
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: scheme.primary),
+        style: TextButton.styleFrom(
+          foregroundColor: scheme.primary,
+          minimumSize: const Size(48, 44),
+          padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm),
+          shape: controlShape,
+          textStyle: text.labelLarge,
+        ),
       ),
-      chipTheme: base.chipTheme.copyWith(
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(minimumSize: const Size.square(AtharSize.tap)),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: scheme.primaryContainer,
+          selectedForegroundColor: scheme.onPrimaryContainer,
+          side: BorderSide(color: scheme.outline),
+          textStyle: text.labelMedium,
+          shape: controlShape,
+        ),
+      ),
+      chipTheme: ChipThemeData(
         backgroundColor: palette.card,
+        selectedColor: scheme.primaryContainer,
         side: BorderSide(color: scheme.outline),
+        labelStyle: text.labelMedium?.copyWith(color: scheme.onSurface),
+        shape: const StadiumBorder(),
+        checkmarkColor: scheme.onPrimaryContainer,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: selected(scheme.onPrimary, scheme.outline),
+        trackColor: selected(scheme.primary, scheme.surfaceContainerHighest),
+        trackOutlineColor: selected(Colors.transparent, scheme.outline),
+      ),
+      checkboxTheme: CheckboxThemeData(
+        fillColor: selected(scheme.primary, Colors.transparent),
+        checkColor: WidgetStatePropertyAll(scheme.onPrimary),
+        side: BorderSide(color: scheme.outline, width: 1.5),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(6))),
+      ),
+      radioTheme: RadioThemeData(fillColor: selected(scheme.primary, scheme.onSurfaceVariant)),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: scheme.primary,
+        inactiveTrackColor: scheme.outlineVariant,
+        thumbColor: scheme.primary,
+        overlayColor: scheme.primary.withValues(alpha: 0.12),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: scheme.primary,
-        linearTrackColor: scheme.outline,
+        linearTrackColor: scheme.outlineVariant,
+        circularTrackColor: Colors.transparent,
       ),
-      snackBarTheme: SnackBarThemeData(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: palette.primaryDark,
-        contentTextStyle: GoogleFonts.tajawal(color: Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      listTileTheme: ListTileThemeData(
+        iconColor: scheme.onSurfaceVariant,
+        textColor: scheme.onSurface,
+        titleTextStyle: text.titleSmall,
+        subtitleTextStyle: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        contentPadding: const EdgeInsetsDirectional.symmetric(horizontal: AtharSpace.md),
+        shape: controlShape,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: palette.card,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: TextStyle(color: scheme.onSurfaceVariant),   // ← أضف
-        labelStyle: TextStyle(color: scheme.onSurfaceVariant),  // ← أضف
+        contentPadding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.md),
+        hintStyle: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        labelStyle: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+        floatingLabelStyle: text.bodyMedium?.copyWith(color: scheme.primary),
+        prefixIconColor: scheme.onSurfaceVariant,
+        suffixIconColor: scheme.onSurfaceVariant,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AtharRadius.md),
           borderSide: BorderSide(color: scheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AtharRadius.md),
           borderSide: BorderSide(color: scheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AtharRadius.md),
           borderSide: BorderSide(color: scheme.primary, width: 1.6),
         ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AtharRadius.md),
+          borderSide: BorderSide(color: scheme.error),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AtharRadius.md),
+          borderSide: BorderSide(color: scheme.error, width: 1.6),
+        ),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: palette.card,
+        modalBackgroundColor: palette.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        modalElevation: 0,
+        showDragHandle: true,
+        dragHandleColor: scheme.outline,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AtharRadius.sheet)),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: palette.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AtharRadius.sheet)),
+        titleTextStyle: text.titleLarge,
+        contentTextStyle: text.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: scheme.inverseSurface,
+        contentTextStyle: text.bodyMedium?.copyWith(color: scheme.onInverseSurface),
+        actionTextColor: scheme.inversePrimary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AtharRadius.md)),
+      ),
+      tabBarTheme: TabBarThemeData(
+        labelColor: scheme.primary,
+        unselectedLabelColor: scheme.onSurfaceVariant,
+        indicatorColor: scheme.primary,
+        indicatorSize: TabBarIndicatorSize.label,
+        labelStyle: text.labelLarge,
+        unselectedLabelStyle: text.labelLarge,
+        dividerColor: scheme.outlineVariant,
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 68,
+        backgroundColor: palette.card,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        indicatorColor: scheme.primaryContainer,
+        indicatorShape: const StadiumBorder(),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (s) => IconThemeData(
+            size: 24,
+            color: s.contains(WidgetState.selected) ? scheme.onPrimaryContainer : scheme.onSurfaceVariant,
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (s) => text.labelMedium?.copyWith(
+            color: s.contains(WidgetState.selected) ? scheme.onSurface : scheme.onSurfaceVariant,
+          ),
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: scheme.inverseSurface,
+          borderRadius: BorderRadius.circular(AtharRadius.sm),
+        ),
+        textStyle: text.labelMedium?.copyWith(color: scheme.onInverseSurface),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: palette.card,
+        surfaceTintColor: Colors.transparent,
+        textStyle: text.bodyMedium,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AtharRadius.md)),
       ),
     );
   }
 
-  /// Typography: Amiri for elegant Arabic display headings, Tajawal for the
-  /// UI body (supports Arabic + Latin). [onColor] flips text for dark mode.
-  static TextTheme _textTheme(TextTheme base, Color onColor) {
-    final body = GoogleFonts.tajawalTextTheme(base);
-    return body
-        .copyWith(
-          displayLarge: GoogleFonts.tajawal(fontSize: 40, fontWeight: FontWeight.w700),
-          displayMedium: GoogleFonts.tajawal(fontSize: 32, fontWeight: FontWeight.w700),
-          headlineMedium: GoogleFonts.tajawal(fontSize: 26, fontWeight: FontWeight.w700),
-          titleLarge: GoogleFonts.tajawal(fontSize: 20, fontWeight: FontWeight.w700),
-          titleMedium: GoogleFonts.tajawal(fontSize: 16, fontWeight: FontWeight.w700),
-          bodyLarge: GoogleFonts.tajawal(fontSize: 16, height: 1.5),
-          bodyMedium: GoogleFonts.tajawal(fontSize: 14, height: 1.5),
-          labelLarge: GoogleFonts.tajawal(fontSize: 14, fontWeight: FontWeight.w700),
-        )
-        .apply(bodyColor: onColor, displayColor: onColor);
+  /// The dark-mode page colour: the preset's brand colour, deepened when it is
+  /// too light for gold, state colours and muted text to read on its surfaces.
+  static Color darkBackground(AtharThemePreset p) {
+    var color = p.brand;
+    for (var i = 0; i < 20 && color.computeLuminance() > 0.018; i++) {
+      color = _mix(color, Colors.black, 0.08);
+    }
+    return color;
+  }
+
+  static ColorScheme colorScheme(AtharThemePreset p, Brightness brightness) {
+    if (brightness == Brightness.light) {
+      final text = _mix(p.brand, Colors.black, 0.60);
+      final muted = _mix(text, p.lightBackground, 0.34);
+      final card = _mix(Colors.white, p.lightBackground, 0.35);
+      return ColorScheme(
+        brightness: Brightness.light,
+        primary: p.vivid,
+        onPrimary: Colors.white,
+        primaryContainer: _mix(p.lightBackground, p.vivid, 0.14),
+        onPrimaryContainer: _mix(p.vivid, Colors.black, 0.35),
+        secondary: _gold,
+        onSecondary: const Color(0xFF231A05),
+        secondaryContainer: _mix(p.lightBackground, _gold, 0.24),
+        onSecondaryContainer: const Color(0xFF5C4513),
+        tertiary: p.brand,
+        onTertiary: Colors.white,
+        error: const Color(0xFFA63D29),
+        onError: Colors.white,
+        surface: p.lightSurface,
+        onSurface: text,
+        onSurfaceVariant: muted,
+        surfaceContainerLowest: card,
+        surfaceContainerLow: _mix(p.lightBackground, p.lightSurface, 0.5),
+        surfaceContainer: p.lightSurface,
+        surfaceContainerHigh: _mix(p.lightSurface, text, 0.04),
+        surfaceContainerHighest: _mix(p.lightSurface, text, 0.07),
+        outline: p.lightOutline,
+        outlineVariant: _mix(p.lightOutline, p.lightBackground, 0.45),
+        shadow: Colors.black,
+        scrim: Colors.black,
+        inverseSurface: p.brand,
+        onInverseSurface: const Color(0xFFF1EEE6),
+        inversePrimary: p.vividOnDark,
+        surfaceTint: Colors.transparent,
+      );
+    }
+
+    const text = Color(0xFFF1EEE6);
+    final base = darkBackground(p);
+    final muted = _mix(text, base, 0.30);
+    final surface = _mix(base, Colors.white, 0.05);
+    final card = _mix(base, Colors.white, 0.09);
+    return ColorScheme(
+      brightness: Brightness.dark,
+      primary: p.vividOnDark,
+      onPrimary: base,
+      primaryContainer: _mix(base, p.vividOnDark, 0.24),
+      onPrimaryContainer: _mix(p.vividOnDark, Colors.white, 0.45),
+      secondary: _gold,
+      onSecondary: const Color(0xFF231A05),
+      secondaryContainer: _mix(base, _gold, 0.22),
+      onSecondaryContainer: const Color(0xFFF3E3B8),
+      tertiary: p.vividOnDark,
+      onTertiary: base,
+      error: const Color(0xFFEE8A73),
+      onError: base,
+      surface: surface,
+      onSurface: text,
+      onSurfaceVariant: muted,
+      surfaceContainerLowest: _mix(base, Colors.black, 0.15),
+      surfaceContainerLow: surface,
+      surfaceContainer: card,
+      surfaceContainerHigh: _mix(base, Colors.white, 0.12),
+      surfaceContainerHighest: _mix(base, Colors.white, 0.15),
+      outline: _mix(base, Colors.white, 0.17),
+      outlineVariant: _mix(base, Colors.white, 0.11),
+      shadow: Colors.black,
+      scrim: Colors.black,
+      inverseSurface: text,
+      onInverseSurface: base,
+      inversePrimary: p.vivid,
+      surfaceTint: Colors.transparent,
+    );
+  }
+
+  static AtharPalette paletteFor(AtharThemePreset p, Brightness brightness) {
+    final scheme = colorScheme(p, brightness);
+    final primaryDark = _mix(p.vivid, p.brand, 0.55);
+
+    if (brightness == Brightness.light) {
+      return AtharPalette(
+        brand: p.brand,
+        gold: _gold,
+        goldText: const Color(0xFF7A5E1E),
+        danger: scheme.error,
+        warning: const Color(0xFF87520F),
+        info: const Color(0xFF2D6A9F),
+        sage: const Color(0xFF6E9468),
+        beige: p.lightSurface,
+        card: scheme.surfaceContainerLowest,
+        primaryDark: primaryDark,
+        textMuted: scheme.onSurfaceVariant,
+        success: const Color(0xFF1F6B50),
+        heroGradient: LinearGradient(
+          begin: AlignmentDirectional.topStart,
+          end: AlignmentDirectional.bottomEnd,
+          colors: [_mix(p.brand, p.vivid, 0.55), p.brand],
+        ),
+      );
+    }
+
+    return AtharPalette(
+      brand: p.brand,
+      gold: _gold,
+      goldText: _gold,
+      danger: scheme.error,
+      warning: const Color(0xFFE3A857),
+      info: const Color(0xFF8DB9E6),
+      sage: const Color(0xFFA8C3A0),
+      beige: scheme.surface,
+      card: scheme.surfaceContainer,
+      primaryDark: primaryDark,
+      textMuted: scheme.onSurfaceVariant,
+      success: const Color(0xFF5CC49A),
+      heroGradient: LinearGradient(
+        begin: AlignmentDirectional.topStart,
+        end: AlignmentDirectional.bottomEnd,
+        colors: [_mix(darkBackground(p), p.vivid, 0.45), _mix(darkBackground(p), Colors.white, 0.06)],
+      ),
+    );
   }
 }

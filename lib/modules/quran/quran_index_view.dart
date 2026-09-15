@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 
-import '../../core/constants/app_colors.dart';
 import '../../core/constants/quran_surahs.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import 'khatma_progress_view.dart';
 import 'quran_controller.dart';
 
@@ -19,21 +18,18 @@ class QuranIndexView extends GetView<QuranController> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('quran_index'.tr),
+        appBar: AtharAppBar(
+          title: 'quran_index'.tr,
           actions: [
             // Replaces the index, so opening a page from there still lands in
             // the reader rather than back here.
-            IconButton(
+            AtharIconButton(
+              icon: Icons.insights_rounded,
               tooltip: 'quran_khatma_map'.tr,
-              icon: const Icon(Icons.insights_rounded),
               onPressed: () => Get.off<void>(() => const KhatmaProgressView()),
             ),
           ],
           bottom: TabBar(
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: context.athar.textMuted,
             tabs: [
               Tab(text: 'quran_tab_surah'.tr),
               Tab(text: 'quran_tab_juz'.tr),
@@ -61,10 +57,9 @@ class _SurahList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AtharSpace.xs),
       itemCount: kQuranSurahs.length,
-      separatorBuilder: (context, index) =>
-          Divider(height: 1, color: context.athar.beige, indent: 68),
+      separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
       itemBuilder: (context, i) {
         final s = kQuranSurahs[i];
         return ListTile(
@@ -76,17 +71,15 @@ class _SurahList extends StatelessWidget {
             final p = c.khatmaProgress(first, last);
             return KhatmaRing(label: '${s.number}', read: p.read, total: p.total);
           }),
-          title: Text(
-            'quran_surah_n'.trParams({'name': s.localizedName}),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          title: Text('quran_surah_n'.trParams({'name': s.localizedName})),
           subtitle: Text(
             '${s.otherName}  ·  ${s.isMeccan ? 'quran_meccan'.tr : 'quran_medinan'.tr}  ·  ${s.ayahs} ${'quran_ayahs'.tr}',
-            style: TextStyle(color: context.athar.textMuted, fontSize: 11.5),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Text(
             'quran_page_short'.trParams({'page': '${s.page}'}),
-            style: TextStyle(color: context.athar.textMuted, fontSize: 12),
+            style: context.type.caption,
           ),
         );
       },
@@ -100,10 +93,9 @@ class _JuzList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: AtharSpace.xs),
       itemCount: kJuzStartPages.length,
-      separatorBuilder: (context, index) =>
-          Divider(height: 1, color: context.athar.beige, indent: 68),
+      separatorBuilder: (context, index) => const Divider(height: 1, indent: 72),
       itemBuilder: (context, i) {
         final page = kJuzStartPages[i];
         return ListTile(
@@ -114,19 +106,15 @@ class _JuzList extends StatelessWidget {
             final p = c.khatmaProgress(first, last);
             return KhatmaRing(label: '${i + 1}', read: p.read, total: p.total);
           }),
-          title: Text(
-            'quran_juz_n'.trParams({'n': '${i + 1}'}),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
+          title: Text('quran_juz_n'.trParams({'n': '${i + 1}'})),
           subtitle: Text(
-            'quran_surah_n'.trParams({
-              'name': surahForPage(page).localizedName,
-            }),
-            style: TextStyle(color: context.athar.textMuted, fontSize: 11.5),
+            'quran_surah_n'.trParams({'name': surahForPage(page).localizedName}),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           trailing: Text(
             'quran_page_short'.trParams({'page': '$page'}),
-            style: TextStyle(color: context.athar.textMuted, fontSize: 12),
+            style: context.type.caption,
           ),
         );
       },
@@ -168,47 +156,32 @@ class _PagePickerState extends State<_PagePicker> {
     final total = Get.find<QuranController>().totalPages.value;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+      padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.lg, AtharSpace.screen, AtharSpace.lg),
       children: [
         TextField(
           controller: _field,
           keyboardType: TextInputType.number,
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           textAlign: TextAlign.center,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+          textDirection: TextDirection.ltr,
+          style: context.text.headlineSmall?.copyWith(
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
           onSubmitted: (_) => _submit(),
-          decoration: InputDecoration(
-            hintText: '1 – $total',
-            hintStyle: TextStyle(
-              color: context.athar.textMuted,
-              fontWeight: FontWeight.w400,
-            ),
-            errorText: _error,
-            filled: true,
-            fillColor: context.athar.beige,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: context.athar.beige),
-            ),
-          ),
+          decoration: InputDecoration(hintText: '1 – $total', errorText: _error),
         ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _submit,
-          style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-          ),
-          child: Text('quran_go_to_page'.tr),
-        ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AtharSpace.md),
+        AtharButton(label: 'quran_go_to_page'.tr, expand: true, onPressed: _submit),
+        const SizedBox(height: AtharSpace.lg),
         Center(
-          child: TextButton.icon(
+          child: AtharButton(
+            label: 'quran_random_page'.tr,
+            icon: Icons.shuffle_rounded,
+            variant: AtharButtonVariant.ghost,
             onPressed: () {
               Get.find<QuranController>().randomPage();
               Get.back<void>();
             },
-            icon: const Icon(Icons.shuffle_rounded, size: 18),
-            label: Text('quran_random_page'.tr),
           ),
         ),
       ],

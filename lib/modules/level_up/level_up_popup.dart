@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/widget_image_exporter.dart';
 import '../../data/models/user_model.dart';
@@ -16,8 +15,8 @@ import 'achievement_card.dart';
 /// no assumption about how many times it's invoked, it just renders one
 /// celebration and resolves when the user continues.
 class LevelUpPopup {
-  /// Displays the popup and resolves once the user dismisses it (Continue,
-  /// or after a share action completes and they return).
+  /// Displays the popup and resolves once the user dismisses it (Continue, or
+  /// after a share action completes and they return).
   static Future<void> show({
     required String name,
     required String? avatarUrl,
@@ -55,8 +54,7 @@ class _LevelUpPopupBody extends StatefulWidget {
 }
 
 class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
-  late final ConfettiController _confetti =
-      ConfettiController(duration: const Duration(seconds: 3));
+  late final ConfettiController _confetti = ConfettiController(duration: const Duration(seconds: 3));
   final _cardKey = GlobalKey();
   bool _sharing = false;
 
@@ -81,12 +79,14 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
         filename: 'athar_level_${widget.newLevel.level}.png',
       );
       if (path != null) {
-        await SharePlus.instance.share(ShareParams(
-          files: [XFile(path)],
-          text: 'share_achievement_text'.trParams({
-            'level': widget.newLevel.displayName(Get.locale?.languageCode == 'ar'),
-          }),
-        ));
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(path)],
+            text: 'share_achievement_text'.trParams({
+              'level': widget.newLevel.displayName(Get.locale?.languageCode == 'ar'),
+            }),
+          ),
+        );
       }
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
@@ -98,7 +98,8 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
   @override
   Widget build(BuildContext context) {
     final isAr = Get.locale?.languageCode == 'ar';
-    final palette = AtharPalette.dark;
+    final athar = context.athar;
+    const onBrand = Colors.white;
 
     return Material(
       color: Colors.transparent,
@@ -106,13 +107,13 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Islamic-themed premium chrome: emerald/gold gradient backdrop.
-            Container(
+            // The brand ground, deep at the top and warmer toward the bottom.
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [AppColors.primaryDark, palette.beige],
+                  colors: [athar.brand, athar.primaryDark],
                 ),
               ),
             ),
@@ -124,109 +125,78 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
                 shouldLoop: false,
                 numberOfParticles: 28,
                 gravity: 0.35,
-                colors: const [
-                  AppColors.secondary,
-                  Colors.white,
-                  AppColors.sage,
-                ],
+                colors: [athar.gold, Colors.white, athar.sage],
               ),
             ),
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xl),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(AtharSpace.xxs + 2),
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.secondary, width: 2),
+                        border: Border.all(color: athar.gold, width: 2),
                       ),
                       child: FramedAvatar(
                         name: widget.name,
                         avatarUrl: widget.avatarUrl,
                         frameAsset: widget.newLevel.frame,
                         level: widget.newLevel.level,
-                        radius: 56,
-                        backgroundColor: AppColors.secondary,
+                        radius: 48,
+                        backgroundColor: athar.gold,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'level_up_title'.tr,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.w800,
+                    const SizedBox(height: AtharSpace.lg),
+                    Semantics(
+                      header: true,
+                      liveRegion: true,
+                      child: Text(
+                        'level_up_title'.tr,
+                        textAlign: TextAlign.center,
+                        style: context.text.headlineLarge?.copyWith(color: onBrand),
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AtharSpace.xxs),
                     Text(
                       widget.name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      style: context.text.bodyLarge?.copyWith(color: onBrand.withValues(alpha: 0.75)),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AtharSpace.lg),
                     Text(
                       'level_up_subtitle'.tr,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white70, fontSize: 15),
+                      style: context.text.bodyMedium?.copyWith(color: onBrand.withValues(alpha: 0.75)),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AtharSpace.xxs),
                     Text(
                       widget.newLevel.displayName(isAr),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: context.text.headlineSmall?.copyWith(color: athar.gold),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AtharSpace.lg),
                     Text(
                       'level_up_message'.tr,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white60, fontSize: 13, height: 1.5),
+                      style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.7)),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AtharSpace.xl),
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: _sharing ? null : _share,
-                            icon: _sharing
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2, color: Colors.white70))
-                                : const Icon(Icons.share_rounded, color: Colors.white),
-                            label: Text('share_achievement'.tr,
-                                style: const TextStyle(color: Colors.white)),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14)),
-                            ),
+                          child: _OnBrandButton(
+                            label: 'share_achievement'.tr,
+                            icon: Icons.share_rounded,
+                            loading: _sharing,
+                            onPressed: _share,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AtharSpace.sm),
                         Expanded(
-                          child: ElevatedButton(
-                            onPressed: () => Get.back(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              foregroundColor: AppColors.textDark,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14)),
-                            ),
-                            child: Text('continue_btn'.tr,
-                                style: const TextStyle(fontWeight: FontWeight.w700)),
-                          ),
+                          child: _GoldButton(label: 'continue_btn'.tr, onPressed: () => Get.back()),
                         ),
                       ],
                     ),
@@ -253,6 +223,62 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// An outlined action on the celebration's dark ground.
+class _OnBrandButton extends StatelessWidget {
+  const _OnBrandButton({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.loading = false,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final IconData? icon;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      onPressed: loading ? null : onPressed,
+      icon: loading
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+            )
+          : Icon(icon, color: Colors.white),
+      label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: Colors.white,
+        side: const BorderSide(color: Colors.white54),
+        minimumSize: const Size(64, 52),
+        padding: const EdgeInsets.symmetric(horizontal: AtharSpace.md),
+      ),
+    );
+  }
+}
+
+/// The gold confirm on the celebration's dark ground.
+class _GoldButton extends StatelessWidget {
+  const _GoldButton({required this.label, required this.onPressed});
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: context.athar.gold,
+        foregroundColor: const Color(0xFF231A05),
+        minimumSize: const Size(64, 52),
+      ),
+      child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
     );
   }
 }

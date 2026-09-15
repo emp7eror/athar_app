@@ -395,9 +395,7 @@ class _AyahSheet extends StatelessWidget {
         children: [
             Row(
               children: [
-                const ExcludeSemantics(
-                  child: Text('📖', style: TextStyle(fontSize: 26)),
-                ),
+                Icon(Icons.menu_book_rounded, size: 26, color: context.athar.gold),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Semantics(

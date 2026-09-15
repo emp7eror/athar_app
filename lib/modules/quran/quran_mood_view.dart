@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 
 import '../../core/theme/app_theme.dart';
 import 'quran_mood_controller.dart';
-import 'quran_mood_emojis.dart';
+import 'quran_mood_icons.dart';
 import 'quran_mood_models.dart';
 import 'quran_passage_card.dart';
 
@@ -251,10 +251,10 @@ class _StartStep extends GetView<QuranMoodController> {
   const _StartStep({super.key});
 
   static const _examples = [
-    ('😩', 'quran_feel_example_1'),
-    ('😟', 'quran_feel_example_2'),
-    ('🤲', 'quran_feel_example_3'),
-    ('💔', 'quran_feel_example_4'),
+    (Icons.sentiment_dissatisfied_rounded, 'quran_feel_example_1'),
+    (Icons.psychology_rounded, 'quran_feel_example_2'),
+    (Icons.volunteer_activism_rounded, 'quran_feel_example_3'),
+    (Icons.heart_broken_rounded, 'quran_feel_example_4'),
   ];
 
   @override
@@ -285,9 +285,9 @@ class _StartStep extends GetView<QuranMoodController> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final (emoji, key) in _examples)
+            for (final (icon, key) in _examples)
               ActionChip(
-                avatar: ExcludeSemantics(child: Text(emoji)),
+                avatar: Icon(icon, size: 18, color: context.colors.primary),
                 label: Text(key.tr),
                 onPressed: () => controller.useExample(key.tr),
               ),
@@ -368,7 +368,7 @@ class _FeelingField extends GetView<QuranMoodController> {
             prefixIcon: const ExcludeSemantics(
               child: Padding(
                 padding: EdgeInsets.all(12),
-                child: Text('✍️', style: TextStyle(fontSize: 20)),
+                child: Icon(Icons.edit_note_rounded),
               ),
             ),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
@@ -424,12 +424,7 @@ class _SectionTile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ExcludeSemantics(
-                child: Text(
-                  sectionEmoji(section.id),
-                  style: const TextStyle(fontSize: 30),
-                ),
-              ),
+              Icon(sectionIcon(section.id), size: 30, color: context.colors.primary),
               const SizedBox(height: 10),
               Text(
                 section.title.text,
@@ -459,12 +454,7 @@ class _CategoryStep extends GetView<QuranMoodController> {
       children: [
         Row(
           children: [
-            ExcludeSemantics(
-              child: Text(
-                sectionEmoji(section.id),
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
+            Icon(sectionIcon(section.id), size: 18, color: context.athar.textMuted),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -528,10 +518,7 @@ class _CategoryTile extends StatelessWidget {
                   shape: BoxShape.circle,
                   color: context.colors.primary.withValues(alpha: 0.08),
                 ),
-                child: Text(
-                  categoryEmoji(category),
-                  style: const TextStyle(fontSize: 22),
-                ),
+                child: Icon(categoryIcon(category), size: 22, color: context.colors.primary),
               ),
             ),
             const SizedBox(width: 12),
@@ -758,11 +745,14 @@ class _Result extends StatelessWidget {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ExcludeSemantics(
-              child: Text(
-                categoryEmoji(category),
-                style: const TextStyle(fontSize: 34),
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: context.colors.primary.withValues(alpha: 0.08),
               ),
+              child: Icon(categoryIcon(category), size: 28, color: context.colors.primary),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -786,21 +776,21 @@ class _Result extends StatelessWidget {
           _UrgentGuidance(text: relevance),
         ] else
           _Section(
-            emoji: '💡',
+            icon: Icons.lightbulb_rounded,
             title: 'quran_result_advice'.tr,
             child: adviceSection ?? _AdviceText(relevance),
           ),
         if (predefined) ...[
           if (category.passages.isNotEmpty)
             _Section(
-              emoji: '📖',
+              icon: Icons.menu_book_rounded,
               title: 'quran_result_predefined'.tr,
               child: passages,
             ),
           ?specialSection,
         ] else
           _Section(
-            emoji: '✨',
+            icon: Icons.auto_awesome_rounded,
             title: 'quran_result_special'.tr,
             child: category.passages.isNotEmpty
                 ? passages
@@ -808,9 +798,9 @@ class _Result extends StatelessWidget {
                 : const _EmptyResult(explanation: null),
           ),
         if (readerMismatch)
-          _Note(emoji: 'ℹ️', text: 'quran_feel_reader_mismatch'.tr),
+          _Note(icon: Icons.info_outline_rounded,text: 'quran_feel_reader_mismatch'.tr),
         const SizedBox(height: 6),
-        _Note(emoji: '🤍', text: 'quran_feel_reflection_note'.tr),
+        _Note(icon: Icons.favorite_border_rounded, text: 'quran_feel_reflection_note'.tr),
         for (final note in guidance) _Note(text: note.text),
       ],
     );
@@ -820,12 +810,12 @@ class _Result extends StatelessWidget {
 /// One headed part of a result.
 class _Section extends StatelessWidget {
   const _Section({
-    required this.emoji,
+    required this.icon,
     required this.title,
     required this.child,
   });
 
-  final String emoji;
+  final IconData icon;
   final String title;
   final Widget child;
 
@@ -838,11 +828,19 @@ class _Section extends StatelessWidget {
         children: [
           Semantics(
             header: true,
-            child: Text(
-              '$emoji  $title',
-              style: context.text.titleSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
+            child: Row(
+              children: [
+                Icon(icon, size: 18, color: context.athar.gold),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: context.text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 10),
@@ -977,7 +975,7 @@ class _PersonalPassages extends GetView<QuranMoodController> {
       } else if (personal != null) {
         child = _Note(
           key: const ValueKey('none'),
-          emoji: '🔍',
+          icon: Icons.search_off_rounded,
           text: 'quran_feel_personal_none'.tr,
         );
       } else if (controller.personalFailed.value) {
@@ -991,7 +989,7 @@ class _PersonalPassages extends GetView<QuranMoodController> {
       }
 
       return _Section(
-        emoji: '✨',
+        icon: Icons.auto_awesome_rounded,
         title: 'quran_result_special'.tr,
         child: _Animated(child: child),
       );
@@ -1030,7 +1028,7 @@ class _SuggestedPassages extends GetView<QuranMoodController> {
                   QuranPassageCard(passage: passage),
               ],
             ),
-            _Note(emoji: 'ℹ️', text: 'quran_mood_suggested_note'.tr),
+            _Note(icon: Icons.info_outline_rounded,text: 'quran_mood_suggested_note'.tr),
           ],
         );
       } else if (controller.suggestedFailed.value) {
@@ -1043,7 +1041,7 @@ class _SuggestedPassages extends GetView<QuranMoodController> {
       }
 
       return _Section(
-        emoji: '✨',
+        icon: Icons.auto_awesome_rounded,
         title: 'quran_result_special'.tr,
         child: _Animated(child: child),
       );
@@ -1119,7 +1117,7 @@ class _EmptyResult extends StatelessWidget {
       child: Column(
         children: [
           const ExcludeSemantics(
-            child: Text('🔍', style: TextStyle(fontSize: 32)),
+            child: Icon(Icons.search_off_rounded, size: 32),
           ),
           const SizedBox(height: 8),
           Text(
@@ -1147,14 +1145,14 @@ class _EmptyResult extends StatelessWidget {
 }
 
 class _Note extends StatelessWidget {
-  const _Note({super.key, required this.text, this.emoji});
+  const _Note({super.key, required this.text, this.icon});
 
   final String text;
-  final String? emoji;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    final mark = emoji;
+    final mark = icon;
 
     return Padding(
       padding: const EdgeInsets.only(top: 10),
@@ -1162,7 +1160,7 @@ class _Note extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (mark != null) ...[
-            ExcludeSemantics(child: Text(mark)),
+            Icon(mark, size: 16, color: context.athar.textMuted),
             const SizedBox(width: 8),
           ],
           Expanded(
@@ -1201,9 +1199,7 @@ class _InlineFailure extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const ExcludeSemantics(
-            child: Text('📡', style: TextStyle(fontSize: 30)),
-          ),
+          Icon(Icons.wifi_off_rounded, size: 30, color: context.athar.textMuted),
           const SizedBox(height: 8),
           Semantics(
             liveRegion: true,

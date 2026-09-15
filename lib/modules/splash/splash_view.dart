@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:get/get.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/theme/theme_controller.dart';
+import '../../core/ui/athar_ui.dart';
 import 'splash_controller.dart';
 
-/// Splash: brand background (#15201A), banner artwork, and a loading indicator.
-/// The controller handles navigation once startup settles.
+/// Splash: the brand ground, the banner, and a quiet loading indicator. The
+/// controller handles navigation once startup settles.
 class SplashView extends GetView<SplashController> {
   const SplashView({super.key});
 
-  static const _bg = Color(0xFF15201A);
-
   @override
   Widget build(BuildContext context) {
-    final gold = context.athar.gold;
-    return Scaffold(
-      backgroundColor: _bg,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Spacer(flex: 2),
-            const _BrandBanner(),
-            const SizedBox(height: 48),
+    // Always the deep brand ground, whatever theme the app is in.
+    final ground = AppTheme.darkBackground(Get.find<ThemeController>().preset);
 
-            SizedBox(
-              width: 28,
-              height: 28,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.4,
-                valueColor: AlwaysStoppedAnimation(gold),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        backgroundColor: ground,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(flex: 2),
+              const _BrandBanner(),
+              const SizedBox(height: AtharSpace.xxl),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.4,
+                  valueColor: AlwaysStoppedAnimation(context.athar.gold),
+                ),
               ),
-            ),
-            const Spacer(flex: 2),
-
-          ],
+              const Spacer(flex: 2),
+            ],
+          ),
         ),
       ),
     );
@@ -54,12 +57,7 @@ class _BrandBanner extends StatelessWidget {
       fit: BoxFit.contain,
       errorBuilder: (context, error, stack) => Text(
         'أثر',
-        style: TextStyle(
-          fontSize: 72,
-          fontWeight: FontWeight.w700,
-          color: context.athar.gold,
-          fontFamily: 'Amiri',
-        ),
+        style: context.text.displayLarge?.copyWith(color: context.athar.gold),
       ),
     );
   }

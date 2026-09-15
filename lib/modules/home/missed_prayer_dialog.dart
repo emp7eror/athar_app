@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/app_theme.dart';
-import '../../widgets/choice_chip_group.dart';
+import '../../core/ui/athar_ui.dart';
+import 'prayer_dialog_parts.dart';
 
 /// Predefined reasons the user can pick for missing a prayer, sent to the API
 /// as a stable snake_case value (see [MissedReasonX.apiValue]).
@@ -23,6 +23,28 @@ extension MissedReasonX on MissedReason {
   /// True when the prayer was performed within its window and only the
   /// *logging* happened late.
   bool get prayedOnTime => this == MissedReason.forgotToMark;
+
+  String get labelKey => switch (this) {
+        MissedReason.asleep => 'reason_asleep',
+        MissedReason.forgot => 'reason_forgot',
+        MissedReason.busy => 'reason_busy',
+        MissedReason.traveling => 'reason_traveling',
+        MissedReason.sick => 'reason_sick',
+        MissedReason.lazy => 'reason_lazy',
+        MissedReason.occasion => 'reason_occasion',
+        MissedReason.forgotToMark => 'reason_forgot_to_mark',
+      };
+
+  IconData get icon => switch (this) {
+        MissedReason.asleep => Icons.bedtime_rounded,
+        MissedReason.forgot => Icons.psychology_alt_rounded,
+        MissedReason.busy => Icons.work_rounded,
+        MissedReason.traveling => Icons.flight_rounded,
+        MissedReason.sick => Icons.healing_rounded,
+        MissedReason.lazy => Icons.weekend_rounded,
+        MissedReason.occasion => Icons.celebration_rounded,
+        MissedReason.forgotToMark => Icons.edit_note_rounded,
+      };
 }
 
 /// Result of the missed-prayer confirmation flow.
@@ -90,203 +112,87 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final athar = context.athar;
+    final reasons = [
+      for (final r in MissedReason.values)
+        if (r != MissedReason.forgotToMark || widget.allowForgotToMark) r,
+    ];
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      backgroundColor: athar.card,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.lg),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // ── Header ──
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [athar.danger, athar.primaryDark],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.history_toggle_off_rounded,
-                      color: Colors.white, size: 26),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('missed_prayer_title'.tr,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 2),
-                        Text(widget.prayerName.tr,
-                            style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.9),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600)),
-                      ],
+            PrayerDialogHeader(
+              icon: Icons.history_rounded,
+              tone: AtharTone.warning,
+              title: 'missed_prayer_title'.tr,
+              badge: AtharBadge(label: widget.prayerName.tr, tone: AtharTone.warning),
+              subtitle: 'missed_prayer_desc'.tr,
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.xs, AtharSpace.lg, 0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    PrayerQuestion<MissedReason>(
+                      label: 'missed_reason_label'.tr,
+                      showError: _showReasonError,
+                      errorText: 'missed_reason_required'.tr,
+                      options: reasons,
+                      labels: [for (final r in reasons) r.labelKey.tr],
+                      icons: [for (final r in reasons) r.icon],
+                      selected: _reason,
+                      onSelected: (v) => setState(() {
+                        _reason = v;
+                        _showReasonError = false;
+                      }),
                     ),
-                  ),
-                ],
+                    // Praying on time but logging it late is treated as an
+                    // on-time prayer — worth saying so the choice is meaningful.
+                    AnimatedSize(
+                      duration: AtharMotion.base,
+                      curve: AtharMotion.standard,
+                      alignment: AlignmentDirectional.topStart,
+                      child: _reason?.prayedOnTime == true
+                          ? Padding(
+                              padding: const EdgeInsets.only(bottom: AtharSpace.lg),
+                              child: AtharCard(
+                                tone: AtharCardTone.surface,
+                                padding: const EdgeInsets.all(AtharSpace.sm),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(Icons.info_rounded, size: AtharSize.icon, color: context.colors.primary),
+                                    const SizedBox(width: AtharSpace.xs),
+                                    Expanded(
+                                      child: Text(
+                                        'reason_forgot_to_mark_hint'.tr,
+                                        style: context.text.bodySmall,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                          : const SizedBox(width: double.infinity),
+                    ),
+                  ],
+                ),
               ),
             ),
-
-            const SizedBox(height: 16),
-            Text('missed_prayer_desc'.tr,
-                style: TextStyle(fontSize: 13, color: athar.textMuted)),
-            const SizedBox(height: 20),
-
-            // ── Reason (required, chip group like mood) ──
-            _Label(text: 'missed_reason_label'.tr, required: true),
-            const SizedBox(height: 10),
-            ChoiceChipGroup<MissedReason>(
-              options: [
-                MissedReason.asleep,
-                MissedReason.forgot,
-                MissedReason.busy,
-                MissedReason.traveling,
-                MissedReason.sick,
-                MissedReason.lazy,
-                MissedReason.occasion,
-                if (widget.allowForgotToMark) MissedReason.forgotToMark,
-              ],
-              labels: [
-                'reason_asleep'.tr,
-                'reason_forgot'.tr,
-                'reason_busy'.tr,
-                'reason_traveling'.tr,
-                'reason_sick'.tr,
-                'reason_lazy'.tr,
-                'reason_occasion'.tr,
-                if (widget.allowForgotToMark) 'reason_forgot_to_mark'.tr,
-              ],
-              emojis: [
-                '😴',
-                '🤔',
-                '💼',
-                '✈️',
-                '🤒',
-                '🥱',
-                '🎉',
-                if (widget.allowForgotToMark) '📝',
-              ],
-              selected: _reason,
-              onSelected: (v) => setState(() {
-                _reason = v;
-                _showReasonError = false;
-              }),
-            ),
-            // Praying on time but logging it late is treated as an on-time
-            // prayer — worth telling the user so the choice is meaningful.
-            if (_reason?.prayedOnTime == true) ...[
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline_rounded,
-                      size: 15, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text('reason_forgot_to_mark_hint'.tr,
-                        style: TextStyle(
-                            fontSize: 11.5,
-                            height: 1.35,
-                            color: Theme.of(context).colorScheme.primary)),
-                  ),
-                ],
-              ),
-            ],
-            if (_showReasonError) ...[
-              const SizedBox(height: 6),
-              Text('missed_reason_required'.tr,
-                  style: TextStyle(
-                      fontSize: 12,
-                      color: Theme.of(context).colorScheme.error)),
-            ],
-
-            // const SizedBox(height: 20),
-            //
-            // // ── Note (optional) ──
-            // _Label(text: 'missed_note_label'.tr, required: false),
-            // const SizedBox(height: 10),
-            // TextField(
-            //   controller: _noteCtrl,
-            //   maxLines: 2,
-            //   maxLength: 200,
-            //   decoration: InputDecoration(hintText: 'missed_note_hint'.tr),
-            // ),
-
-            const SizedBox(height: 20),
-
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Get.back(result: null),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: athar.textMuted),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('cancel'.tr,
-                        style: TextStyle(
-                            color: athar.textMuted,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton(
-                    onPressed: _submit,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
-                    ),
-                    child: Text('confirm'.tr,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.w800, fontSize: 15)),
-                  ),
-                ),
-              ],
+            PrayerDialogActions(
+              confirmLabel: 'confirm'.tr,
+              ready: _reason != null,
+              onConfirm: _submit,
+              onCancel: () => Get.back(result: null),
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _Label extends StatelessWidget {
-  final String text;
-  final bool required;
-  const _Label({required this.text, required this.required});
-
-  @override
-  Widget build(BuildContext context) {
-    final athar = context.athar;
-    return Row(
-      children: [
-        Text(text,
-            style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: athar.textMuted)),
-        if (required)
-          Text(' *',
-              style: TextStyle(
-                  color: Theme.of(context).colorScheme.error, fontSize: 14)),
-      ],
     );
   }
 }

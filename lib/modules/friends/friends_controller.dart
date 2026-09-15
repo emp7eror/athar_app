@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../core/ui/athar_dialog.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/providers/api_provider.dart';
@@ -76,24 +77,14 @@ class FriendsController extends GetxController {
   /// reactive list after the request succeeds — a failure leaves the roster
   /// untouched and surfaces the server error.
   Future<void> remove(FriendModel f) async {
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('remove_friend_title'.tr),
-        content: Text('remove_friend_msg'.trParams({'name': f.name})),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text('cancel'.tr),
-          ),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('remove'.tr),
-          ),
-        ],
-      ),
+    final confirmed = await showAtharConfirm(
+      title: 'remove_friend_title'.tr,
+      message: 'remove_friend_msg'.trParams({'name': f.name}),
+      confirmLabel: 'remove'.tr,
+      icon: Icons.person_remove_rounded,
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     try {
       await _api.removeFriend(f.id);

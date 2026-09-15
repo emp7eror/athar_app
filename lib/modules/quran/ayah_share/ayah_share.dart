@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/constants/app_colors.dart';
 import '../../../core/constants/quran_surahs.dart';
+import '../../../core/design/athar_typography.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/error_reporter.dart';
 import '../../../core/utils/widget_image_exporter.dart';
@@ -66,17 +66,9 @@ class _AyahShareSheetState extends State<_AyahShareSheet> {
   late Future<AyahText> _future = _load();
   bool _sharing = false;
 
-  /// The text, and the Quran font loaded — a card captured before the font
-  /// arrives would carry the fallback font.
-  Future<AyahText> _load() async {
-    final text = await fetchAyahText(widget.ayah);
-    try {
-      await GoogleFonts.pendingFonts([GoogleFonts.amiriQuran()]);
-    } catch (_) {
-      // No font: the card still draws, in the fallback font.
-    }
-    return text;
-  }
+  /// The ayah's text. The Quran font ships with the app, so the card is ready
+  /// to capture as soon as the text arrives.
+  Future<AyahText> _load() => fetchAyahText(widget.ayah);
 
   String _plain(AyahText t) {
     final name = _surah(widget.ayah.surah)?.nameAr ?? '${widget.ayah.surah}';
@@ -285,12 +277,11 @@ class AyahCard extends StatelessWidget {
                               child: Text(
                                 '$text ﴿$number﴾',
                                 textAlign: TextAlign.center,
-                                style: GoogleFonts.amiriQuran(
+                                style: AtharTypography.quran(
+                                  size: _fontSize,
                                   color: Colors.white,
-                                  fontSize: _fontSize,
                                   height: 2.1,
-                                  decoration: TextDecoration.none,
-                                ),
+                                ).copyWith(decoration: TextDecoration.none),
                               ),
                             ),
                           ),

@@ -1,58 +1,40 @@
 import 'package:flutter/material.dart';
 
-import '../core/theme/app_theme.dart';
+import '../core/ui/athar_ui.dart';
 
-/// Emoji + label chip picker shared by the prayer dialogs (difficulty, mood,
-/// missed-reason). Colours come from the active theme so it reads correctly in
-/// both light and dark mode — the dialogs used to hardcode light-theme values,
-/// which turned the chips into bright blobs on a dark surface.
+/// Icon + label single-choice picker shared by the prayer dialogs (place,
+/// congregation, mood, difficulty, missed reason). Nullable selection so a
+/// picker can start empty and require a deliberate answer.
 class ChoiceChipGroup<T> extends StatelessWidget {
   const ChoiceChipGroup({
     super.key,
     required this.options,
     required this.labels,
-    required this.emojis,
+    required this.icons,
     required this.selected,
     required this.onSelected,
   });
 
   final List<T> options;
   final List<String> labels;
-  final List<String> emojis;
-
-  /// Nullable so pickers that start empty (missed-reason) can share this.
+  final List<IconData> icons;
   final T? selected;
   final void Function(T) onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final athar = context.athar;
-
     return Wrap(
-      spacing: 0,
-      runSpacing: 0,
-      children: List.generate(options.length, (i) {
-        final isSelected = options[i] == selected;
-        return ChoiceChip(
-          padding: EdgeInsets.all(0),
-          label: Text('${emojis[i]}  ${labels[i]}'),
-          selected: isSelected,
-          onSelected: (_) => onSelected(options[i]),
-          backgroundColor: athar.beige,
-          selectedColor: colors.primary.withValues(alpha: 0.18),
-          side: BorderSide(
-            color: isSelected ? colors.primary : colors.outline.withValues(alpha: 0.5),
+      spacing: AtharSpace.xs,
+      runSpacing: AtharSpace.xs,
+      children: [
+        for (var i = 0; i < options.length; i++)
+          AtharChoiceChip(
+            label: labels[i],
+            icon: icons[i],
+            selected: options[i] == selected,
+            onSelected: () => onSelected(options[i]),
           ),
-          labelStyle: TextStyle(
-            color: isSelected ? colors.primary : colors.onSurface,
-            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-            fontSize: 12,
-          ),
-          showCheckmark: false,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        );
-      }),
+      ],
     );
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../core/ui/athar_ui.dart';
+
 /// Male/female picker used at registration and in profile editing.
 ///
 /// Gender is not cosmetic here: Arabic level titles and any notification
@@ -19,54 +21,15 @@ class GenderSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _option(context, 'male', 'gender_male'.tr, Icons.male_rounded),
-        const SizedBox(width: 10),
-        _option(context, 'female', 'gender_female'.tr, Icons.female_rounded),
+    return AtharSegmented<String?>(
+      selected: value,
+      onChanged: (v) {
+        if (v != null) onChanged(v);
+      },
+      segments: [
+        AtharSegment(value: 'male', label: 'gender_male'.tr, icon: Icons.male_rounded),
+        AtharSegment(value: 'female', label: 'gender_female'.tr, icon: Icons.female_rounded),
       ],
-    );
-  }
-
-  Widget _option(BuildContext context, String key, String label, IconData icon) {
-    final colors = Theme.of(context).colorScheme;
-    final selected = value == key;
-
-    return Expanded(
-      child: Material(
-        color: selected ? colors.primary.withValues(alpha: 0.14) : colors.surface,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          onTap: () => onChanged(key),
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: selected ? colors.primary : colors.outline,
-                width: selected ? 1.6 : 1,
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon,
-                    size: 20,
-                    color: selected ? colors.primary : colors.onSurfaceVariant),
-                const SizedBox(width: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                    color: selected ? colors.primary : colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../data/models/legal_document_model.dart';
 
@@ -55,36 +55,36 @@ class _LegalDocumentViewState extends State<LegalDocumentView> {
   @override
   Widget build(BuildContext context) {
     final isAr = Get.locale?.languageCode == 'ar';
-    final athar = context.athar;
+    final doc = _doc;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_doc?.title.of(isAr) ?? widget.fallbackTitle),
-      ),
+      appBar: AtharAppBar(title: doc?.title.of(isAr) ?? widget.fallbackTitle),
       body: SafeArea(
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const AtharLoadingState()
             : _failed
-                ? _ErrorState(onRetry: _load)
-                : _doc == null
+                ? AtharErrorState(message: 'legal_load_failed'.tr, onRetry: _load)
+                : doc == null
                     ? const SizedBox.shrink()
                     : ListView(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.fromLTRB(
+                          AtharSpace.screen,
+                          AtharSpace.xs,
+                          AtharSpace.screen,
+                          AtharSpace.xxl,
+                        ),
                         children: [
-                          if (_doc!.updatedAt.isNotEmpty)
-                            Text(
-                              '${'last_updated'.tr}: ${_doc!.updatedAt}',
-                              style: TextStyle(color: athar.textMuted, fontSize: 12),
-                            ),
-                          const SizedBox(height: 8),
+                          if (doc.updatedAt.isNotEmpty)
+                            Text('${'last_updated'.tr}: ${doc.updatedAt}', style: context.type.caption),
+                          const SizedBox(height: AtharSpace.xs),
                           Text(
-                            _doc!.intro.of(isAr),
-                            style: TextStyle(color: athar.textMuted, fontSize: 14, height: 1.5),
+                            doc.intro.of(isAr),
+                            style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
                           ),
-                          const SizedBox(height: 24),
-                          for (final section in _doc!.sections) ...[
+                          const SizedBox(height: AtharSpace.lg),
+                          for (final section in doc.sections) ...[
                             _SectionView(section: section, isAr: isAr),
-                            const SizedBox(height: 20),
+                            const SizedBox(height: AtharSpace.lg),
                           ],
                         ],
                       ),
@@ -101,46 +101,42 @@ class _SectionView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final athar = context.athar;
+    final scheme = context.colors;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          section.heading.of(isAr),
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+        Semantics(
+          header: true,
+          child: Text(section.heading.of(isAr), style: context.type.sectionTitle),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AtharSpace.xs),
         for (final p in section.paragraphs) ...[
-          Text(p.of(isAr), style: const TextStyle(fontSize: 14, height: 1.6)),
-          const SizedBox(height: 8),
+          Text(p.of(isAr), style: context.text.bodyMedium),
+          const SizedBox(height: AtharSpace.xs),
         ],
         if (section.list.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            padding: const EdgeInsets.only(top: AtharSpace.xxs, bottom: AtharSpace.xs),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (final item in section.list)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.only(bottom: AtharSpace.xs),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.only(top: 6),
+                          padding: const EdgeInsets.only(top: 7),
                           child: Container(
-                            width: 5, height: 5,
-                            decoration: BoxDecoration(
-                              color: athar.primaryDark,
-                              shape: BoxShape.circle,
-                            ),
+                            width: 5,
+                            height: 5,
+                            decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(item.of(isAr), style: const TextStyle(fontSize: 14, height: 1.6)),
-                        ),
+                        const SizedBox(width: AtharSpace.sm),
+                        Expanded(child: Text(item.of(isAr), style: context.text.bodyMedium)),
                       ],
                     ),
                   ),
@@ -148,60 +144,23 @@ class _SectionView extends StatelessWidget {
             ),
           ),
         if (section.note != null)
-          Container(
-            margin: const EdgeInsets.only(top: 4, bottom: 4),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: athar.beige,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              section.note!.of(isAr),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, height: 1.5),
-            ),
+          AtharCard(
+            tone: AtharCardTone.surface,
+            padding: const EdgeInsets.all(AtharSpace.sm),
+            child: Text(section.note!.of(isAr), style: context.type.bodyStrong),
           ),
         if (section.email != null)
           Padding(
-            padding: const EdgeInsets.only(top: 6),
-            child: InkWell(
-              onTap: () => launchUrl(Uri(scheme: 'mailto', path: section.email)),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.email_outlined, size: 16, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    section.email!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+            padding: const EdgeInsets.only(top: AtharSpace.xs),
+            child: AtharButton(
+              label: section.email!,
+              icon: Icons.email_rounded,
+              variant: AtharButtonVariant.ghost,
+              compact: true,
+              onPressed: () => launchUrl(Uri(scheme: 'mailto', path: section.email)),
             ),
           ),
       ],
     );
   }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.onRetry});
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off_rounded, size: 40, color: context.athar.textMuted),
-            const SizedBox(height: 12),
-            Text('legal_load_failed'.tr, style: TextStyle(color: context.athar.textMuted)),
-            const SizedBox(height: 16),
-            OutlinedButton(onPressed: onRetry, child: Text('retry'.tr)),
-          ],
-        ),
-      );
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../data/providers/api_provider.dart';
 
@@ -43,7 +43,7 @@ class Credit {
 }
 
 /// Settings → Credits: the sources the app draws on — the Quran text, tafsir,
-/// Mushaf pages and so on — managed in the admin panel.
+/// Mushaf pages, fonts — managed in the admin panel.
 class CreditsView extends StatefulWidget {
   const CreditsView({super.key});
 
@@ -78,114 +78,100 @@ class _CreditsViewState extends State<CreditsView> {
   @override
   Widget build(BuildContext context) {
     final isAr = Get.locale?.languageCode == 'ar';
-    final athar = context.athar;
-    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text('credits'.tr)),
+      appBar: AtharAppBar(title: 'credits'.tr),
       body: SafeArea(
         child: FutureBuilder<List<Credit>>(
           future: _future,
           builder: (context, snap) {
             if (snap.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.md, AtharSpace.screen, AtharSpace.xxl),
+                children: [
+                  for (var i = 0; i < 4; i++)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: AtharSpace.sm),
+                      child: AtharSkeleton(height: 96, radius: AtharRadius.card),
+                    ),
+                ],
+              );
             }
             if (snap.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.wifi_off_rounded, size: 40, color: athar.textMuted),
-                    const SizedBox(height: 12),
-                    Text('credits_load_failed'.tr, style: TextStyle(color: athar.textMuted)),
-                    const SizedBox(height: 16),
-                    OutlinedButton(
-                      onPressed: () => setState(() => _future = _load()),
-                      child: Text('retry'.tr),
-                    ),
-                  ],
-                ),
+              return AtharErrorState(
+                message: 'credits_load_failed'.tr,
+                onRetry: () => setState(() => _future = _load()),
               );
             }
 
             final credits = snap.data ?? const <Credit>[];
+            if (credits.isEmpty) {
+              return AtharEmptyState(icon: Icons.volunteer_activism_rounded, title: 'credits_empty'.tr);
+            }
+
             return ListView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, AtharSpace.xxl),
               children: [
                 Text(
                   'credits_intro'.tr,
-                  style: TextStyle(color: athar.textMuted, fontSize: 14, height: 1.5),
+                  style: context.text.bodyMedium?.copyWith(color: context.colors.onSurfaceVariant),
                 ),
-                const SizedBox(height: 16),
-                if (credits.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32),
-                    child: Text(
-                      'credits_empty'.tr,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: athar.textMuted),
-                    ),
-                  ),
+                const SizedBox(height: AtharSpace.md),
                 for (final c in credits) ...[
-                  Material(
-                    color: athar.beige,
-                    borderRadius: BorderRadius.circular(16),
-                    clipBehavior: Clip.antiAlias,
-                    child: InkWell(
-                      onTap: c.url.isEmpty ? null : () => _open(c.url),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              c.title(isAr),
-                              style: TextStyle(
-                                color: athar.textMuted,
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              c.name,
-                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
-                            ),
-                            if (c.description(isAr).isNotEmpty) ...[
-                              const SizedBox(height: 6),
-                              Text(c.description(isAr), style: const TextStyle(fontSize: 13.5, height: 1.5)),
-                            ],
-                            if (c.url.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Row(
-                                children: [
-                                  Icon(Icons.open_in_new_rounded, size: 15, color: colors.primary),
-                                  const SizedBox(width: 6),
-                                  Flexible(
-                                    child: Text(
-                                      Uri.tryParse(c.url)?.host.replaceFirst('www.', '') ?? c.url,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: colors.primary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
+                  _CreditCard(credit: c, isAr: isAr, onOpen: () => _open(c.url)),
+                  const SizedBox(height: AtharSpace.sm),
                 ],
               ],
             );
           },
         ),
+      ),
+    );
+  }
+}
+
+class _CreditCard extends StatelessWidget {
+  const _CreditCard({required this.credit, required this.isAr, required this.onOpen});
+
+  final Credit credit;
+  final bool isAr;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = context.colors.primary;
+    final description = credit.description(isAr);
+
+    return AtharCard(
+      tone: AtharCardTone.surface,
+      onTap: credit.url.isEmpty ? null : onOpen,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(credit.title(isAr), style: context.type.overline),
+          const SizedBox(height: AtharSpace.xxs),
+          Text(credit.name, style: context.type.sectionTitle),
+          if (description.isNotEmpty) ...[
+            const SizedBox(height: AtharSpace.xxs),
+            Text(description, style: context.text.bodyMedium),
+          ],
+          if (credit.url.isNotEmpty) ...[
+            const SizedBox(height: AtharSpace.xs),
+            Row(
+              children: [
+                Icon(Icons.open_in_new_rounded, size: AtharSize.iconSm, color: primary),
+                const SizedBox(width: AtharSpace.xxs),
+                Flexible(
+                  child: Text(
+                    Uri.tryParse(credit.url)?.host.replaceFirst('www.', '') ?? credit.url,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.labelMedium?.copyWith(color: primary),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

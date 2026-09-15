@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show LicenseEntryWithLineBreaks, LicenseRegistry;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -15,7 +16,7 @@ import 'core/services/notification_router.dart';
 import 'core/services/prayer_notification_scheduler.dart';
 import 'core/services/timezone_service.dart';
 import 'data/providers/storage_provider.dart';
-import 'core/theme/app_theme.dart';
+import 'core/design/athar_scale.dart';
 import 'core/theme/theme_controller.dart';
 import 'core/utils/error_reporter.dart';
 import 'firebase_options.dart';
@@ -29,6 +30,21 @@ import 'modules/shell/shell_view.dart';
 import 'modules/splash/splash_binding.dart';
 import 'modules/splash/splash_view.dart';
 
+/// The bundled fonts are under the SIL Open Font License, which travels with
+/// them.
+void _registerFontLicenses() {
+  LicenseRegistry.addLicense(() async* {
+    const fonts = {
+      'IBM Plex Sans Arabic': 'assets/fonts/OFL-IBMPlexSansArabic.txt',
+      'Inter': 'assets/fonts/OFL-Inter.txt',
+      'Amiri Quran': 'assets/fonts/OFL-AmiriQuran.txt',
+    };
+    for (final entry in fonts.entries) {
+      yield LicenseEntryWithLineBreaks([entry.key], await rootBundle.loadString(entry.value));
+    }
+  });
+}
+
 @pragma('vm:entry-point')
 Future<void> _bgHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
@@ -38,6 +54,7 @@ Future<void> _bgHandler(RemoteMessage message) async {
 Future<void> main() async {
   ErrorReporter.init();
   WidgetsFlutterBinding.ensureInitialized();
+  _registerFontLicenses();
 
   // Portrait only. AndroidManifest and Info.plist lock it natively before the
   // first frame; this keeps Flutter in agreement.
@@ -114,9 +131,11 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final lang = Get.find<LocalizationController>();
-    final themeCtrl = Get.find<ThemeController>();
 
-    return GetMaterialApp(
+    // Rebuilt when an appearance preference changes; a language change
+    // rebuilds the whole tree too, which picks up the Arabic or Latin type.
+    return GetBuilder<ThemeController>(
+      builder: (themeCtrl) => GetMaterialApp(
       title: 'Athar',
       debugShowCheckedModeBanner: false,
       translations: AppTranslations(),
@@ -128,9 +147,14 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('ar'), Locale('en')],
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
+      theme: themeCtrl.lightTheme(arabic: lang.isRtl),
+      darkTheme: themeCtrl.darkTheme(arabic: lang.isRtl),
       themeMode: themeCtrl.mode,
+      // The reader's text & interface size, on top of the device's own.
+      builder: (context, child) => AtharScaleScope(
+        size: themeCtrl.textSize,
+        child: child ?? const SizedBox.shrink(),
+      ),
       initialRoute: '/splash',
       getPages: [
         GetPage(
@@ -151,6 +175,7 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
         GetPage(name: '/auth', page: () => const AuthView(), binding: AuthBinding()),
         GetPage(name: '/home', page: () => const ShellView()),
       ],
+      ),
     );
   }
 }

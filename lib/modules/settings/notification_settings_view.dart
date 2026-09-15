@@ -3,86 +3,99 @@ import 'package:get/get.dart';
 
 import '../../core/constants/notification_sounds.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/ui/athar_ui.dart';
 import 'notification_settings_controller.dart';
 
+/// Which prayer reminders are on, which sounds they use, and a way to test
+/// them.
 class NotificationSettingsView extends StatelessWidget {
   const NotificationSettingsView({super.key});
 
   @override
   Widget build(BuildContext context) {
     final c = Get.put(NotificationSettingsController());
-    final colors = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: Text('notification_settings'.tr)),
+      appBar: AtharAppBar(title: 'notification_settings'.tr),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: c.refreshStatus,
           child: ListView(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, AtharSpace.xxl),
             children: [
-              Obx(() => c.status.value == NotifStatus.ready
-                  ? const SizedBox.shrink()
-                  : _DisabledBanner(onOpen: c.openSystemSettings)),
-
-              _Header('prayer_notifications'.tr),
-              const SizedBox(height: 8),
-              Obx(() => _SwitchTile(
-                    icon: Icons.notifications_active_outlined,
-                    title: 'enable_prayer_notif'.tr,
-                    subtitle: 'enable_prayer_notif_desc'.tr,
-                    value: c.prayerEnabled.value,
-                    onChanged: c.setPrayerEnabled,
-                  )),
-              const SizedBox(height: 8),
-              Obx(() => _SwitchTile(
-                    icon: Icons.history_toggle_off_outlined,
-                    title: 'enable_post_prayer'.tr,
-                    subtitle: 'enable_post_prayer_desc'.tr,
-                    value: c.postEnabled.value,
-                    onChanged: c.setPostEnabled,
-                  )),
-              const SizedBox(height: 8),
-              Obx(() => _SwitchTile(
-                    icon: Icons.upcoming_outlined,
-                    title: 'enable_upcoming'.tr,
-                    subtitle: 'enable_upcoming_desc'.tr,
-                    value: c.upcomingEnabled.value,
-                    onChanged: c.setUpcomingEnabled,
-                  )),
-
-              const SizedBox(height: 24),
-              _Header('notification_sounds'.tr),
-              const SizedBox(height: 8),
+              Obx(
+                () => c.status.value == NotifStatus.ready
+                    ? const SizedBox.shrink()
+                    : Padding(
+                        padding: const EdgeInsets.only(bottom: AtharSpace.lg),
+                        child: _DisabledBanner(onOpen: c.openSystemSettings),
+                      ),
+              ),
+              AtharListGroup(
+                title: 'prayer_notifications'.tr,
+                children: [
+                  Obx(
+                    () => _SwitchRow(
+                      icon: Icons.notifications_active_rounded,
+                      title: 'enable_prayer_notif'.tr,
+                      subtitle: 'enable_prayer_notif_desc'.tr,
+                      value: c.prayerEnabled.value,
+                      onChanged: c.setPrayerEnabled,
+                    ),
+                  ),
+                  Obx(
+                    () => _SwitchRow(
+                      icon: Icons.history_rounded,
+                      title: 'enable_post_prayer'.tr,
+                      subtitle: 'enable_post_prayer_desc'.tr,
+                      value: c.postEnabled.value,
+                      onChanged: c.setPostEnabled,
+                    ),
+                  ),
+                  Obx(
+                    () => _SwitchRow(
+                      icon: Icons.upcoming_rounded,
+                      title: 'enable_upcoming'.tr,
+                      subtitle: 'enable_upcoming_desc'.tr,
+                      value: c.upcomingEnabled.value,
+                      onChanged: c.setUpcomingEnabled,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AtharSpace.lg),
+              AtharSectionHeader(title: 'notification_sounds'.tr),
               _SoundGroup(
-                icon: Icons.volume_up_outlined,
+                icon: Icons.volume_up_rounded,
                 title: 'prayer_sound'.tr,
                 options: NotificationSounds.prayer,
                 selectedId: c.prayerSoundId,
                 onSelect: c.setPrayerSound,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AtharSpace.sm),
               _SoundGroup(
-                icon: Icons.notifications_none_outlined,
+                icon: Icons.notifications_rounded,
                 title: 'reminder_sound'.tr,
                 options: NotificationSounds.reminder,
                 selectedId: c.reminderSoundId,
                 onSelect: c.setReminderSound,
               ),
-
-              const SizedBox(height: 24),
-              _ActionTile(
-                icon: Icons.send_outlined,
-                title: 'test_notification'.tr,
-                color: colors.primary,
-                onTap: c.sendTest,
-              ),
-              const SizedBox(height: 8),
-              _ActionTile(
-                icon: Icons.open_in_new,
-                title: 'open_notif_settings'.tr,
-                color: colors.onSurfaceVariant,
-                onTap: c.openSystemSettings,
+              const SizedBox(height: AtharSpace.lg),
+              AtharListGroup(
+                children: [
+                  AtharListRow(
+                    icon: Icons.send_rounded,
+                    title: 'test_notification'.tr,
+                    showChevron: false,
+                    onTap: c.sendTest,
+                  ),
+                  AtharListRow(
+                    icon: Icons.open_in_new_rounded,
+                    tone: AtharTone.neutral,
+                    title: 'open_notif_settings'.tr,
+                    onTap: c.openSystemSettings,
+                  ),
+                ],
               ),
             ],
           ),
@@ -92,30 +105,8 @@ class NotificationSettingsView extends StatelessWidget {
   }
 }
 
-class _Header extends StatelessWidget {
-  final String title;
-  const _Header(this.title);
-
-  @override
-  Widget build(BuildContext context) => Text(
-        title,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-          color: Theme.of(context).colorScheme.onSurfaceVariant,
-          letterSpacing: 0.5,
-        ),
-      );
-}
-
-class _SwitchTile extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  const _SwitchTile({
+class _SwitchRow extends StatelessWidget {
+  const _SwitchRow({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -123,47 +114,27 @@ class _SwitchTile extends StatelessWidget {
     required this.onChanged,
   });
 
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        child: Row(
-          children: [
-            Icon(icon, color: colors.primary, size: 22),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: TextStyle(
-                          fontSize: 12, color: colors.onSurfaceVariant)),
-                ],
-              ),
-            ),
-            Switch(value: value, onChanged: onChanged),
-          ],
-        ),
-      ),
+    return AtharListRow(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
+      showChevron: false,
+      onTap: () => onChanged(!value),
+      trailing: Switch(value: value, onChanged: onChanged),
     );
   }
 }
 
+/// One sound choice per notification kind.
 class _SoundGroup extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final List<NotificationSound> options;
-  final RxString selectedId;
-  final ValueChanged<String> onSelect;
-
   const _SoundGroup({
     required this.icon,
     required this.title,
@@ -172,122 +143,87 @@ class _SoundGroup extends StatelessWidget {
     required this.onSelect,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Icon(icon, color: colors.primary, size: 22),
-              const SizedBox(width: 14),
-              Text(title,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600)),
-            ]),
-            const SizedBox(height: 4),
-            Obx(() => RadioGroup<String>(
-                  groupValue: selectedId.value,
-                  onChanged: (v) => onSelect(v!),
-                  child: Column(
-                    children: [
-                      for (final s in options)
-                        RadioListTile<String>(
-                          contentPadding: EdgeInsets.zero,
-                          dense: true,
-                          value: s.id,
-                          title: Text(s.labelKey.tr,
-                              style: const TextStyle(fontSize: 14)),
-                        ),
-                    ],
-                  ),
-                )),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionTile extends StatelessWidget {
   final IconData icon;
   final String title;
-  final Color color;
-  final VoidCallback onTap;
-
-  const _ActionTile({
-    required this.icon,
-    required this.title,
-    required this.color,
-    required this.onTap,
-  });
+  final List<NotificationSound> options;
+  final RxString selectedId;
+  final ValueChanged<String> onSelect;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surface,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-          child: Row(children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(width: 14),
-            Text(title,
-                style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w600, color: color)),
-          ]),
-        ),
+    return AtharCard(
+      padding: const EdgeInsets.fromLTRB(AtharSpace.md, AtharSpace.md, AtharSpace.md, AtharSpace.xs),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: AtharSize.icon, color: context.colors.primary),
+              const SizedBox(width: AtharSpace.sm),
+              Expanded(child: Text(title, style: context.type.cardTitle)),
+            ],
+          ),
+          Obx(
+            () => RadioGroup<String>(
+              groupValue: selectedId.value,
+              onChanged: (v) => onSelect(v!),
+              child: Column(
+                children: [
+                  for (final s in options)
+                    RadioListTile<String>(
+                      contentPadding: EdgeInsets.zero,
+                      value: s.id,
+                      title: Text(s.labelKey.tr, style: context.text.bodyMedium),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Notifications are off at the system level — nothing Athar schedules will
+/// arrive until that changes.
 class _DisabledBanner extends StatelessWidget {
-  final VoidCallback onOpen;
   const _DisabledBanner({required this.onOpen});
+
+  final VoidCallback onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final error = context.colors.error;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AtharSpace.md),
       decoration: BoxDecoration(
-        color: colors.error.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.error.withValues(alpha: 0.4)),
+        color: error.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AtharRadius.card),
+        border: Border.all(color: error.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Icon(Icons.notifications_off_outlined, color: colors.error, size: 20),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text('notif_disabled_title'.tr,
-                  style: TextStyle(
-                      fontWeight: FontWeight.w700, color: colors.error)),
-            ),
-          ]),
-          const SizedBox(height: 8),
-          Text('notif_disabled_msg'.tr,
-              style: TextStyle(fontSize: 13, color: colors.onSurface)),
-          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.notifications_off_rounded, color: error, size: AtharSize.icon),
+              const SizedBox(width: AtharSpace.sm),
+              Expanded(
+                child: Text(
+                  'notif_disabled_title'.tr,
+                  style: context.type.cardTitle.copyWith(color: error),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AtharSpace.xs),
+          Text('notif_disabled_msg'.tr, style: context.text.bodySmall),
+          const SizedBox(height: AtharSpace.sm),
           Align(
             alignment: AlignmentDirectional.centerEnd,
-            child: ElevatedButton(
-              onPressed: onOpen,
-              child: Text('notif_enable_cta'.tr),
-            ),
+            child: AtharButton(label: 'notif_enable_cta'.tr, compact: true, onPressed: onOpen),
           ),
         ],
       ),

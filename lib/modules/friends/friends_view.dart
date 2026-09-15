@@ -4,283 +4,378 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/constants/app_colors.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/friend_model.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
 import '../profile_preview/profile_preview_modal.dart';
-import 'friends_controller.dart';
-import '../../core/tour/tour_widgets.dart';
 import '../tour/app_tours.dart';
+import 'friends_controller.dart';
 
+/// Friends: your code to share, adding someone by theirs, requests waiting for
+/// you, and your friends with how their day of prayer is going.
 class FriendsView extends GetView<FriendsController> {
   const FriendsView({super.key});
+
+  /// Room under the content for the floating nav bar.
+  static const _navClearance = 160.0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: controller.refreshAll,
-          child: Obx(
-            () => ListView(
-              padding: const EdgeInsets.all(16),
+          child: Obx(() {
+            final friends = controller.friends;
+            final pending = controller.pending;
+            final firstLoad = controller.loading.value && friends.isEmpty && pending.isEmpty;
+
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, _navClearance),
               // Keeps the whole page built so tour steps can scroll to any item.
               scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text('friends'.tr, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                    ),
-                    const TourHelpButton(pageId: TourPages.friends),
-                  ],
+                AtharPageHeader(
+                  title: 'friends'.tr,
+                  trailing: const [TourHelpButton(pageId: TourPages.friends)],
                 ),
-                const SizedBox(height: 12),
-                TourTarget(id: TourTargets.friendsCode, child: _myCodeCard()),
-                const SizedBox(height: 12),
-                TourTarget(
-                  id: TourTargets.friendsAdd,
-                  child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: controller.codeInput,
-                        textCapitalization: TextCapitalization.characters,
-                        maxLength: 6,
-                        decoration: InputDecoration(counterText: '', hintText: 'enter_code'.tr),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                      onPressed: controller.add,
-                      child: Text('add_friend'.tr, style: const TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-                ),
-                const SizedBox(height: 16),
-                if (controller.pending.isNotEmpty) ...[
-                  const Text('Pending requests', style: TextStyle(fontWeight: FontWeight.w600)),
-                  ...controller.pending.map(_pendingTile),
-                  const SizedBox(height: 16),
+                const SizedBox(height: AtharSpace.md),
+                const TourTarget(id: TourTargets.friendsCode, child: _MyCodeCard()),
+                const SizedBox(height: AtharSpace.sm),
+                TourTarget(id: TourTargets.friendsAdd, child: _AddFriend(controller: controller)),
+                if (pending.isNotEmpty) ...[
+                  const SizedBox(height: AtharSpace.xl),
+                  AtharListGroup(
+                    title: '${'friends_pending_title'.tr} (${pending.length})',
+                    children: [for (final r in pending) _PendingRow(request: r, controller: controller)],
+                  ),
                 ],
-                for (final (i, f) in controller.friends.indexed)
-                  i == 0
-                      ? TourTarget(id: TourTargets.friendsFirst, child: _friendTile(context, f))
-                      : _friendTile(context, f),
+                const SizedBox(height: AtharSpace.xl),
+                if (firstLoad)
+                  for (var i = 0; i < 3; i++)
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: AtharSpace.xs),
+                      child: AtharSkeleton(height: 96, radius: AtharRadius.card),
+                    )
+                else if (friends.isEmpty)
+                  AtharEmptyState(
+                    icon: Icons.group_add_rounded,
+                    title: 'friends_empty_title'.tr,
+                    message: 'friends_empty_msg'.tr,
+                  )
+                else ...[
+                  AtharSectionHeader(
+                    title: 'friends_list_title'.tr,
+                    subtitle: '${friends.length}',
+                  ),
+                  AtharListGroup(
+                    children: [
+                      for (final (i, f) in friends.indexed)
+                        i == 0
+                            ? TourTarget(id: TourTargets.friendsFirst, child: _FriendRow(friend: f, controller: controller))
+                            : _FriendRow(friend: f, controller: controller),
+                    ],
+                  ),
+                ],
               ],
-            ),
-          ),
+            );
+          }),
         ),
       ),
     );
   }
+}
 
-  Widget _pendingTile(PendingRequest r) => Card(
-    child: ListTile(
-      leading: FramedAvatar(
-        name: r.name,
-        avatarUrl: r.avatarUrl,
-        frameAsset: r.level?.frame,
-        level: r.level?.level,
-        radius: 20,
-      ),
-      title: Text(r.name),
-      subtitle: Text(r.userCode),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.check, color: AppColors.success),
-            onPressed: () => controller.respond(r.friendshipId, 'accept'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.close, color: AppColors.danger),
-            onPressed: () => controller.respond(r.friendshipId, 'reject'),
-          ),
-        ],
-      ),
-    ),
-  );
+/// Your friend code, large and easy to read out, with copy and share.
+class _MyCodeCard extends StatelessWidget {
+  const _MyCodeCard();
 
-  Widget _friendTile(BuildContext context, FriendModel f) => Container(
-    margin: const EdgeInsets.symmetric(vertical: 6),
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Theme.of(context).colorScheme.surface, borderRadius: BorderRadius.circular(14)),
-    child: Column(
-      children: [
-        Row(
-          children: [
-            InkWell(
-              onTap: () => openProfilePreview(f.id),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  FramedAvatar(
-                    name: f.name,
-                    avatarUrl: f.avatarUrl,
-                    frameAsset: f.level?.frame,
-                    level: f.level?.level,
-                    radius: 15,
-                  ),
-                  // Streak badge, on the avatar instead of the crowded text
-                  // row — only shown once there's actually a streak to show.
-                  if (f.currentStreak > 0)
-                    Positioned(
-                      bottom: -2,
-                      right: -2,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.white, width: 1.4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.local_fire_department_rounded, size: 11, color: Colors.white),
-                            const SizedBox(width: 2),
-                            Text('${f.currentStreak}',
-                                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w800)),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(f.name,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '${f.score}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 2),
-                      Transform.translate(
-                        offset: const Offset(0, -3),
-                        child: Icon(
-                          Icons.star_rounded,
-                          size: 17,
-                          color: AppColors.accent,
-                        ),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => controller.nudge(f),
-                    icon: const Icon(Icons.notifications_active_rounded, size: 20),
-                    label: Text('nudge'.tr)
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        if (f.todayChecklist.isNotEmpty) ...[
-          const SizedBox(height: 10),
-          _prayerTicksRow(f.todayChecklist),
-        ],
-
-
-      ],
-    ),
-  );
-
-  /// Small per-prayer tick/cross row — at a glance, which of today's 5
-  /// prayers this friend has completed.
-  Widget _prayerTicksRow(List<PrayerCheckItem> checklist) => Row(
-    children: checklist.map((p) {
-      final done = p.isCompleted;
-      final onTime = p.isOnTime;
-      return Expanded(
-        child: Column(
-          children: [
-            Icon(
-              done ? Icons.check_circle : Icons.circle_outlined,
-              size: 16,
-              color: done ?( onTime?AppColors.secondary :AppColors.success) : AppColors.textMuted.withValues(alpha: 0.35),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              p.prayerName.tr,
-              style: TextStyle(
-                fontSize: 9,
-                color: done ? AppColors.textMuted : AppColors.textMuted,
-                fontWeight: done ? FontWeight.w700 : FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      );
-    }).toList(),
-  );
-
-  Widget _myCodeCard() {
+  @override
+  Widget build(BuildContext context) {
     final user = Get.find<StorageProvider>().cachedUser;
     final code = (user?['user_code'] ?? '------') as String;
+    const onBrand = Colors.white;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [AppColors.primary, AppColors.primaryDark], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return AtharCard(
+      tone: AtharCardTone.brand,
+      padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.md, AtharSpace.xs, AtharSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'my_code'.tr,
-            style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 10),
+          Text('my_code'.tr, style: context.text.labelLarge?.copyWith(color: onBrand.withValues(alpha: 0.8))),
           Row(
             children: [
-              // الكود بأحرف كبيرة مع مسافة بين كل حرف
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  code.split('').join('  '),
-                  textDirection: TextDirection.ltr,
-                  style: const TextStyle(color: Colors.white, fontSize: 27, fontWeight: FontWeight.w800, letterSpacing: 1),
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    code.split('').join(' '),
+                    textDirection: TextDirection.ltr,
+                    style: context.type.bigNumber.copyWith(color: onBrand, letterSpacing: 4),
+                  ),
                 ),
               ),
-              // زر النسخ
-              IconButton(
+              AtharIconButton(
+                icon: Icons.copy_rounded,
+                tooltip: 'copy'.tr,
+                color: onBrand,
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: code));
                   AppSnackbar.show('my_code'.tr, 'code_copied'.tr);
                 },
-                icon: const Icon(Icons.copy_rounded, color: Colors.white70),
-                tooltip: 'copy'.tr,
               ),
-              // زر المشاركة
-              IconButton(
-                onPressed: () => Share.share('${'share_code_msg'.tr} $code'),
-                icon: const Icon(Icons.share_rounded, color: Colors.white70),
+              AtharIconButton(
+                icon: Icons.share_rounded,
                 tooltip: 'share'.tr,
+                color: onBrand,
+                onPressed: () => SharePlus.instance.share(ShareParams(text: '${'share_code_msg'.tr} $code')),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text('share_code_hint'.tr, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: AtharSpace.md),
+            child: Text(
+              'share_code_hint'.tr,
+              style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.75)),
+            ),
+          ),
         ],
       ),
+    );
+  }
+}
+
+class _AddFriend extends StatelessWidget {
+  const _AddFriend({required this.controller});
+
+  final FriendsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller.codeInput,
+            textCapitalization: TextCapitalization.characters,
+            maxLength: 6,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => controller.add(),
+            decoration: InputDecoration(
+              counterText: '',
+              hintText: 'enter_code'.tr,
+              prefixIcon: const Icon(Icons.person_add_alt_1_rounded),
+            ),
+          ),
+        ),
+        const SizedBox(width: AtharSpace.sm),
+        AtharButton(label: 'add_friend'.tr, onPressed: controller.add),
+      ],
+    );
+  }
+}
+
+class _PendingRow extends StatelessWidget {
+  const _PendingRow({required this.request, required this.controller});
+
+  final PendingRequest request;
+  final FriendsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.xs),
+      child: Row(
+        children: [
+          FramedAvatar(
+            name: request.name,
+            avatarUrl: request.avatarUrl,
+            frameAsset: request.level?.frame,
+            level: request.level?.level,
+            radius: 14,
+            glow: false,
+          ),
+          const SizedBox(width: AtharSpace.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(request.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall),
+                Text(request.userCode, textDirection: TextDirection.ltr, style: context.type.caption),
+              ],
+            ),
+          ),
+          AtharIconButton(
+            icon: Icons.check_rounded,
+            tooltip: 'friends_accept'.tr,
+            variant: AtharIconButtonVariant.tonal,
+            color: context.athar.success,
+            onPressed: () => controller.respond(request.friendshipId, 'accept'),
+          ),
+          AtharIconButton(
+            icon: Icons.close_rounded,
+            tooltip: 'friends_decline'.tr,
+            variant: AtharIconButtonVariant.tonal,
+            color: context.colors.error,
+            onPressed: () => controller.respond(request.friendshipId, 'reject'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One friend: avatar with their streak, name and score, a nudge, and today's
+/// five prayers at a glance.
+class _FriendRow extends StatelessWidget {
+  const _FriendRow({required this.friend, required this.controller});
+
+  final FriendModel friend;
+  final FriendsController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final athar = context.athar;
+    final streakFill = athar.warning;
+    final onStreak = ThemeData.estimateBrightnessForColor(streakFill) == Brightness.dark
+        ? Colors.white
+        : Colors.black87;
+
+    return InkWell(
+      onTap: () => openProfilePreview(friend.id),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AtharSpace.md, AtharSpace.sm, AtharSpace.xs, AtharSpace.sm),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    FramedAvatar(
+                      name: friend.name,
+                      avatarUrl: friend.avatarUrl,
+                      frameAsset: friend.level?.frame,
+                      level: friend.level?.level,
+                      radius: 14,
+                    ),
+                    if (friend.currentStreak > 0)
+                      PositionedDirectional(
+                        bottom: -2,
+                        end: -2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: streakFill,
+                            borderRadius: BorderRadius.circular(AtharRadius.pill),
+                            border: Border.all(color: athar.card, width: 1.5),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.local_fire_department_rounded, size: 12, color: onStreak),
+                              const SizedBox(width: 2),
+                              Text(
+                                '${friend.currentStreak}',
+                                style: context.text.labelSmall?.copyWith(color: onStreak, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(width: AtharSpace.sm),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(friend.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: context.text.titleSmall),
+                      Row(
+                        children: [
+                          Icon(Icons.star_rounded, size: AtharSize.iconSm, color: athar.gold),
+                          const SizedBox(width: 2),
+                          Text(
+                            '${friend.score}',
+                            style: context.type.caption.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                AtharIconButton(
+                  icon: Icons.notifications_active_rounded,
+                  tooltip: 'nudge'.tr,
+                  variant: AtharIconButtonVariant.tonal,
+                  color: context.colors.primary,
+                  onPressed: () => controller.nudge(friend),
+                ),
+              ],
+            ),
+            if (friend.todayChecklist.isNotEmpty) ...[
+              const SizedBox(height: AtharSpace.sm),
+              _TodayTicks(checklist: friend.todayChecklist),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Which of today's five prayers a friend has logged — icon and name for each,
+/// so the state reads without colour.
+class _TodayTicks extends StatelessWidget {
+  const _TodayTicks({required this.checklist});
+
+  final List<PrayerCheckItem> checklist;
+
+  @override
+  Widget build(BuildContext context) {
+    final athar = context.athar;
+    final scheme = context.colors;
+
+    return Row(
+      children: [
+        for (final p in checklist)
+          Expanded(
+            child: Semantics(
+              label: '${p.prayerName.tr}: ${p.isCompleted ? (p.isOnTime ? 'performed_on_time'.tr : 'performed_outside_time'.tr) : 'friends_not_yet'.tr}',
+              excludeSemantics: true,
+              child: Column(
+                children: [
+                  Icon(
+                    !p.isCompleted
+                        ? Icons.radio_button_unchecked_rounded
+                        : p.isOnTime
+                            ? Icons.verified_rounded
+                            : Icons.task_alt_rounded,
+                    size: 18,
+                    color: !p.isCompleted ? scheme.outline : (p.isOnTime ? athar.success : athar.warning),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    p.prayerName.tr,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.labelSmall?.copyWith(
+                      color: p.isCompleted ? scheme.onSurface : scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

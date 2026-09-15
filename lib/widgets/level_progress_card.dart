@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../core/theme/app_theme.dart';
+import '../core/ui/athar_ui.dart';
 import '../data/models/user_model.dart';
 
-/// Current level + progress-to-next-level, shown on the Home screen and the
-/// Profile page. Mirrors the achievement section already used in the
-/// leaderboard's profile preview modal.
+/// Current level and progress toward the next, shown on Profile and Stats.
 class LevelProgressCard extends StatelessWidget {
   const LevelProgressCard({super.key, required this.level});
 
@@ -16,40 +14,40 @@ class LevelProgressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = level;
     final atMax = l != null && l.nextAt == null;
+    final isAr = Get.locale?.languageCode == 'ar';
+    final progress = (l?.progress ?? 0).clamp(0, 1).toDouble();
 
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.athar.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return AtharCard(
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.emoji_events_rounded, color: context.athar.gold, size: 28),
-          const SizedBox(width: 12),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AtharTone.gold.background(context),
+              borderRadius: BorderRadius.circular(AtharRadius.md),
+            ),
+            child: Icon(Icons.workspace_premium_rounded, size: 26, color: context.athar.goldText),
+          ),
+          const SizedBox(width: AtharSpace.sm),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-
-                const SizedBox(height: 10),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: (l?.progress ?? 0).clamp(0, 1),
-                    minHeight: 8,
-                    backgroundColor: Theme.of(context).colorScheme.outline,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+                Text('current_level'.tr, style: context.type.caption),
+                Text(l == null ? '-' : l.displayName(isAr), style: context.type.cardTitle),
+                const SizedBox(height: AtharSpace.xs),
+                AtharProgressBar(
+                  value: progress,
+                  color: context.athar.gold,
+                  semanticsLabel: 'progress_to_next'.tr,
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: AtharSpace.xs),
                 Text(
                   atMax
                       ? 'max_level_reached'.tr
-                      : '${'progress_to_next'.tr}'
-                          '${l == null ? '' : ' • ${l.pointsToNext} ${'points'.tr}'}',
-                  style: TextStyle(color: context.athar.textMuted, fontSize: 11),
+                      : '${'progress_to_next'.tr}${l == null ? '' : ' · ${l.pointsToNext} ${'points'.tr}'}',
+                  style: context.type.caption,
                 ),
               ],
             ),

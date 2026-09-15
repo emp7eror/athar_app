@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../core/constants/app_colors.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/widget_image_exporter.dart';
 import '../level_up/achievement_card.dart';
@@ -41,9 +40,7 @@ class _KhatmaPopupBody extends StatefulWidget {
 }
 
 class _KhatmaPopupBodyState extends State<_KhatmaPopupBody> {
-  late final ConfettiController _confetti = ConfettiController(
-    duration: const Duration(seconds: 4),
-  );
+  late final ConfettiController _confetti = ConfettiController(duration: const Duration(seconds: 4));
   final _cardKey = GlobalKey();
   bool _sharing = false;
 
@@ -69,10 +66,7 @@ class _KhatmaPopupBodyState extends State<_KhatmaPopupBody> {
       );
       if (path != null) {
         await SharePlus.instance.share(
-          ShareParams(
-            files: [XFile(path)],
-            text: 'quran_khatma_share_text'.tr,
-          ),
+          ShareParams(files: [XFile(path)], text: 'quran_khatma_share_text'.tr),
         );
       }
     } catch (e) {
@@ -84,18 +78,21 @@ class _KhatmaPopupBodyState extends State<_KhatmaPopupBody> {
 
   @override
   Widget build(BuildContext context) {
+    final athar = context.athar;
+    const onBrand = Colors.white;
+
     return Material(
       color: Colors.transparent,
       child: SizedBox.expand(
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Container(
+            DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
-                  colors: [AppColors.primaryDark, AtharPalette.dark.beige],
+                  colors: [athar.brand, athar.primaryDark],
                 ),
               ),
             ),
@@ -107,106 +104,71 @@ class _KhatmaPopupBodyState extends State<_KhatmaPopupBody> {
                 shouldLoop: false,
                 numberOfParticles: 36,
                 gravity: 0.3,
-                colors: const [
-                  AppColors.secondary,
-                  Colors.white,
-                  AppColors.sage,
-                ],
+                colors: [athar.gold, Colors.white, athar.sage],
               ),
             ),
             SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xl),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const _Medal(size: 112),
-                    const SizedBox(height: 22),
-                    Text(
-                      'quran_khatma_title'.tr,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w800,
-                        height: 1.3,
+                    const KhatmaMedal(size: 112),
+                    const SizedBox(height: AtharSpace.lg),
+                    Semantics(
+                      header: true,
+                      liveRegion: true,
+                      child: Text(
+                        'quran_khatma_title'.tr,
+                        textAlign: TextAlign.center,
+                        style: context.text.headlineMedium?.copyWith(color: onBrand),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AtharSpace.xs),
                     Text(
                       widget.name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                      style: context.text.bodyLarge?.copyWith(color: onBrand.withValues(alpha: 0.75)),
                     ),
-                    const SizedBox(height: 16),
-                    _Pill(
-                      text: 'quran_khatma_number'.trParams({
-                        'n': '${widget.khatmas}',
-                      }),
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AtharSpace.md),
+                    KhatmaPill(text: 'quran_khatma_number'.trParams({'n': '${widget.khatmas}'})),
+                    const SizedBox(height: AtharSpace.md),
                     Text(
                       'quran_khatma_message'.tr,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
-                        height: 1.6,
-                      ),
+                      style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.7)),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: AtharSpace.xl),
                     Row(
                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _sharing ? null : _share,
                             icon: _sharing
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white70,
-                                    ),
+                                ? const SizedBox.square(
+                                    dimension: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
                                   )
-                                : const Icon(
-                                    Icons.share_rounded,
-                                    color: Colors.white,
-                                  ),
-                            label: Text(
-                              'share_achievement'.tr,
-                              style: const TextStyle(color: Colors.white),
-                            ),
+                                : const Icon(Icons.share_rounded, color: onBrand),
+                            label: Text('share_achievement'.tr, maxLines: 1, overflow: TextOverflow.ellipsis),
                             style: OutlinedButton.styleFrom(
+                              foregroundColor: onBrand,
                               side: const BorderSide(color: Colors.white54),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                              minimumSize: const Size(64, 52),
+                              padding: const EdgeInsets.symmetric(horizontal: AtharSpace.md),
                             ),
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: AtharSpace.sm),
                         Expanded(
-                          child: ElevatedButton(
+                          child: FilledButton(
                             onPressed: () => Get.back<void>(),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              foregroundColor: AppColors.textDark,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: athar.gold,
+                              foregroundColor: const Color(0xFF231A05),
+                              minimumSize: const Size(64, 52),
                             ),
-                            child: Text(
-                              'continue_btn'.tr,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            child: Text('continue_btn'.tr, maxLines: 1, overflow: TextOverflow.ellipsis),
                           ),
                         ),
                       ],
@@ -252,23 +214,26 @@ class KhatmaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final athar = context.athar;
+    const onBrand = Colors.white;
+
     return SizedBox(
       width: 360,
       height: 640,
       child: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
+          DecoratedBox(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.primaryDark, AppColors.primary],
+                colors: [athar.brand, athar.primaryDark],
               ),
             ),
           ),
-          Positioned.fill(child: CustomPaint(painter: IslamicMotifPainter())),
+          const Positioned.fill(child: CustomPaint(painter: IslamicMotifPainter())),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -279,52 +244,47 @@ class KhatmaCard extends StatelessWidget {
                       height: 44,
                       errorBuilder: (_, _, _) => const SizedBox.shrink(),
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
+                    const SizedBox(height: AtharSpace.xxs),
+                    Text(
                       'Athar',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                      style: context.text.labelLarge?.copyWith(
+                        color: onBrand.withValues(alpha: 0.7),
                         letterSpacing: 2,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
                 ),
                 Column(
                   children: [
-                    const _Medal(size: 132),
-                    const SizedBox(height: 22),
+                    const KhatmaMedal(size: 132),
+                    const SizedBox(height: AtharSpace.lg),
                     Text(
                       'quran_khatma_card_title'.tr,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: AppColors.secondary,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
+                      style: context.text.displaySmall?.copyWith(
+                        color: athar.gold,
+                        decoration: TextDecoration.none,
                       ),
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: AtharSpace.xs),
                     Text(
                       name,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+                      style: context.text.headlineSmall?.copyWith(
+                        color: onBrand,
+                        decoration: TextDecoration.none,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    _Pill(
-                      text: 'quran_khatma_number'.trParams({'n': '$khatmas'}),
-                    ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: AtharSpace.sm),
+                    KhatmaPill(text: 'quran_khatma_number'.trParams({'n': '$khatmas'})),
+                    const SizedBox(height: AtharSpace.sm),
                     Text(
                       'quran_khatma_pages'.trParams({'total': '$totalPages'}),
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
+                      style: context.text.bodyMedium?.copyWith(
+                        color: onBrand.withValues(alpha: 0.75),
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -334,20 +294,18 @@ class KhatmaCard extends StatelessWidget {
                     Text(
                       'quran_khatma_dua'.tr,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        height: 1.5,
+                      style: context.text.titleSmall?.copyWith(
+                        color: onBrand,
+                        decoration: TextDecoration.none,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
+                    const SizedBox(height: AtharSpace.xs),
+                    Text(
                       'أثر',
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
+                      style: context.text.labelMedium?.copyWith(
+                        color: onBrand.withValues(alpha: 0.4),
                         letterSpacing: 3,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -362,57 +320,55 @@ class KhatmaCard extends StatelessWidget {
 }
 
 /// An open Mushaf in a gold ring — the khatma's emblem.
-class _Medal extends StatelessWidget {
-  const _Medal({required this.size});
+class KhatmaMedal extends StatelessWidget {
+  const KhatmaMedal({super.key, required this.size});
 
   final double size;
 
   @override
   Widget build(BuildContext context) {
+    final gold = context.athar.gold;
+
     return Container(
       width: size,
       height: size,
-      padding: const EdgeInsets.all(6),
+      padding: const EdgeInsets.all(AtharSpace.xxs + 2),
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        border: Border.all(color: AppColors.secondary, width: 2),
+        border: Border.all(color: gold, width: 2),
       ),
       child: Container(
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white.withValues(alpha: 0.12),
         ),
-        child: Icon(
-          Icons.auto_stories_rounded,
-          size: size * 0.46,
-          color: AppColors.secondary,
-        ),
+        child: Icon(Icons.auto_stories_rounded, size: size * 0.46, color: gold),
       ),
     );
   }
 }
 
-class _Pill extends StatelessWidget {
-  const _Pill({required this.text});
+/// A gold-outlined pill on the khatma's dark ground.
+class KhatmaPill extends StatelessWidget {
+  const KhatmaPill({super.key, required this.text});
 
   final String text;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xs),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.secondary, width: 1.4),
+        borderRadius: BorderRadius.circular(AtharRadius.pill),
+        border: Border.all(color: context.athar.gold, width: 1.4),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
-        style: const TextStyle(
-          color: AppColors.secondary,
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
+        style: context.text.titleMedium?.copyWith(
+          color: context.athar.gold,
+          decoration: TextDecoration.none,
         ),
       ),
     );

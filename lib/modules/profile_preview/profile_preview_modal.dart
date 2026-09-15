@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/user_model.dart';
@@ -15,10 +15,8 @@ import '../../widgets/framed_avatar.dart';
 void openProfilePreview(int userId, {int? rank}) {
   final context = Get.context;
   if (context == null) return;
-  showModalBottomSheet(
+  showAtharSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (_) => ProfilePreviewModal(userId: userId, rank: rank),
   );
 }
@@ -107,21 +105,14 @@ class ProfilePreviewController extends GetxController {
     final p = profile.value;
     if (p == null || acting.value) return;
 
-    final confirmed = await Get.dialog<bool>(
-      AlertDialog(
-        title: Text('remove_friend_title'.tr),
-        content: Text('remove_friend_msg'.trParams({'name': p.name})),
-        actions: [
-          TextButton(onPressed: () => Get.back(result: false), child: Text('cancel'.tr)),
-          TextButton(
-            onPressed: () => Get.back(result: true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('remove'.tr),
-          ),
-        ],
-      ),
+    final confirmed = await showAtharConfirm(
+      title: 'remove_friend_title'.tr,
+      message: 'remove_friend_msg'.trParams({'name': p.name}),
+      confirmLabel: 'remove'.tr,
+      icon: Icons.person_remove_rounded,
+      destructive: true,
     );
-    if (confirmed != true) return;
+    if (!confirmed) return;
 
     acting.value = true;
     try {
@@ -158,7 +149,6 @@ class _ProfilePreviewModalState extends State<ProfilePreviewModal> {
 
   @override
   Widget build(BuildContext context) {
-    final palette = context.athar;
     final isAr = Get.locale?.languageCode == 'ar';
 
     return DraggableScrollableSheet(
@@ -166,186 +156,201 @@ class _ProfilePreviewModalState extends State<ProfilePreviewModal> {
       minChildSize: 0.5,
       maxChildSize: 0.94,
       expand: false,
-      builder: (_, scrollController) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Obx(() {
-          if (controller.loading.value && controller.profile.value == null) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          final p = controller.profile.value;
-          if (p == null) {
-            return Center(child: Text('app_name'.tr));
-          }
+      builder: (_, scrollController) => Obx(() {
+        if (controller.loading.value && controller.profile.value == null) {
+          return const AtharLoadingState();
+        }
+        final p = controller.profile.value;
+        if (p == null) {
+          return AtharErrorState(message: 'legal_load_failed'.tr, onRetry: controller.load);
+        }
 
-          return ListView(
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+        return ListView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(AtharSpace.screen, 0, AtharSpace.screen, AtharSpace.xl),
+          children: [
+            _Header(profile: p, rank: widget.rank, isAr: isAr),
+            const SizedBox(height: AtharSpace.lg),
+            _Statistics(profile: p),
+            const SizedBox(height: AtharSpace.md),
+            _Achievement(profile: p, isAr: isAr),
+            const SizedBox(height: AtharSpace.md),
+            _Social(controller: controller, profile: p),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header({required this.profile, required this.rank, required this.isAr});
+
+  final PublicProfile profile;
+  final int? rank;
+  final bool isAr;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        FramedAvatar(
+          name: profile.name,
+          avatarUrl: profile.avatarUrl,
+          frameAsset: profile.level.frame,
+          level: profile.level.level,
+          radius: 30,
+        ),
+        const SizedBox(height: AtharSpace.sm),
+        Semantics(
+          header: true,
+          child: Text(profile.name, textAlign: TextAlign.center, style: context.text.headlineSmall),
+        ),
+        Text(profile.level.displayName(isAr), style: context.type.caption),
+        if (rank != null) ...[
+          const SizedBox(height: AtharSpace.xs),
+          AtharBadge(label: '${'rank'.tr} #$rank', icon: Icons.emoji_events_rounded, tone: AtharTone.gold),
+        ],
+      ],
+    );
+  }
+}
+
+class _Statistics extends StatelessWidget {
+  const _Statistics({required this.profile});
+
+  final PublicProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return AtharCard(
+      child: Column(
+        children: [
+          Row(
             children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: palette.textMuted.withValues(alpha: 0.4),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
+              Expanded(
+                child: AtharStat(
+                  icon: Icons.star_rounded,
+                  tone: AtharTone.gold,
+                  value: '${profile.totalPoints}',
+                  label: 'points'.tr,
+                  center: true,
                 ),
               ),
-              const SizedBox(height: 20),
-              _header(context, p, isAr),
-              const SizedBox(height: 24),
-              _statisticsSection(context, p),
-              const SizedBox(height: 24),
-              _achievementSection(context, p, isAr),
-              const SizedBox(height: 24),
-              _socialSection(context, p),
+              Expanded(
+                child: AtharStat(
+                  icon: Icons.local_fire_department_rounded,
+                  tone: AtharTone.warning,
+                  value: '${profile.currentStreak}',
+                  label: 'streak'.tr,
+                  center: true,
+                ),
+              ),
             ],
-          );
-        }),
-      ),
-    );
-  }
-
-  Widget _header(BuildContext context, PublicProfile p, bool isAr) {
-    print(widget.rank);
-    return Column(
-      children: [
-        FramedAvatar(name: p.name, avatarUrl: p.avatarUrl, frameAsset: p.level.frame, level: p.level.level, radius: 35),
-        const SizedBox(height: 12),
-        Text(p.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-        if (widget.rank != null) ...[
-          const SizedBox(height: 6),
-          Text('${'rank'.tr} #${widget.rank}',
-              style: TextStyle(color: context.athar.textMuted, fontSize: 13)),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: AtharSpace.md),
+            child: Divider(height: 1),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: AtharStat(
+                  icon: Icons.calendar_month_rounded,
+                  value: '${profile.score}',
+                  label: 'current_month_score'.tr,
+                  center: true,
+                ),
+              ),
+              Expanded(
+                child: AtharStat(
+                  icon: Icons.history_rounded,
+                  tone: AtharTone.neutral,
+                  value: '${profile.lastScore}',
+                  label: 'last_month_score'.tr,
+                  center: true,
+                ),
+              ),
+              Expanded(
+                child: AtharStat(
+                  icon: Icons.military_tech_rounded,
+                  tone: AtharTone.gold,
+                  value: '${profile.bestScore}',
+                  label: 'best_score'.tr,
+                  center: true,
+                ),
+              ),
+            ],
+          ),
         ],
-      ],
-    );
-  }
-
-  Widget _statisticsSection(BuildContext context, PublicProfile p) {
-    return Column(
-      children: [
-        _statRow(context, [
-          ('${p.score}', 'current_month_score'.tr),
-          ('${p.bestScore}', 'best_score'.tr),
-        ]),
-        const SizedBox(height: 10),
-        _statRow(context, [
-          ('${p.lastScore}', 'last_month_score'.tr),
-          ('${p.totalPoints}', 'points'.tr),
-        ]),
-      ],
-    );
-  }
-
-  /// A row of equal-width [_statTile]s, laid out from (value, label) pairs.
-  Widget _statRow(BuildContext context, List<(String, String)> tiles) {
-    return Row(
-      children: [
-        for (var i = 0; i < tiles.length; i++) ...[
-          if (i > 0) const SizedBox(width: 10),
-          _statTile(context, tiles[i].$1, tiles[i].$2),
-        ],
-      ],
-    );
-  }
-
-  Widget _statTile(BuildContext context, String value, String label) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: context.athar.card,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Text(value,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
-                maxLines: 1, overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 4),
-            Text(label,
-                style: TextStyle(color: context.athar.textMuted, fontSize: 10),
-                maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center),
-          ],
-        ),
       ),
     );
   }
+}
 
-  Widget _achievementSection(BuildContext context, PublicProfile p, bool isAr) {
-    final atMax = p.level.nextAt == null;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: context.athar.card,
-        borderRadius: BorderRadius.circular(16),
-      ),
+class _Achievement extends StatelessWidget {
+  const _Achievement({required this.profile, required this.isAr});
+
+  final PublicProfile profile;
+  final bool isAr;
+
+  @override
+  Widget build(BuildContext context) {
+    final atMax = profile.level.nextAt == null;
+
+    return AtharCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('current_level'.tr,
-              style: TextStyle(color: context.athar.textMuted, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(p.level.displayName(isAr),
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: p.level.progress.clamp(0, 1),
-              minHeight: 8,
-              backgroundColor: Theme.of(context).colorScheme.outline,
-              color: Theme.of(context).colorScheme.primary,
-            ),
+          Text('current_level'.tr, style: context.type.caption),
+          Text(profile.level.displayName(isAr), style: context.type.sectionTitle),
+          const SizedBox(height: AtharSpace.sm),
+          AtharProgressBar(
+            value: profile.level.progress.clamp(0, 1).toDouble(),
+            color: context.athar.gold,
+            semanticsLabel: 'progress_to_next'.tr,
           ),
-          const SizedBox(height: 6),
-          Text(
-            atMax ? 'max_level_reached'.tr : 'progress_to_next'.tr,
-            style: TextStyle(color: context.athar.textMuted, fontSize: 11),
-          ),
+          const SizedBox(height: AtharSpace.xs),
+          Text(atMax ? 'max_level_reached'.tr : 'progress_to_next'.tr, style: context.type.caption),
         ],
       ),
     );
   }
+}
 
-  Widget _socialSection(BuildContext context, PublicProfile p) {
+class _Social extends StatelessWidget {
+  const _Social({required this.controller, required this.profile});
+
+  final ProfilePreviewController controller;
+  final PublicProfile profile;
+
+  @override
+  Widget build(BuildContext context) {
     return Obx(() {
       final busy = controller.acting.value;
-      switch (p.friendshipStatus) {
+
+      switch (profile.friendshipStatus) {
         case 'self':
           return const SizedBox.shrink();
         case 'accepted':
-          return SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: busy ? null : controller.removeFriend,
-              icon: const Icon(Icons.person_remove_outlined),
-              label: Text('remove_friend'.tr),
-            ),
+          return AtharButton(
+            label: 'remove_friend'.tr,
+            icon: Icons.person_remove_rounded,
+            variant: AtharButtonVariant.secondary,
+            expand: true,
+            onPressed: busy ? null : controller.removeFriend,
           );
         case 'pending_sent':
         case 'pending_received':
-          return SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: null,
-              child: Text('friendship_pending'.tr),
-            ),
+          return AtharButton(
+            label: 'friendship_pending'.tr,
+            icon: Icons.hourglass_top_rounded,
+            variant: AtharButtonVariant.secondary,
+            expand: true,
+            onPressed: null,
           );
         default:
-          return SizedBox(
-            width: double.infinity,
-            child:SizedBox()
-            // ElevatedButton.icon(
-            //   onPressed: busy ? null : controller.addFriend,
-            //   icon: const Icon(Icons.person_add_alt_1),
-            //   label: Text('add_friend'.tr),
-            // ),
-          );
+          return const SizedBox.shrink();
       }
     });
   }

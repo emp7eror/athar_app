@@ -1,462 +1,306 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
+import 'package:flutter/services.dart' show SystemUiOverlayStyle;
 import 'package:get/get.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' show DateFormat;
 
-import '../../core/constants/app_colors.dart';
-import '../../core/theme/app_theme.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../data/models/prayer_log_model.dart';
+import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
 import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
+import '../settings/settings_view.dart';
 import '../shell/shell_view.dart';
+import '../tour/app_tours.dart';
 import 'home_controller.dart';
 import 'prayer_sky_theme.dart';
 import 'prayer_visual_theme.dart';
-import '../../core/tour/tour_widgets.dart';
-import '../tour/app_tours.dart';
 
+/// Home, in order of what matters now: today's prayers — the next one
+/// highlighted with its countdown — then the day's other practices. The top
+/// of the page takes on the sky of the prayer that comes next.
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
+  /// Room under the content for the floating nav bar and the AI button on it.
+  static const _navClearance = 160.0;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // The AI coach button sits on the shell's nav bar, on every tab.
-      body: SafeArea(
-        bottom: false,
-        child: RefreshIndicator(
-          onRefresh: controller.refreshAll,
-          child: ListView(
-            // Clear of the floating nav bar and the AI button raised on it.
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 160),
-            // Keeps the whole page built so tour steps can scroll to any card.
-            scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
-            children: [
-
-              // ── الهيدر: صورة + اسم + أيقونة الإعدادات ──
-              Row(
-                children: [
-                  // الصورة والاسم → ينقل لصفحة الملف الشخصي
-                  TourTarget(
-                    id: TourTargets.homeProfile,
-                    child: GestureDetector(
-                    onTap: () => Get.find<ShellController>().index.value = 4,
-                    child: Obx(() {
-                      final name      = controller.userName.value;
-                      final avatarUrl = controller.avatarUrl.value;
-                      return Row(children: [
-                        FramedAvatar(
-                          name: name,
-                          avatarUrl: avatarUrl,
-                          frameAsset: controller.level.value?.frame,
-                          level: controller.level.value?.level,
-                          radius: 13,
-                          backgroundColor: AppColors.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Column(
-                          children: [
-                            Text(name,
-                                style: const TextStyle(
-                                    fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textMuted)),
-
-                              Text( controller.level.value!.name,
-                                  style: TextStyle(color: context.athar.textMuted, fontSize: 12)),
-
-                          ],
-                        ), const SizedBox(width: 10),
-
-                      ]);
-                    }),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Every prayer's sky is dark behind the status bar.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: Stack(
+          children: [
+            const _SkyBackdrop(),
+            SafeArea(
+              bottom: false,
+              child: RefreshIndicator(
+                onRefresh: controller.refreshAll,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AtharSpace.screen,
+                    AtharSpace.xs,
+                    AtharSpace.screen,
+                    _navClearance,
                   ),
-                  ),
-                  const Spacer(),
-                  // Replays this page's product tour.
-                  const TourHelpButton(pageId: TourPages.home),
-                  const SizedBox(width: 10),
-                  // أيقونة الإعدادات → ينقل لصفحة الإعدادات
-                  TourTarget(
-                    id: TourTargets.homeSettings,
-                    child: _CircleIconButton(
-                      icon: Icons.settings_outlined,
-                      onTap: () => Get.find<ShellController>().index.value = 5,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  _CircleIconButton(
-                    icon: Icons.notifications_none_rounded,
-                    onTap: () {},
-                  )
-                ],
-              ),
-
-              // const SizedBox(height: 10),
-              // Obx(() => LevelProgressCard(level: controller.level.value)),
-              const SizedBox(height: 10),
-              const TourTarget(id: TourTargets.homeNextPrayer, child: _NextPrayerCard()),
-              const SizedBox(height: 15),
-              _SectionHeader('today'.tr),
-              const SizedBox(height: 12),
-              TourTarget(
-                id: TourTargets.homePrayers,
-                child: Obx(() => Column(
-                children: controller.checklist
-                    .map((item) => Padding(
-                  padding: const EdgeInsets.only(bottom: 5),
-                  child: _PrayerTile(item: item),
-                ))
-                    .toList(),
-              )),
-              ),
-              // const _QuoteCard(),
-              const SizedBox(height: 12),
-              // Dhikr + Quran side by side, equal height.
-              TourTarget(
-                id: TourTargets.homePractices,
-                child: IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: _HomeGridCard(
-                        icon: Icons.brightness_7_rounded,
-                        title: 'dhikr_home_card_title'.tr,
-                        subtitle: 'dhikr_home_card_sub'.tr,
-                        colors: const [Color(0xFF243329), Color(0xFF15201A)],
-                        onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _HomeGridCard(
-                        icon: Icons.menu_book_rounded,
-                        title: 'quran_home_card_title'.tr,
-                        subtitle: 'quran_home_card_sub'.tr,
-                        colors: const [Color(0xFF243329), Color(0xFF15201A)],
-                        onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
-                      ),
-                    ),
+                  // Keeps the whole page built so tour steps can scroll to any part.
+                  scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
+                  children: const [
+                    _Header(),
+                    SizedBox(height: AtharSpace.lg),
+                    TourTarget(id: TourTargets.homeNextPrayer, child: _TodaySummary()),
+                    SizedBox(height: AtharSpace.lg),
+                    TourTarget(id: TourTargets.homePrayers, child: _PrayerList()),
+                    SizedBox(height: AtharSpace.lg),
+                    TourTarget(id: TourTargets.homePractices, child: _Practices()),
                   ],
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// The sky of the next prayer, fading into the page
+// ─────────────────────────────────────────────────────────────────────────
+class _SkyBackdrop extends GetView<HomeController> {
+  const _SkyBackdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    final ground = Theme.of(context).scaffoldBackgroundColor;
+
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      height: top + 300,
+      child: IgnorePointer(
+        child: Obx(() {
+          final sky = PrayerSkyTheme.of(controller.nextPrayerKey.value);
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 900),
+                curve: Curves.easeInOut,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: AlignmentDirectional.topStart,
+                    end: AlignmentDirectional.bottomEnd,
+                    colors: sky.colors.length == 2 ? [...sky.colors, sky.colors.last] : sky.colors,
+                  ),
+                ),
+              ),
+              CustomPaint(painter: SkyStarsPainter(count: sky.stars)),
+              PositionedDirectional(
+                end: -30,
+                top: top + AtharSpace.xl,
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 600),
+                  child: Icon(
+                    sky.watermark,
+                    key: ValueKey(sky.watermark),
+                    size: 150,
+                    color: Colors.white.withValues(alpha: 0.10),
+                  ),
+                ),
+              ),
+              // Fades into the page so the list sits on plain ground.
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: const [0.5, 1],
+                    colors: [ground.withValues(alpha: 0), ground],
+                  ),
+                ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Half-width entry card (tasbeeh / Quran Werd) for the Home grid, matching
-/// the beige section styling used elsewhere on Home.
-class _HomeGridCard extends StatelessWidget {
-  const _HomeGridCard({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-    required this.colors,
-  });
-
-  /// Background gradient behind the text.
-  final List<Color> colors;
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final gold = context.athar.gold;
-
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: Ink(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: AlignmentDirectional.topStart,
-            end: AlignmentDirectional.bottomEnd,
-            colors: colors,
-          ),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: InkWell(
-          onTap: onTap,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 132),
-            child: Stack(
-              children: [
-                // Large faded watermark instead of an icon badge.
-                PositionedDirectional(
-                  end: -18,
-                  bottom: -18,
-                  child: Icon(icon, size: 110, color: Colors.white.withValues(alpha: 0.08)),
-                ),
-                // Soft gold glow in the top corner.
-                PositionedDirectional(
-                  top: -40,
-                  start: -40,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: RadialGradient(
-                        colors: [gold.withValues(alpha: 0.22), gold.withValues(alpha: 0)],
-                      ),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Container(
-                      //   width: 22,
-                      //   height: 3,
-                      //   decoration: BoxDecoration(
-                      //     color: gold,
-                      //     borderRadius: BorderRadius.circular(2),
-                      //   ),
-                      // ),
-                      const SizedBox(height: 10),
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 15,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        subtitle,
-                        style: context.text.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.78),
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CircleIconButton extends StatelessWidget {
-  const _CircleIconButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: context.athar.card,
-      shape: const CircleBorder(),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Icon(icon, size: 22, color: context.colors.primary),
-        ),
+          );
+        }),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Hero: next-prayer countdown
+// Header: who you are, help and settings — light, on the sky
 // ─────────────────────────────────────────────────────────────────────────
-class _NextPrayerCard extends StatelessWidget {
-  const _NextPrayerCard();
+class _Header extends GetView<HomeController> {
+  const _Header();
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<HomeController>();
+    const onSky = Colors.white;
 
-    return Obx(() {
-      // The card takes on the sky of the prayer it's counting down to.
-      final sky = PrayerSkyTheme.of(controller.nextPrayerKey.value);
-
-      return AnimatedContainer(
-      duration: const Duration(milliseconds: 900),
-      curve: Curves.easeInOut,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: AlignmentDirectional.topStart,
-          end: AlignmentDirectional.bottomEnd,
-          colors: sky.colors.length == 2 ? [...sky.colors, sky.colors.last] : sky.colors,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: sky.colors.last.withValues(alpha: 0.35), blurRadius: 24, offset: const Offset(0, 12))],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-        children: [
-          // Stars (dawn, sunset, night).
-          Positioned.fill(
-            child: IgnorePointer(
-              child: CustomPaint(painter: SkyStarsPainter(count: sky.stars)),
-            ),
-          ),
-          // Light source glow behind the watermark.
-          PositionedDirectional(
-            end: -50,
-            bottom: -60,
-            child: IgnorePointer(
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [sky.glow.withValues(alpha: 0.35), sky.glow.withValues(alpha: 0)],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          // Sun / moon / twilight watermark.
-          PositionedDirectional(
-            end: -20,
-            bottom: -28,
-            child: IgnorePointer(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 600),
-                child: Icon(
-                  sky.watermark,
-                  key: ValueKey(sky.watermark),
-                  size: 130,
-                  color: Colors.white.withValues(alpha: 0.12),
-                ),
-              ),
-            ),
-          ),
-          Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.mosque_outlined, size: 18, color: sky.accent),
-                      const SizedBox(width: 6),
-                      Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
-                    ],
-                  ),
-                  // Tapping the location opens Settings to change it — the
-                  // hero card's own update-location button was removed.
-                  InkWell(
-                    onTap: () => Get.find<ShellController>().index.value = 5,
-                    borderRadius: BorderRadius.circular(20),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                      child: Obx(() => Row(
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TourTarget(
+              id: TourTargets.homeProfile,
+              child: Semantics(
+                button: true,
+                label: 'profile'.tr,
+                child: InkWell(
+                  // The avatar and name open the Profile tab.
+                  onTap: () => Get.find<ShellController>().index.value = 4,
+                  borderRadius: BorderRadius.circular(AtharRadius.pill),
+                  child: Padding(
+                    padding: const EdgeInsetsDirectional.fromSTEB(0, AtharSpace.xxs, AtharSpace.sm, AtharSpace.xxs),
+                    child: Obx(() {
+                      final level = controller.level.value;
+                      return Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.location_on_outlined, size: 15, color: Colors.white.withValues(alpha: 0.85)),
-                          const SizedBox(width: 4),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 96),
-                            child: Text(
-                              controller.locationLabel.value,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.text.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                          FramedAvatar(
+                            name: controller.userName.value,
+                            avatarUrl: controller.avatarUrl.value,
+                            frameAsset: level?.frame,
+                            level: level?.level,
+                            radius: 16,
+                            backgroundColor: context.athar.brand,
+                          ),
+                          const SizedBox(width: AtharSpace.sm),
+                          Flexible(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  controller.userName.value,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.type.sectionTitle.copyWith(color: onSky),
+                                ),
+                                if (level != null)
+                                  Text(
+                                    level.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: context.text.bodySmall?.copyWith(color: onSky.withValues(alpha: 0.8)),
+                                  ),
+                              ],
                             ),
                           ),
                         ],
-                      )),
-                    ),
+                      );
+                    }),
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                mainAxisSize: MainAxisSize.max,
-                children: [
-                  Obx(
-                    () => Text(
-                      controller.nextPrayerKey.value.isEmpty ? '—' : controller.nextPrayerKey.value.tr,
-                      style: context.text.headlineMedium?.copyWith(color: Colors.white),
-                    ),
-                  ),
-                  Obx(
-                        () => Text(
-                      controller.countdown.value,
-                      style: context.text.displayMedium?.copyWith(
-                        color: sky.accent,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 6),
-
-              // const _DailyProgressBar(),
-            ],
+            ),
           ),
-          ),
-        ],
         ),
-      ),
+        // Replays this page's product tour; drawn light for the sky.
+        Theme(
+          data: Theme.of(context).copyWith(colorScheme: context.colors.copyWith(primary: onSky)),
+          child: const TourHelpButton(pageId: TourPages.home),
+        ),
+        TourTarget(
+          id: TourTargets.homeSettings,
+          child: AtharIconButton(
+            icon: Icons.settings_rounded,
+            tooltip: 'settings'.tr,
+            color: onSky,
+            onPressed: () => Get.to(() => const SettingsView()),
+          ),
+        ),
+      ],
     );
-    });
   }
 }
 
-class _DailyProgressBar extends StatelessWidget {
-  const _DailyProgressBar();
-
-  static const _maxPoints = 180;
+// ─────────────────────────────────────────────────────────────────────────
+// Today: how far the day has come, and where
+// ─────────────────────────────────────────────────────────────────────────
+class _TodaySummary extends GetView<HomeController> {
+  const _TodaySummary();
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<HomeController>();
-    final athar = context.athar;
+    const onSky = Colors.white;
 
     return Obx(() {
-      final pts = controller.pointsToday.value;
-      final value = (pts / _maxPoints).clamp(0.0, 1.0);
+      final items = controller.checklist;
+      final done = items.where((i) => i.isCompleted).length;
+      final total = items.length;
+
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('daily_progress'.tr, style: context.text.bodySmall?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
-              Text('$pts / $_maxPoints', style: context.text.labelLarge?.copyWith(color: athar.gold)),
+              Expanded(
+                child: Semantics(
+                  header: true,
+                  child: Text('today'.tr, style: context.text.headlineMedium?.copyWith(color: onSky)),
+                ),
+              ),
+              // The location opens Settings, where it can be updated.
+              Material(
+                color: onSky.withValues(alpha: 0.14),
+                shape: const StadiumBorder(),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  onTap: () => Get.to(() => const SettingsView()),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 36),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.location_on_rounded, size: AtharSize.iconSm, color: onSky),
+                          const SizedBox(width: AtharSpace.xxs),
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 140),
+                            child: Text(
+                              controller.locationLabel.value.tr,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.labelMedium?.copyWith(color: onSky),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: value,
-              minHeight: 8,
-              backgroundColor: Colors.white.withValues(alpha: 0.18),
-              valueColor: AlwaysStoppedAnimation(athar.gold),
-            ),
+          const SizedBox(height: AtharSpace.xxs),
+          Text(
+            'home_today_summary'.trParams({
+              'done': '$done',
+              'total': '$total',
+              'points': '${controller.pointsToday.value}',
+            }),
+            style: context.text.bodyMedium?.copyWith(color: onSky.withValues(alpha: 0.88)),
+          ),
+          const SizedBox(height: AtharSpace.sm),
+          AtharProgressBar(
+            value: total == 0 ? 0 : done / total,
+            height: 6,
+            color: context.athar.gold,
+            trackColor: onSky.withValues(alpha: 0.24),
+            semanticsLabel: 'today'.tr,
+            semanticsValue: '$done / $total',
           ),
         ],
       );
@@ -464,61 +308,103 @@ class _DailyProgressBar extends StatelessWidget {
   }
 }
 
-
 // ─────────────────────────────────────────────────────────────────────────
-// Section header
+// Today's prayers, as one grouped list
 // ─────────────────────────────────────────────────────────────────────────
-class _SectionHeader extends StatelessWidget {
-  const _SectionHeader(this.title);
-
-  final String title;
+class _PrayerList extends GetView<HomeController> {
+  const _PrayerList();
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(
-          width: 4,
-          height: 20,
-          decoration: BoxDecoration(color: context.athar.gold, borderRadius: BorderRadius.circular(2)),
+    return Obx(() {
+      final items = controller.checklist;
+
+      if (items.isEmpty) {
+        return Column(
+          children: [
+            for (var i = 0; i < 5; i++)
+              const Padding(
+                padding: EdgeInsets.only(bottom: AtharSpace.xs),
+                child: AtharSkeleton(height: 60, radius: AtharRadius.card),
+              ),
+          ],
+        );
+      }
+
+      return Material(
+        color: context.athar.card,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AtharRadius.card),
+          side: BorderSide(color: context.colors.outlineVariant),
         ),
-        const SizedBox(width: 8),
-        Text(title, style: context.text.titleLarge),
-      ],
-    );
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var i = 0; i < items.length; i++) ...[
+              _PrayerRow(item: items[i]),
+              if (i < items.length - 1)
+                const Divider(height: 1, indent: AtharSpace.md + 44 + AtharSpace.sm),
+            ],
+          ],
+        ),
+      );
+    });
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Prayer / daily-impact tile
-// ─────────────────────────────────────────────────────────────────────────
-class _PrayerTile extends StatelessWidget {
-  const _PrayerTile({required this.item});
+/// What a prayer row says about its prayer — always as an icon and words, never
+/// by colour alone.
+enum _PrayerState {
+  doneWithBonus(Icons.verified_rounded, 'performed_on_time'),
+  doneLate(Icons.task_alt_rounded, 'performed_outside_time'),
+  done(Icons.check_circle_rounded, 'prayer_state_done'),
+  missed(Icons.history_rounded, 'missed_tap_to_log'),
+  nowWithBonus(Icons.bolt_rounded, 'prayer_state_now'),
+  now(Icons.radio_button_unchecked_rounded, 'prayer_state_now'),
+  next(Icons.schedule_rounded, 'prayer_next_in'),
+  later(Icons.lock_clock_rounded, 'prayer_state_later');
+
+  const _PrayerState(this.icon, this.labelKey);
+
+  final IconData icon;
+  final String labelKey;
+}
+
+class _PrayerRow extends StatelessWidget {
+  const _PrayerRow({required this.item});
 
   final PrayerChecklistItem item;
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<HomeController>();
-    final athar = context.athar;
 
     return Obx(() {
       // ── Source-of-truth booleans (do not duplicate this logic elsewhere) ──
-      final busy   = controller.marking.value == item.prayerName;
-      final done   = item.isCompleted;
+      final busy = controller.marking.value == item.prayerName;
+      final done = item.isCompleted;
       final active = controller.isActive(item.prayerName);
-      final late   = item.isLateCompleted;
-      final hasStarted =
-          item.time != null && !item.time!.isAfter(controller.now.value);
+      final late = item.isLateCompleted;
+      final hasStarted = item.time != null && !item.time!.isAfter(controller.now.value);
       final missed = !done && !active && hasStarted;
-      final bonusLeft = (!done && active)
-          ? controller.onTimeBonusRemaining(item.time)
-          : null;
+      final bonusLeft = (!done && active) ? controller.onTimeBonusRemaining(item.time) : null;
       final bonusEarned = done && item.onTimeBonusAwarded;
-      final isNextUpcoming =
-          !done && controller.nextPrayerKey.value == item.prayerName;
-      // ── Resolve the single visual theme that drives every element ──
-      final theme = resolvePrayerVisualTheme(
+      final isNextUpcoming = !done && controller.nextPrayerKey.value == item.prayerName;
+
+      final state = switch (true) {
+        _ when done && bonusEarned => _PrayerState.doneWithBonus,
+        _ when done && late => _PrayerState.doneLate,
+        _ when done => _PrayerState.done,
+        _ when missed => _PrayerState.missed,
+        _ when active && bonusLeft != null => _PrayerState.nowWithBonus,
+        _ when active => _PrayerState.now,
+        _ when isNextUpcoming => _PrayerState.next,
+        _ => _PrayerState.later,
+      };
+
+      final scheme = context.colors;
+      final athar = context.athar;
+      final visual = resolvePrayerVisualTheme(
         done: done,
         late: late,
         bonusEarned: bonusEarned,
@@ -527,268 +413,169 @@ class _PrayerTile extends StatelessWidget {
         active: active,
         isNextUpcoming: isNextUpcoming,
       );
-      final accent = theme.accent(context);
-      final displayPoints = done ? item.pointsEarned : item.points;
+      final accent = state == _PrayerState.later ? scheme.onSurfaceVariant : visual.accent(context);
+      // Gold is for fills; as text on a light card it needs its deeper shade.
+      final accentText = accent == athar.gold ? athar.goldText : accent;
+      final tappable = !done && (active || missed);
+      final points = done ? item.pointsEarned : item.points;
 
-      // Row tint — neutral (distant future) tiles keep the default card look.
-      final borderColor = AppColors.primary.withValues(alpha: 0.45);
-      final bgColor = athar.card;
+      // The prayer whose time is in stands out most; the next one, with its
+      // countdown, a step less.
+      final tint = active && !done
+          ? scheme.primaryContainer.withValues(alpha: 0.55)
+          : state == _PrayerState.next
+              ? scheme.primaryContainer.withValues(alpha: 0.28)
+              : Colors.transparent;
 
-      // Text color for name/time — themed when the tile is colored, otherwise
-      // fall back to the body default so distant-future tiles stay readable.
-      // final Color? textColor = theme.tintsRow ? accent : null;
-      // final timeColor = theme.tintsRow ? athar.success : athar.textMuted;
+      final label = state == _PrayerState.next
+          ? state.labelKey.trParams({'time': controller.countdown.value})
+          : state.labelKey.tr;
 
-      // The "current" prayer — the one that's in its active window OR the
-      // next up when none is active — earns a thicker, saturated border so
-      // the actionable row pops without relying on color alone.
-      final isCurrent = active;
-
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isCurrent ? ( (bonusLeft!=null) ?accent: AppColors.primary.withValues(alpha: 0.9)) : borderColor,
-            width: isCurrent ? 2.2 : 1.0,
-          ),
-        ),
-        child: Row(
-          children: [
-            // ── حالة الصلاة (action button/icon) ──
-            _TrailingState(
-              busy: busy,
-              late: late,
-              done: done,
-              active: active,
-              missed: missed,
-              accent: accent,
-              item: item,
-            ),
-            const SizedBox(width: 12),
-
-            // ── اسم الصلاة (+ label for late / missed sub-state) ──
-            Expanded(
-              flex: 3,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.prayerName.tr,
-                    style: context.text.bodyMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: accent,
+      return MergeSemantics(
+        child: Material(
+          color: tint,
+          child: InkWell(
+            onTap: tappable && !busy ? () => controller.mark(item) : null,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 64),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.sm),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), shape: BoxShape.circle),
+                      child: busy
+                          ? Padding(
+                              padding: const EdgeInsets.all(AtharSpace.sm),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: accent),
+                            )
+                          : Icon(state.icon, size: AtharSize.iconLg, color: accent),
                     ),
-                  ),
-                  if (late) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'performed_outside_time'.tr,
-                      style: context.text.labelSmall?.copyWith(
-                        color: accent,
-                        fontWeight: FontWeight.w700,
+                    const SizedBox(width: AtharSpace.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(item.prayerName.tr, style: context.type.prayerName),
+                          Text(
+                            label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.bodySmall?.copyWith(
+                              color: state == _PrayerState.later ? scheme.onSurfaceVariant : accentText,
+                              fontWeight: FontWeight.w600,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ] else if (missed) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'missed_tap_to_log'.tr,
-                      style: context.text.labelSmall?.copyWith(
-                        color: accent,
-
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ] else if (bonusEarned) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      'performed_on_time'.tr,
-                      style: context.text.labelSmall?.copyWith(
-                        color: accent,
-
-                        fontWeight: FontWeight.w600,
-                      ),
+                    const SizedBox(width: AtharSpace.xs),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (item.time != null)
+                          Text(
+                            DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
+                            style: context.text.titleSmall?.copyWith(
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          ),
+                        const SizedBox(height: AtharSpace.xxs),
+                        _PointsPill(points: points, bonusLeft: bonusLeft, color: accentText),
+                      ],
                     ),
                   ],
-
-                ],
-              ),
-            ),
-
-            // ── الوقت ──
-            if (item.time != null)
-              Expanded(
-                flex: 2,
-                child: Text(
-                  DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
-                  textAlign: TextAlign.center,
-                  style: context.text.bodyMedium?.copyWith(
-                    color: accent,
-                    fontWeight: FontWeight.w700,
-                  ),
                 ),
               ),
-
-            // ── النقاط ──
-            // Single points badge — value comes from `pointsEarned` once the
-            // server has credited it (base until then). Color follows the
-            // same [theme] as the row so everything moves together.
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: accent.withValues(alpha: 0.35)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (bonusLeft != null) ...[
-                    Icon(Icons.bolt_rounded, size: 18, color: accent),
-                    const SizedBox(width: 4),
-                  ],
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        '+$displayPoints   ${'point'.tr}',
-                        style: context.text.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: accent,
-                        ),
-                      ),
-                      if (bonusLeft != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          'bonus_pill'.trParams({
-                            'points': '${HomeController.onTimeBonusPoints}',
-                            'time': _mmss(bonusLeft),
-                          }),
-                          style: context.text.labelSmall?.copyWith(
-                            color: accent,
-                            fontWeight: FontWeight.w800,
-                            fontFeatures: const [FontFeature.tabularFigures()],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
-              ),
             ),
-          ],
+          ),
         ),
       );
     });
   }
-
-  String _mmss(Duration d) =>
-      '${d.inMinutes.toString().padLeft(2, '0')}:'
-          '${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 }
 
+/// The prayer's points; while the on-time bonus is open, also its countdown.
+class _PointsPill extends StatelessWidget {
+  const _PointsPill({required this.points, required this.bonusLeft, required this.color});
 
-class _TrailingState extends StatelessWidget {
-  const _TrailingState({
-    required this.busy,
-    required this.late,
-    required this.done,
-    required this.active,
-    required this.missed,
-    required this.accent,
-    required this.item,
-  });
+  final int points;
+  final Duration? bonusLeft;
+  final Color color;
 
-  final bool busy;
-  final bool late;
-  final bool done;
-  final bool active;
-  final bool missed;
-  final Color accent; // resolved by PrayerVisualTheme — drives every icon hue
-  final PrayerChecklistItem item;
+  static String _mmss(Duration d) =>
+      '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
-    if (busy) {
-      return SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2, color: accent),
-      );
-    }
-     if (done) {
-      // Completed check inherits the accent so on-time (green) vs bonus (gold)
-      // vs Qada (orange) is signalled by the very same icon color.
-      return Icon(Icons.check_circle_rounded, color: accent, size: 30);
-    }
-    final controller = Get.find<HomeController>();
+    final left = bonusLeft;
 
-    // Both "active" and "missed" prayers are tappable — active opens the
-    // normal confirm dialog, missed opens the missed-prayer dialog. Truly
-    // future prayers fall through to the disabled lock (kept muted so the
-    // themed rows next to it read as the actionable ones).
-    if (active) {
-      // Bonus preview surfaces a sparkle instead of the plain circle so the
-      // "act now to earn +10" affordance is unmistakable — accent is already
-      // gold in that case per the resolver.
-      // final bonusPreview = controller.onTimeBonusRemaining(item.time) != null;
-      return GestureDetector(
-        onTap: () => controller.mark(item),
-        child: Icon(
-           Icons.radio_button_unchecked,
-          color: accent,
-          size: 30,
-        ),
-      );
-    }
-    if (missed) {
-      return GestureDetector(
-        onTap: () => controller.mark(item),
-        child: Icon(Icons.history_toggle_off_rounded, color: accent, size: 30),
-      );
-    }
-    return Icon(Icons.lock_outline_rounded,
-        color: context.athar.primaryDark, size: 30);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.xs, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AtharRadius.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (left != null) ...[
+            Icon(Icons.bolt_rounded, size: 14, color: color),
+            const SizedBox(width: 2),
+          ],
+          Text(
+            left == null
+                ? '+$points ${'point'.tr}'
+                : 'bonus_pill'.trParams({
+                    'points': '${HomeController.onTimeBonusPoints}',
+                    'time': _mmss(left),
+                  }),
+            style: context.text.labelSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Quote / reflection card
+// Today's practices: dhikr and the Quran, compact enough to sit on screen
 // ─────────────────────────────────────────────────────────────────────────
-class _QuoteCard extends StatelessWidget {
-  const _QuoteCard();
+class _Practices extends StatelessWidget {
+  const _Practices();
 
   @override
   Widget build(BuildContext context) {
-    final controller = Get.find<HomeController>();
+    final lastPage = Get.find<StorageProvider>().quranLastPageOrNull;
 
-    return Obx(() {
-      if (controller.quote.value.isEmpty) return const SizedBox.shrink();
-      return Container(
-        margin: const EdgeInsets.only(top: 8),
-        // Extra room on the physical right so the floating coach button never
-        // covers the text — this card sits at the bottom of the scroll, right
-        // where the FAB floats.
-        padding: const EdgeInsets.fromLTRB(10, 10, 64, 10),
-        decoration: BoxDecoration(color: context.athar.beige, borderRadius: BorderRadius.circular(20)),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.format_quote_rounded, color: context.athar.gold, size: 28),
-            const SizedBox(height: 8),
-            Text(controller.quote.value, style: context.text.bodyLarge?.copyWith(height: 1.6)),
-            if (controller.quoteSource.value.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                '— ${controller.quoteSource.value}',
-                style: context.text.bodySmall?.copyWith(color: context.athar.textMuted, fontWeight: FontWeight.w700),
-              ),
-            ],
-          ],
+    return AtharListGroup(
+      title: 'home_practices'.tr,
+      children: [
+        AtharListRow(
+          icon: Icons.all_inclusive_rounded,
+          tone: AtharTone.gold,
+          title: 'dhikr_home_card_title'.tr,
+          subtitle: 'home_dhikr_action'.tr,
+          onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
         ),
-      );
-    });
+        AtharListRow(
+          icon: Icons.menu_book_rounded,
+          title: 'quran_home_card_title'.tr,
+          subtitle: lastPage == null
+              ? 'home_quran_start'.tr
+              : 'home_quran_continue'.trParams({'page': '$lastPage'}),
+          onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+        ),
+      ],
+    );
   }
 }

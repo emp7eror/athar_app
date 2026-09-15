@@ -143,6 +143,30 @@ class StorageProvider extends GetxService {
   bool get darkMode => _box.read(_kDarkMode) ?? false;
   set darkMode(bool v) => _box.write(_kDarkMode, v);
 
+  /// Whether dark mode was ever set, from before the three-way appearance
+  /// setting.
+  bool get hasDarkModePreference => _box.hasData(_kDarkMode);
+
+  // ── Appearance ──
+  static const _kThemePreset = 'theme_preset';
+  static const _kThemeMode = 'theme_mode';
+  static const _kTextSize = 'text_size';
+
+  /// The colour theme's id (see AtharThemePreset), or null for the default.
+  String? get themePreset => _box.read(_kThemePreset);
+  set themePreset(String? v) =>
+      v == null ? _box.remove(_kThemePreset) : _box.write(_kThemePreset, v);
+
+  /// system | light | dark, or null when never chosen.
+  String? get themeMode => _box.read(_kThemeMode);
+  set themeMode(String? v) =>
+      v == null ? _box.remove(_kThemeMode) : _box.write(_kThemeMode, v);
+
+  /// The text & interface size's name (see AtharTextSize).
+  String? get textSize => _box.read(_kTextSize);
+  set textSize(String? v) =>
+      v == null ? _box.remove(_kTextSize) : _box.write(_kTextSize, v);
+
   // ── Notification preferences (default: all reminder types on) ──
   bool get notifPrayerEnabled => _box.read(_kNotifPrayer) ?? true;
   set notifPrayerEnabled(bool v) => _box.write(_kNotifPrayer, v);

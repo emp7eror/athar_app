@@ -3,12 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-import '../../core/constants/app_colors.dart';
+import '../../core/ui/athar_ui.dart';
 import '../../data/models/user_model.dart';
 import '../../widgets/framed_avatar.dart';
 
 /// The shareable achievement image — captured via [WidgetImageExporter] and
-/// handed to the system share sheet. Fixed portrait aspect (story-friendly).
+/// handed to the system share sheet. Fixed portrait aspect (story-friendly),
+/// in the brand's colours.
 class AchievementCard extends StatelessWidget {
   const AchievementCard({
     super.key,
@@ -26,41 +27,43 @@ class AchievementCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isAr = Get.locale?.languageCode == 'ar';
+    final athar = context.athar;
+    const onBrand = Colors.white;
 
     return SizedBox(
       width: 360,
       height: 640,
       child: Stack(
         children: [
-          Container(
-            decoration: const BoxDecoration(
+          DecoratedBox(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
-                colors: [AppColors.primaryDark, AppColors.primary],
+                colors: [athar.brand, athar.primaryDark],
               ),
             ),
           ),
-          Positioned.fill(
-            child: CustomPaint(painter: IslamicMotifPainter()),
-          ),
+          const Positioned.fill(child: CustomPaint(painter: IslamicMotifPainter())),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xl),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   children: [
-                    Image.asset('assets/images/logo.png', height: 44,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink()),
-                    const SizedBox(height: 6),
-                    const Text(
+                    Image.asset(
+                      'assets/images/logo.png',
+                      height: 44,
+                      errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                    ),
+                    const SizedBox(height: AtharSpace.xxs),
+                    Text(
                       'Athar',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                      style: context.text.labelLarge?.copyWith(
+                        color: onBrand.withValues(alpha: 0.7),
                         letterSpacing: 2,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -72,36 +75,20 @@ class AchievementCard extends StatelessWidget {
                       avatarUrl: avatarUrl,
                       frameAsset: newLevel.frame,
                       level: newLevel.level,
-                      radius: 70,
-                      backgroundColor: AppColors.secondary,
+                      radius: 60,
+                      backgroundColor: athar.gold,
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: AtharSpace.md),
                     Text(
                       name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                      ),
                       textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: AppColors.secondary, width: 1.4),
-                      ),
-                      child: Text(
-                        newLevel.displayName(isAr),
-                        style: const TextStyle(
-                          color: AppColors.secondary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      style: context.text.headlineSmall?.copyWith(
+                        color: onBrand,
+                        decoration: TextDecoration.none,
                       ),
                     ),
+                    const SizedBox(height: AtharSpace.xs),
+                    _Pill(text: newLevel.displayName(isAr)),
                   ],
                 ),
                 Column(
@@ -109,25 +96,24 @@ class AchievementCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.star, color: AppColors.secondary, size: 20),
-                        const SizedBox(width: 6),
+                        Icon(Icons.star_rounded, color: athar.gold, size: AtharSize.icon),
+                        const SizedBox(width: AtharSpace.xs),
                         Text(
                           '$totalPoints ${'points'.tr}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
+                          style: context.text.titleMedium?.copyWith(
+                            color: onBrand,
+                            decoration: TextDecoration.none,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    const Text(
+                    const SizedBox(height: AtharSpace.xs),
+                    Text(
                       'أثر',
-                      style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
+                      style: context.text.labelMedium?.copyWith(
+                        color: onBrand.withValues(alpha: 0.4),
                         letterSpacing: 3,
+                        decoration: TextDecoration.none,
                       ),
                     ),
                   ],
@@ -141,10 +127,39 @@ class AchievementCard extends StatelessWidget {
   }
 }
 
-/// A restrained repeating 8-point-star motif along the card's border,
-/// evoking Islamic geometric ornamentation without being visually heavy.
-/// Shared by the shareable cards.
+/// A gold-outlined pill, used on both shareable cards.
+class _Pill extends StatelessWidget {
+  const _Pill({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg, vertical: AtharSpace.xs),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AtharRadius.pill),
+        border: Border.all(color: context.athar.gold, width: 1.4),
+      ),
+      child: Text(
+        text,
+        textAlign: TextAlign.center,
+        style: context.text.titleMedium?.copyWith(
+          color: context.athar.gold,
+          decoration: TextDecoration.none,
+        ),
+      ),
+    );
+  }
+}
+
+/// A restrained repeating 8-point-star motif along the card's border, evoking
+/// Islamic geometric ornamentation without being visually heavy. Shared by the
+/// shareable cards.
 class IslamicMotifPainter extends CustomPainter {
+  const IslamicMotifPainter();
+
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
