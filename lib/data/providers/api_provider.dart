@@ -64,6 +64,10 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranWerd() async =>
       _unwrap(await _dio.get(ApiEndpoints.quranWerd));
 
+  /// Active tafsir editions: names in both languages, language and file url.
+  Future<Map<String, dynamic>> quranTafsirs() async =>
+      _unwrap(await _dio.get(ApiEndpoints.quranTafsirs));
+
   /// Claims today's reward for [page], read for [seconds]. The only reading
   /// call: sent once a day, when the reward is due. The server checks the
   /// daily limit and whether the page still owes points.

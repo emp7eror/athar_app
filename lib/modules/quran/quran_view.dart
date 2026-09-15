@@ -15,6 +15,7 @@ import 'quran_cover.dart';
 import 'quran_page_sheet.dart';
 import 'quran_controller.dart';
 import 'quran_index_view.dart';
+import 'tafsir/tafsir_widgets.dart';
 
 /// The ground the Mushaf script sits on, taken from the app theme so the
 /// reader looks like the rest of Athar.
@@ -202,6 +203,9 @@ class _ReaderState extends State<_Reader> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      // Tall enough for a long tafsir; the sheet scrolls itself.
+      isScrollControlled: true,
+      useSafeArea: true,
       builder: (_) => _AyahSheet(ayah: ayah, page: controller.page.value),
     ).whenComplete(() {
       if (controller.selectedAyah.value == ayah) {
@@ -328,13 +332,17 @@ class _AyahSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
+    // Draggable: opens at a comfortable height and pulls up to read a long
+    // tafsir.
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.95,
+      builder: (context, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        children: [
             Row(
               children: [
                 const ExcludeSemantics(
@@ -367,7 +375,9 @@ class _AyahSheet extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
+            AyahTafsirSection(surah: ayah.surah, ayah: ayah.ayah),
+            const SizedBox(height: 8),
             ListTile(
               leading: const Icon(Icons.copy_rounded),
               title: Text('quran_ayah_copy'.tr),
@@ -388,8 +398,7 @@ class _AyahSheet extends StatelessWidget {
                 SharePlus.instance.share(ShareParams(text: _reference));
               },
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

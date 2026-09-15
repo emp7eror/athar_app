@@ -20,6 +20,7 @@ class ApiEndpoints {
   static const String dhikrIncrement = '/dhikr/increment';
 
   static const String quranWerd = '/quran/werd';
+  static const String quranTafsirs = '/quran/tafsirs';
   static const String quranPageComplete = '/quran/page-complete';
   static const String quranPageTime = '/quran/page-time';
   static const String quranMoods = '/quran/moods';

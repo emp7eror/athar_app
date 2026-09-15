@@ -35,6 +35,19 @@ class StorageProvider extends GetxService {
   static const _kQuranLastPage = 'quran_last_page';
   static const _kQuranNightMode = 'quran_night_mode';
   static const _kQuranBookmark = 'quran_bookmark_page';
+  static const _kQuranTafsir = 'quran_tafsir_slug';
+
+  /// The tafsir edition shown when an ayah is tapped (its slug), or null to
+  /// use the default for the app's language.
+  String? get quranTafsirSlug => _box.read(_kQuranTafsir);
+  set quranTafsirSlug(String? v) =>
+      v == null ? _box.remove(_kQuranTafsir) : _box.write(_kQuranTafsir, v);
+
+  static const _kQuranTafsirs = 'quran_tafsirs_cache';
+
+  /// The last tafsir list from the server, for offline use.
+  Object? get quranTafsirsCache => _box.read(_kQuranTafsirs);
+  set quranTafsirsCache(Object? v) => _box.write(_kQuranTafsirs, v);
 
   // ── Timezone (pinned; mirrored server-side) ──
   static const _kTimezone = 'timezone';
