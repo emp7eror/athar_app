@@ -26,7 +26,19 @@ class FlipSettings {
   final int flippingTime;
 
   /// Book orientation - true for single page (portrait), false for two-page spread (landscape)
+  ///
+  /// Upstream meaning: portrait is *allowed* — used only while the space is
+  /// narrower than two pages. A wide box (a phone in landscape) still gets a
+  /// two-page spread. Use [alwaysPortrait] to rule the spread out.
   final bool usePortrait;
+
+  /// One page at a time whatever the available width — never a two-page
+  /// spread, not even in landscape. Default false (upstream behaviour).
+  ///
+  /// In a spread a turn moves two pages, which a reader built around single
+  /// pages (loading only the pages beside the current one, reporting one-page
+  /// turns) can't follow: the pages turned to came up blank.
+  final bool alwaysPortrait;
 
   /// Maximum opacity for shadow effects (0.0 to 1.0)
   final double maxShadowOpacity;
@@ -111,6 +123,9 @@ class FlipSettings {
     /// Portrait mode (single page). Default: true. Set false for landscape (two-page spread)
     this.usePortrait = true,
 
+    /// Never show a two-page spread, even when there is room. Default: false
+    this.alwaysPortrait = false,
+
     /// Shadow opacity (0.0-1.0). Default: 1.0 (fully opaque)
     this.maxShadowOpacity = 1.0,
 
@@ -154,6 +169,7 @@ class FlipSettings {
     bool? drawShadow,
     int? flippingTime,
     bool? usePortrait,
+    bool? alwaysPortrait,
     double? maxShadowOpacity,
     bool? showCover,
     bool? mobileScrollSupport,
@@ -181,6 +197,7 @@ class FlipSettings {
       drawShadow: drawShadow ?? this.drawShadow,
       flippingTime: flippingTime ?? this.flippingTime,
       usePortrait: usePortrait ?? this.usePortrait,
+      alwaysPortrait: alwaysPortrait ?? this.alwaysPortrait,
       maxShadowOpacity: maxShadowOpacity ?? this.maxShadowOpacity,
       showCover: showCover ?? this.showCover,
       mobileScrollSupport: mobileScrollSupport ?? this.mobileScrollSupport,

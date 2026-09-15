@@ -218,14 +218,14 @@ class _HomeGridCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 22,
-                        height: 3,
-                        decoration: BoxDecoration(
-                          color: gold,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
+                      // Container(
+                      //   width: 22,
+                      //   height: 3,
+                      //   decoration: BoxDecoration(
+                      //     color: gold,
+                      //     borderRadius: BorderRadius.circular(2),
+                      //   ),
+                      // ),
                       const SizedBox(height: 10),
                       Text(
                         title,

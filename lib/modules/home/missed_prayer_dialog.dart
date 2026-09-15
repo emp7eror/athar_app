@@ -106,7 +106,7 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [athar.gold, athar.primaryDark],
+                  colors: [athar.danger, athar.primaryDark],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -212,17 +212,17 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
                       color: Theme.of(context).colorScheme.error)),
             ],
 
-            const SizedBox(height: 20),
-
-            // ── Note (optional) ──
-            _Label(text: 'missed_note_label'.tr, required: false),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 2,
-              maxLength: 200,
-              decoration: InputDecoration(hintText: 'missed_note_hint'.tr),
-            ),
+            // const SizedBox(height: 20),
+            //
+            // // ── Note (optional) ──
+            // _Label(text: 'missed_note_label'.tr, required: false),
+            // const SizedBox(height: 10),
+            // TextField(
+            //   controller: _noteCtrl,
+            //   maxLines: 2,
+            //   maxLength: 200,
+            //   decoration: InputDecoration(hintText: 'missed_note_hint'.tr),
+            // ),
 
             const SizedBox(height: 20),
 

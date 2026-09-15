@@ -30,11 +30,12 @@ class ChoiceChipGroup<T> extends StatelessWidget {
     final athar = context.athar;
 
     return Wrap(
-      spacing: 3,
-      runSpacing: 5,
+      spacing: 0,
+      runSpacing: 0,
       children: List.generate(options.length, (i) {
         final isSelected = options[i] == selected;
         return ChoiceChip(
+          padding: EdgeInsets.all(0),
           label: Text('${emojis[i]}  ${labels[i]}'),
           selected: isSelected,
           onSelected: (_) => onSelected(options[i]),

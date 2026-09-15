@@ -134,8 +134,11 @@ class _ReaderState extends State<_Reader> {
       // a thumb resting on the Mushaf starts nothing.
       cornerTriggerAreaSize: 1.0,
       // One page at a time on every screen: a facing spread would pair pages
-      // the printed Mushaf does not pair.
+      // the printed Mushaf does not pair. `usePortrait` alone still opens a
+      // spread in landscape (there's room for two), where a turn moves two
+      // pages and the pages turned to came up blank.
       usePortrait: true,
+      alwaysPortrait: true,
     );
 
     // A jump that didn't come from the paper arrives as a change to `page` and
@@ -248,7 +251,7 @@ class _ReaderState extends State<_Reader> {
                                 TurnableReadingDirection.rightToLeft,
                             // The Mushaf is 345x550; filling a differently
                             // proportioned box would stretch the script.
-                            aspectRatio: 345 / 550,
+                            aspectRatio: 345 / 600,
                             autoResponseSize: false,
                             // Athar draws the paper and its shadow itself, in
                             // _Sheet, so the book adds no edges of its own.

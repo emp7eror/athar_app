@@ -206,27 +206,27 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
             ),
 
             // ── ملاحظة اختيارية ──
-            _SectionLabel(label: 'prayer_note'.tr),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _noteCtrl,
-              maxLines: 2,
-              maxLength: 120,
-              style: const TextStyle(fontSize: 14),
-              decoration: InputDecoration(
-                hintText: 'prayer_note_hint'.tr,
-                filled: true,
-                fillColor: athar.beige,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-                contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                counterStyle:
-                TextStyle(color: athar.textMuted, fontSize: 12),
-              ),
-            ),
+            // _SectionLabel(label: 'prayer_note'.tr),
+            // const SizedBox(height: 10),
+            // TextField(
+            //   controller: _noteCtrl,
+            //   maxLines: 2,
+            //   maxLength: 120,
+            //   style: const TextStyle(fontSize: 14),
+            //   decoration: InputDecoration(
+            //     hintText: 'prayer_note_hint'.tr,
+            //     filled: true,
+            //     fillColor: athar.beige,
+            //     border: OutlineInputBorder(
+            //       borderRadius: BorderRadius.circular(12),
+            //       borderSide: BorderSide.none,
+            //     ),
+            //     contentPadding:
+            //     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            //     counterStyle:
+            //     TextStyle(color: athar.textMuted, fontSize: 12),
+            //   ),
+            // ),
 
             const SizedBox(height: 24),
 

@@ -56,3 +56,11 @@ Both are candidates to send upstream; the RTL work is the one worth a PR.
   the sheet and left its face blank. The face now keeps the script and the
   folded-over back is painted in paper alone, which is also how a real page
   behaves.
+- **`FlipSettings.alwaysPortrait`** (default `false`, upstream behaviour).
+  Upstream `usePortrait` only *allows* a single page: the book still opens a
+  two-page spread whenever the box is at least two pages wide. With the paper
+  boundary disabled the book is laid out across the whole available width, so a
+  phone in landscape always got a spread — a turn then moved two pages, and a
+  reader that loads only the pages beside the current one showed the pages
+  turned to as blank. `alwaysPortrait` rules the spread out in both sizing
+  modes. Athar's Mushaf sets it.

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
@@ -37,6 +38,10 @@ Future<void> _bgHandler(RemoteMessage message) async {
 Future<void> main() async {
   ErrorReporter.init();
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Portrait only. AndroidManifest and Info.plist lock it natively before the
+  // first frame; this keeps Flutter in agreement.
+  await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_bgHandler);

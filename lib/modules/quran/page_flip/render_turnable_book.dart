@@ -30,7 +30,7 @@ class RenderTurnableBook extends RenderBox
   static const int _swipeTimeout = 250;
   static const double _minMoveThreshold = 10.0;
   bool get _needsWhitePage {
-    if (settings.usePortrait) return false;
+    if (settings.usePortrait || settings.alwaysPortrait) return false;
     return settings.showCover ? false : childCount % 2 == 1;
   }
 
@@ -286,7 +286,8 @@ class RenderTurnableBook extends RenderBox
     double pageHeight = settings.height;
     double left = middlePoint.x - pageWidth;
     if (settings.size == SizeType.stretch) {
-      if (blockWidth < settings.width * 2 && settings.usePortrait) {
+      if (settings.alwaysPortrait ||
+          (blockWidth < settings.width * 2 && settings.usePortrait)) {
         orientation = BookOrientation.portrait;
       }
       pageWidth = orientation == BookOrientation.portrait
@@ -302,11 +303,12 @@ class RenderTurnableBook extends RenderBox
           ? middlePoint.x - pageWidth / 2 - pageWidth
           : middlePoint.x - pageWidth;
     } else {
-      if (blockWidth < pageWidth * 2) {
-        if (settings.usePortrait) {
-          orientation = BookOrientation.portrait;
-          left = middlePoint.x - pageWidth / 2 - pageWidth;
-        }
+      // A wide box (a phone in landscape) would otherwise fit a two-page
+      // spread even when single pages were asked for.
+      if (settings.alwaysPortrait ||
+          (blockWidth < pageWidth * 2 && settings.usePortrait)) {
+        orientation = BookOrientation.portrait;
+        left = middlePoint.x - pageWidth / 2 - pageWidth;
       }
     }
     _boundsRect = PageRect(
