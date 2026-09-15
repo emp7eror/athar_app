@@ -28,26 +28,33 @@ class AyahTafsirSection extends StatefulWidget {
 
 class _AyahTafsirSectionState extends State<AyahTafsirSection> {
   final _service = TafsirService.instance;
-  late Future<AyahTafsir?> _future;
-  String _slug = '';
+
+  /// Collapsed at first: nothing is fetched until the reader opens it.
+  bool _expanded = false;
+  Future<AyahTafsir?>? _future;
   Worker? _worker;
 
   @override
   void initState() {
     super.initState();
-    _load(_service.selectedSlug.value);
-    _worker = ever<String>(_service.selectedSlug, (slug) {
-      if (mounted) setState(() => _load(slug));
+    _worker = ever<String>(_service.selectedSlug, (_) {
+      if (mounted && _expanded) setState(_load);
     });
-    // The edition's name comes from the list; load it so the header can show it.
+  }
+
+  void _load() {
+    _future = _service.ayah(_service.selectedSlug.value, widget.surah, widget.ayah);
+    // The edition's name comes from the list, loaded alongside the text.
     _service.editions().then((_) {
       if (mounted) setState(() {});
     }).catchError((Object _) {});
   }
 
-  void _load(String slug) {
-    _slug = slug;
-    _future = _service.ayah(slug, widget.surah, widget.ayah);
+  void _toggle() {
+    setState(() {
+      _expanded = !_expanded;
+      if (_expanded && _future == null) _load();
+    });
   }
 
   @override
@@ -59,51 +66,66 @@ class _AyahTafsirSectionState extends State<AyahTafsirSection> {
   @override
   Widget build(BuildContext context) {
     final athar = context.athar;
-    final edition = _service.editionFor(_slug);
+    final edition = _service.editionFor(_service.selectedSlug.value);
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 12, 16),
-      decoration: BoxDecoration(
-        color: athar.beige,
-        borderRadius: BorderRadius.circular(18),
-      ),
+    // Its own Material, so the header's ink shows on the beige instead of under it.
+    return Material(
+      color: athar.beige,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+      padding: EdgeInsetsDirectional.fromSTEB(12, 4, 4, _expanded ? 16 : 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(Icons.menu_book_rounded, size: 20, color: athar.gold),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      edition?.name ?? 'tafsir_title'.tr,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          InkWell(
+            onTap: _toggle,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsetsDirectional.fromSTEB(4, 8, 4, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.menu_book_rounded, size: 20, color: athar.gold),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          edition?.name ?? 'tafsir_title'.tr,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        if (edition != null)
+                          Text(
+                            [
+                              TafsirLanguages.label(edition.language),
+                              if (edition.author.isNotEmpty) edition.author,
+                            ].join(' · '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.bodySmall?.copyWith(color: athar.textMuted),
+                          ),
+                      ],
                     ),
-                    if (edition != null)
-                      Text(
-                        [
-                          TafsirLanguages.label(edition.language),
-                          if (edition.author.isNotEmpty) edition.author,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: context.text.bodySmall?.copyWith(color: athar.textMuted),
-                      ),
-                  ],
-                ),
+                  ),
+                  if (_expanded)
+                    TextButton.icon(
+                      onPressed: () => showTafsirPicker(context),
+                      icon: const Icon(Icons.swap_horiz_rounded, size: 18),
+                      label: Text('tafsir_change'.tr),
+                    ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(Icons.expand_more_rounded, color: athar.textMuted),
+                  ),
+                ],
               ),
-              TextButton.icon(
-                onPressed: () => showTafsirPicker(context),
-                icon: const Icon(Icons.swap_horiz_rounded, size: 18),
-                label: Text('tafsir_change'.tr),
-              ),
-            ],
+            ),
           ),
+          if (_expanded) ...[
           const SizedBox(height: 10),
           FutureBuilder<AyahTafsir?>(
             future: _future,
@@ -126,7 +148,7 @@ class _AyahTafsirSectionState extends State<AyahTafsirSection> {
                   icon: Icons.wifi_off_rounded,
                   text: 'tafsir_load_failed'.tr,
                   action: TextButton(
-                    onPressed: () => setState(() => _load(_slug)),
+                    onPressed: () => setState(_load),
                     child: Text('retry'.tr),
                   ),
                 );
@@ -179,7 +201,9 @@ class _AyahTafsirSectionState extends State<AyahTafsirSection> {
               );
             },
           ),
+          ],
         ],
+      ),
       ),
     );
   }

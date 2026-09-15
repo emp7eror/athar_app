@@ -4,6 +4,7 @@ import 'package:intl/intl.dart' show NumberFormat;
 
 import '../../core/constants/quran_surahs.dart';
 import '../../core/theme/app_theme.dart';
+import 'khatma_progress_view.dart';
 import 'quran_controller.dart';
 import 'quran_index_view.dart';
 import 'quran_mood_view.dart';
@@ -191,7 +192,12 @@ class _ContinueCard extends GetView<QuranController> {
                   const SizedBox(height: 4),
 
                   const SizedBox(height: 18),
-                  Semantics(
+                  // Opens the khatma in detail: surah by surah, page by page.
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => Get.to<void>(() => const KhatmaProgressView()),
+                    child: Semantics(
+                    button: true,
                     label: 'quran_khatma_progress'.tr,
                     value: '$read / $total',
                     excludeSemantics: true,
@@ -215,6 +221,13 @@ class _ContinueCard extends GetView<QuranController> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const SizedBox(width: 6),
+                            // Mirrors with the text direction, so it points onward.
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 12,
+                              color: Colors.white70,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 8),
@@ -231,6 +244,7 @@ class _ContinueCard extends GetView<QuranController> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                   if (khatmas > 0) ...[
                     const SizedBox(height: 8),
@@ -335,6 +349,23 @@ class _Ways extends GetView<QuranController> {
                 );
               }),
             ),
+            // The next page this khatma is still missing, after the last one
+            // read — for finishing the khatma without hunting for gaps.
+            SizedBox(
+              width: constraints.maxWidth,
+              child: Obx(() {
+                final next = controller.nextUnreadPage();
+                return _WayTile(
+                  icon: Icons.flag_rounded,
+                  color: context.athar.gold,
+                  title: 'quran_next_unread'.tr,
+                  subtitle: next == null
+                      ? 'quran_khatma_all_read'.tr
+                      : QuranCover.where(next),
+                  onTap: next == null ? null : () => controller.openAt(next),
+                );
+              }),
+            ),
             sized(
               _WayTile(
                 icon: Icons.menu_book_rounded,
@@ -342,6 +373,15 @@ class _Ways extends GetView<QuranController> {
                 title: 'quran_index'.tr,
                 subtitle: 'quran_cover_index_sub'.tr,
                 onTap: () => Get.to<void>(() => const QuranIndexView()),
+              ),
+            ),
+            sized(
+              _WayTile(
+                icon: Icons.insights_rounded,
+                color: context.colors.primary,
+                title: 'quran_khatma_map'.tr,
+                subtitle: 'quran_khatma_map_sub'.tr,
+                onTap: () => Get.to<void>(() => const KhatmaProgressView()),
               ),
             ),
             sized(

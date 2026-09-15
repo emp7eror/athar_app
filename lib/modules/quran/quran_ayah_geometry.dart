@@ -11,12 +11,18 @@ class AyahRef {
   final int surah;
   final int ayah;
 
+  /// Mushaf order: a larger value comes later.
+  int get order => surah * 1000 + ayah;
+
   @override
   bool operator ==(Object other) =>
       other is AyahRef && other.surah == surah && other.ayah == ayah;
 
   @override
   int get hashCode => Object.hash(surah, ayah);
+
+  @override
+  String toString() => '$surah:$ayah';
 }
 
 /// An inclusive run of ayahs within one surah.
@@ -64,6 +70,9 @@ class PageGeometry {
 
   final Rect viewBox;
   final List<AyahShape> ayahs;
+
+  /// Whether [ref] is (at least partly) on this page.
+  bool contains(AyahRef ref) => ayahs.any((s) => s.ref == ref);
 
   /// Parses off the UI thread: a page is around half a megabyte of markup.
   static Future<PageGeometry> parse(Uint8List svg) async {

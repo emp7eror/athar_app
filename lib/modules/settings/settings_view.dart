@@ -11,6 +11,7 @@ import '../../core/utils/store_link.dart';
 import '../../data/providers/api_provider.dart';
 import '../home/home_controller.dart';
 import 'legal_document_view.dart';
+import 'credits_view.dart';
 import 'notification_settings_view.dart';
 import '../../core/tour/tour_widgets.dart';
 import '../tour/app_tours.dart';
@@ -204,6 +205,15 @@ class SettingsView extends StatelessWidget {
                     fallbackTitle: 'terms'.tr,
                     fetch: () => Get.find<ApiProvider>().legalTerms(),
                   )),
+            ),
+
+            const SizedBox(height: 8),
+
+            _SettingsTile(
+              icon: Icons.volunteer_activism_outlined,
+              title: 'credits'.tr,
+              trailing: Icon(Icons.chevron_right, color: colors.onSurfaceVariant),
+              onTap: () => Get.to(() => const CreditsView()),
             ),
           ],
         ),

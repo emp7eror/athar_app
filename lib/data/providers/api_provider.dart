@@ -68,6 +68,14 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranTafsirs() async =>
       _unwrap(await _dio.get(ApiEndpoints.quranTafsirs));
 
+  /// Active reciters: names in both languages and where their audio lives.
+  Future<Map<String, dynamic>> quranReciters() async =>
+      _unwrap(await _dio.get(ApiEndpoints.quranReciters));
+
+  /// One ayah's Uthmani text and its attribution, for the ayah card.
+  Future<Map<String, dynamic>> quranAyah(int surah, int ayah) async =>
+      _unwrap(await _dio.get(ApiEndpoints.quranAyah(surah, ayah)));
+
   /// Claims today's reward for [page], read for [seconds]. The only reading
   /// call: sent once a day, when the reward is due. The server checks the
   /// daily limit and whether the page still owes points.
@@ -328,6 +336,8 @@ class ApiProvider {
 
   // --- Legal (public, no auth required) ---
   Future<Map<String, dynamic>> legalTerms() async => _unwrap(await _dio.get(ApiEndpoints.legalTerms));
+  /// The sources the app credits (public).
+  Future<Map<String, dynamic>> credits() async => _unwrap(await _dio.get(ApiEndpoints.credits));
 
   Future<Map<String, dynamic>> legalPrivacy() async => _unwrap(await _dio.get(ApiEndpoints.legalPrivacy));
 }

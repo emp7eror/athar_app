@@ -49,6 +49,18 @@ class StorageProvider extends GetxService {
   Object? get quranTafsirsCache => _box.read(_kQuranTafsirs);
   set quranTafsirsCache(Object? v) => _box.write(_kQuranTafsirs, v);
 
+  static const _kQuranReciter = 'quran_reciter_slug';
+  static const _kQuranReciters = 'quran_reciters_cache';
+
+  /// The reciter chosen for recitation (its slug), or null for the default.
+  String? get quranReciterSlug => _box.read(_kQuranReciter);
+  set quranReciterSlug(String? v) =>
+      v == null ? _box.remove(_kQuranReciter) : _box.write(_kQuranReciter, v);
+
+  /// The last reciter list from the server, for offline use.
+  Object? get quranRecitersCache => _box.read(_kQuranReciters);
+  set quranRecitersCache(Object? v) => _box.write(_kQuranReciters, v);
+
   // ── Timezone (pinned; mirrored server-side) ──
   static const _kTimezone = 'timezone';
   static const _kTimezoneReportedAt = 'timezone_reported_at';

@@ -49,6 +49,15 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   /// Every page ever counted as read, rewarded or not.
   final readPages = <int>{}.obs;
 
+  /// Pages read in the current khatma — what is left before it is complete.
+  /// Starts empty again once a khatma is finished.
+  final khatmaReadPages = <int>{}.obs;
+
+  /// First and last page of each surah (index 0 = Al-Fatiha), as the server
+  /// works them out from the Mushaf metadata. Estimated from the surah start
+  /// pages when the server doesn't send them.
+  List<(int, int)> _surahPages = const [];
+
   final pagesCompleted = 0.obs;
   final totalPoints = 0.obs;
   final totalSeconds = 0.obs;
@@ -146,6 +155,71 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   /// Read on an earlier visit (or already in this one).
   bool get isCurrentPageRead => readPages.contains(page.value);
 
+  // ── Khatma progress ────────────────────────────────────────────────────
+
+  /// Read in the current khatma.
+  bool isReadInKhatma(int p) => khatmaReadPages.contains(p);
+
+  /// First and last page of [surah]. A page shared with the surah before or
+  /// after counts for both.
+  (int, int) surahPages(int surah) {
+    if (surah >= 1 && surah <= _surahPages.length) return _surahPages[surah - 1];
+    if (surah < 1 || surah > kQuranSurahs.length) return (1, 1);
+    final first = kQuranSurahs[surah - 1].page;
+    final last = surah < kQuranSurahs.length
+        ? max(first, kQuranSurahs[surah].page)
+        : totalPages.value;
+    return (first, last);
+  }
+
+  /// First and last page of [juz] (1–30).
+  (int, int) juzPages(int juz) {
+    final first = kJuzStartPages[juz - 1];
+    final last = juz < kJuzStartPages.length
+        ? max(first, kJuzStartPages[juz] - 1)
+        : totalPages.value;
+    return (first, last);
+  }
+
+  /// Pages of [first]..[last] read in the current khatma.
+  ({int read, int total}) khatmaProgress(int first, int last) {
+    var read = 0;
+    for (var p = first; p <= last; p++) {
+      if (khatmaReadPages.contains(p)) read++;
+    }
+    return (read: read, total: last - first + 1);
+  }
+
+  /// The first page of [first]..[last] not yet read in this khatma.
+  int? firstUnread(int first, int last) {
+    for (var p = first; p <= last; p++) {
+      if (!khatmaReadPages.contains(p)) return p;
+    }
+    return null;
+  }
+
+  /// The next page not yet read in this khatma after [after] — the last page
+  /// read, by default — coming round to the start when needed. Null once
+  /// every page is read.
+  int? nextUnreadPage({int? after}) {
+    final total = totalPages.value;
+    final from = (after ?? lastReadPage.value).clamp(0, total);
+    return firstUnread(from + 1, total) ?? firstUnread(1, from);
+  }
+
+  static List<(int, int)> _parseSurahPages(Object? data) {
+    if (data is! List || data.length != kQuranSurahs.length) return const [];
+    final pages = <(int, int)>[];
+    for (final item in data) {
+      if (item is! List || item.length != 2) return const [];
+      final first = _asInt(item[0], 0);
+      final last = _asInt(item[1], 0);
+      if (first < 1 || last < first) return const [];
+      pages.add((first, last));
+    }
+    return pages;
+  }
+
   bool get isCurrentPageBookmarked => bookmarkPage.value == page.value;
 
   /// Bookmarks the page being read, or clears the bookmark if it is already
@@ -231,6 +305,19 @@ class QuranController extends GetxController with WidgetsBindingObserver {
         )
         // Older servers only send rewarded pages.
         ..addAll(completed);
+
+      final khatmaList = res['khatma_read_pages'];
+      final firstKhatma =
+          res['progress'] is Map && _asInt((res['progress'] as Map)['khatmas_completed'], 0) == 0;
+      khatmaReadPages
+        ..clear()
+        ..addAll(
+          khatmaList is List
+              ? khatmaList.map((e) => _asInt(e, 0))
+              // Older servers: in the first khatma, every page read counts.
+              : (firstKhatma ? readPages : const <int>{}),
+        );
+      _surahPages = _parseSurahPages(res['surah_pages']);
 
       // Where they stopped: this device's own record first — it also knows
       // pages opened but not finished — then the server's.
@@ -426,7 +513,12 @@ class QuranController extends GetxController with WidgetsBindingObserver {
       if (progress is Map) _applyProgress(progress);
 
       // Recorded as read whether or not it earned anything.
-      if (res['recorded'] == true) readPages.add(p);
+      if (res['recorded'] == true) {
+        readPages.add(p);
+        khatmaReadPages.add(p);
+      }
+      // This page finished the khatma; the next one starts empty.
+      if (res['khatma_completed'] == true) khatmaReadPages.clear();
 
       if (res['status']?.toString() == 'rewarded') {
         completed.add(p);

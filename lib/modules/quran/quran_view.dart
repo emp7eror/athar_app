@@ -15,6 +15,9 @@ import 'quran_cover.dart';
 import 'quran_page_sheet.dart';
 import 'quran_controller.dart';
 import 'quran_index_view.dart';
+import 'ayah_share/ayah_share.dart';
+import 'recitation/recitation_service.dart';
+import 'recitation/recitation_widgets.dart';
 import 'tafsir/tafsir_widgets.dart';
 
 /// The ground the Mushaf script sits on, taken from the app theme so the
@@ -115,6 +118,7 @@ class _ReaderState extends State<_Reader> {
   late int _index;
 
   Worker? _jumps;
+  Worker? _recitationFollow;
 
   @override
   void initState() {
@@ -151,11 +155,21 @@ class _ReaderState extends State<_Reader> {
       _settings.startPageIndex = _index;
       _flip.goToPage(_index);
     });
+
+    // The page follows the recitation: an ayah read aloud that isn't on the
+    // page on screen turns the book to the page it is on.
+    _recitationFollow = ever<AyahRef?>(
+      RecitationService.instance.current,
+      _followRecitation,
+    );
   }
 
   @override
   void dispose() {
     _jumps?.dispose();
+    _recitationFollow?.dispose();
+    // Nothing is recited once the reader has closed.
+    RecitationService.instance.stop();
     // However the reader closes — back to page 0, or back to the list it was
     // opened from — nothing is on screen any more, so nothing is being read.
     controller.stopReading();
@@ -187,6 +201,37 @@ class _ReaderState extends State<_Reader> {
     _settings.startPageIndex = index;
 
     controller.goTo(target);
+  }
+
+  /// Turns to the page [ref] is on, when it isn't the page on screen.
+  ///
+  /// The pages either side are parsed already, which covers a recitation
+  /// moving on. Past that, a surah's first ayah is on the surah's opening
+  /// page, and any other ayah is a page after (or before) this page's ayahs.
+  void _followRecitation(AyahRef? ref) {
+    if (ref == null || !mounted) return;
+
+    final current = controller.page.value;
+    final here = QuranPageSheet.geometryFor(controller.imageUrlFor(current));
+    if (here != null && here.contains(ref)) return;
+
+    for (final p in [current + 1, current - 1]) {
+      if (p < 1 || p > controller.totalPages.value) continue;
+      final there = QuranPageSheet.geometryFor(controller.imageUrlFor(p));
+      if (there != null && there.contains(ref)) {
+        controller.goTo(p);
+        return;
+      }
+    }
+
+    if (ref.ayah == 1 && ref.surah >= 1 && ref.surah <= kQuranSurahs.length) {
+      controller.goTo(kQuranSurahs[ref.surah - 1].page);
+      return;
+    }
+    if (here == null || here.ayahs.isEmpty) return;
+
+    final last = here.ayahs.fold<int>(0, (m, s) => s.ref.order > m ? s.ref.order : m);
+    controller.goTo(ref.order > last ? current + 1 : current - 1);
   }
 
   /// A tap on the page being read: select the ayah under it and show its
@@ -240,6 +285,8 @@ class _ReaderState extends State<_Reader> {
                         final current = controller.page.value;
                         final highlight = controller.highlight.value;
                         final selected = controller.selectedAyah.value;
+                        final playing =
+                            RecitationService.instance.current.value;
                         // The book paints its own ground under and behind the
                         // pages; at night that has to be the dark paper, not
                         // the white the package would otherwise flash.
@@ -273,6 +320,7 @@ class _ReaderState extends State<_Reader> {
                                   active: (index + 1 - current).abs() <= 1,
                                   highlight: highlight,
                                   selected: selected,
+                                  playing: playing,
                                   // Only the page being read takes ayah taps.
                                   onAyahTap: index + 1 == current
                                       ? _onAyahTap
@@ -293,6 +341,8 @@ class _ReaderState extends State<_Reader> {
               ],
             ),
           ),
+          // Shown only while a recitation is on.
+          const RecitationPlayerBar(),
           // Page arrows point the way the Mushaf turns, so they stay
           // right-to-left in every language.
           Directionality(
@@ -363,41 +413,53 @@ class _AyahSheet extends StatelessWidget {
                     ),
                   ),
                 ),
+                IconButton(
+                  onPressed: () => showAyahShareSheet(context, ayah),
+                  tooltip: 'quran_ayah_share_card'.tr,
+                  icon: const Icon(Icons.share_rounded),
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            Padding(
-              padding: const EdgeInsetsDirectional.only(start: 38),
-              child: Text(
-                '${'quran_page_short'.trParams({'page': '$page'})}  ·  ${ayah.surah}:${ayah.ayah}',
-                style: context.text.bodySmall?.copyWith(
-                  color: context.athar.textMuted,
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
+            // Padding(
+            //   padding: const EdgeInsetsDirectional.only(start: 38),
+            //   child: Text(
+            //     '${'quran_page_short'.trParams({'page': '$page'})}  ·  ${ayah.surah}:${ayah.ayah}',
+            //     style: context.text.bodySmall?.copyWith(
+            //       color: context.athar.textMuted,
+            //     ),
+            //   ),
+            // ),
+            // const SizedBox(height: 10),
+          // ListTile(
+          //   leading: const Icon(Icons.image_outlined),
+          //   title: Text('quran_ayah_share_card'.tr),
+          //   onTap: () => showAyahShareSheet(context, ayah),
+          // ),
+          const SizedBox(height: 16),
+            AyahListenTile(ayah: ayah),
+            const SizedBox(height: 12),
             AyahTafsirSection(surah: ayah.surah, ayah: ayah.ayah),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.copy_rounded),
-              title: Text('quran_ayah_copy'.tr),
-              onTap: () async {
-                await Clipboard.setData(ClipboardData(text: _reference));
-                Get.back<void>();
-                Get.rawSnackbar(
-                  message: 'quran_ayah_copied'.tr,
-                  duration: const Duration(seconds: 2),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.ios_share_rounded),
-              title: Text('quran_ayah_share'.tr),
-              onTap: () {
-                Get.back<void>();
-                SharePlus.instance.share(ShareParams(text: _reference));
-              },
-            ),
+            // ListTile(
+            //   leading: const Icon(Icons.copy_rounded),
+            //   title: Text('quran_ayah_copy'.tr),
+            //   onTap: () async {
+            //     await Clipboard.setData(ClipboardData(text: _reference));
+            //     Get.back<void>();
+            //     Get.rawSnackbar(
+            //       message: 'quran_ayah_copied'.tr,
+            //       duration: const Duration(seconds: 2),
+            //     );
+            //   },
+            // ),
+            // ListTile(
+            //   leading: const Icon(Icons.ios_share_rounded),
+            //   title: Text('quran_ayah_share'.tr),
+            //   onTap: () {
+            //     Get.back<void>();
+            //     SharePlus.instance.share(ShareParams(text: _reference));
+            //   },
+            // ),
         ],
       ),
     );

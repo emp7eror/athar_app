@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/quran_surahs.dart';
 import '../../core/theme/app_theme.dart';
+import 'khatma_progress_view.dart';
 import 'quran_controller.dart';
 
 /// Surah / Juz / page index. Picking anything closes the index and lands the
@@ -20,6 +21,15 @@ class QuranIndexView extends GetView<QuranController> {
       child: Scaffold(
         appBar: AppBar(
           title: Text('quran_index'.tr),
+          actions: [
+            // Replaces the index, so opening a page from there still lands in
+            // the reader rather than back here.
+            IconButton(
+              tooltip: 'quran_khatma_map'.tr,
+              icon: const Icon(Icons.insights_rounded),
+              onPressed: () => Get.off<void>(() => const KhatmaProgressView()),
+            ),
+          ],
           bottom: TabBar(
             indicatorColor: AppColors.primary,
             labelColor: AppColors.primary,
@@ -59,7 +69,13 @@ class _SurahList extends StatelessWidget {
         final s = kQuranSurahs[i];
         return ListTile(
           onTap: () => _jumpTo(s.page),
-          leading: _NumberBadge(number: s.number),
+          // Fills with the surah's pages read in this khatma.
+          leading: Obx(() {
+            final c = Get.find<QuranController>();
+            final (first, last) = c.surahPages(s.number);
+            final p = c.khatmaProgress(first, last);
+            return KhatmaRing(label: '${s.number}', read: p.read, total: p.total);
+          }),
           title: Text(
             'quran_surah_n'.trParams({'name': s.localizedName}),
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -92,7 +108,12 @@ class _JuzList extends StatelessWidget {
         final page = kJuzStartPages[i];
         return ListTile(
           onTap: () => _jumpTo(page),
-          leading: _NumberBadge(number: i + 1),
+          leading: Obx(() {
+            final c = Get.find<QuranController>();
+            final (first, last) = c.juzPages(i + 1);
+            final p = c.khatmaProgress(first, last);
+            return KhatmaRing(label: '${i + 1}', read: p.read, total: p.total);
+          }),
           title: Text(
             'quran_juz_n'.trParams({'n': '${i + 1}'}),
             style: const TextStyle(fontWeight: FontWeight.w600),
@@ -191,33 +212,6 @@ class _PagePickerState extends State<_PagePicker> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NumberBadge extends StatelessWidget {
-  const _NumberBadge({required this.number});
-
-  final int number;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.35)),
-      ),
-      child: Text(
-        '$number',
-        style: const TextStyle(
-          color: AppColors.primary,
-          fontSize: 12.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
     );
   }
 }

@@ -26,8 +26,14 @@ class QuranPageSheet extends StatefulWidget {
     required this.active,
     this.highlight,
     this.selected,
+    this.playing,
     this.onAyahTap,
   });
+
+  /// The parsed ayah polygons of the page at [url], if a sheet has loaded it
+  /// recently — what tells the reader which page an ayah is on.
+  static PageGeometry? geometryFor(String url) =>
+      _QuranPageSheetState._geometryMemo[url];
 
   final String url;
 
@@ -51,6 +57,9 @@ class QuranPageSheet extends StatefulWidget {
 
   /// The ayah whose details are showing.
   final AyahRef? selected;
+
+  /// The ayah being recited.
+  final AyahRef? playing;
 
   /// Taps on the page, resolved to the ayah under the finger — null on the
   /// margins. Leave unset on pages other than the one being read.
@@ -214,6 +223,7 @@ class _QuranPageSheetState extends State<QuranPageSheet> {
                 geometry: geometry,
                 highlight: widget.highlight,
                 selected: widget.selected,
+                playing: widget.playing,
                 night: widget.nightMode,
               ),
             ),
@@ -256,18 +266,20 @@ class _AyahHighlightPainter extends CustomPainter {
     required this.geometry,
     required this.highlight,
     required this.selected,
+    required this.playing,
     required this.night,
   });
 
   final PageGeometry geometry;
   final AyahRange? highlight;
   final AyahRef? selected;
+  final AyahRef? playing;
   final bool night;
 
   @override
   void paint(Canvas canvas, Size size) {
     final range = highlight;
-    if (range == null && selected == null) return;
+    if (range == null && selected == null && playing == null) return;
 
     final fit = geometry.fit(size);
     canvas
@@ -281,10 +293,15 @@ class _AyahHighlightPainter extends CustomPainter {
       ..color = night ? const Color(0x38E8C77A) : const Color(0x47E3B341);
     final chosen = Paint()
       ..color = night ? const Color(0x6BE8C77A) : const Color(0x80D9A93A);
+    // A calm green for the ayah being recited, apart from the gold of a tap.
+    final recited = Paint()
+      ..color = night ? const Color(0x5C6FD1A8) : const Color(0x4D2E8B6E);
 
     for (final shape in geometry.ayahs) {
       if (shape.ref == selected) {
         canvas.drawPath(shape.path, chosen);
+      } else if (shape.ref == playing) {
+        canvas.drawPath(shape.path, recited);
       } else if (range != null && range.contains(shape.ref)) {
         canvas.drawPath(shape.path, passage);
       }
@@ -298,6 +315,7 @@ class _AyahHighlightPainter extends CustomPainter {
       old.geometry != geometry ||
       old.highlight != highlight ||
       old.selected != selected ||
+      old.playing != playing ||
       old.night != night;
 }
 

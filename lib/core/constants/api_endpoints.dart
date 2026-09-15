@@ -21,6 +21,8 @@ class ApiEndpoints {
 
   static const String quranWerd = '/quran/werd';
   static const String quranTafsirs = '/quran/tafsirs';
+  static const String quranReciters = '/quran/reciters';
+  static String quranAyah(int surah, int ayah) => '/quran/ayahs/$surah/$ayah';
   static const String quranPageComplete = '/quran/page-complete';
   static const String quranPageTime = '/quran/page-time';
   static const String quranMoods = '/quran/moods';
@@ -43,5 +45,6 @@ class ApiEndpoints {
   static const String randomQuote = '/quotes/random';
 
   static const String legalTerms = '/legal/terms';
+  static const String credits = '/credits';
   static const String legalPrivacy = '/legal/privacy';
 }
