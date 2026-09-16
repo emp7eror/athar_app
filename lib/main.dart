@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 
 import 'core/bindings/initial_binding.dart';
 import 'core/localization/app_translations.dart';
@@ -51,10 +53,21 @@ Future<void> _bgHandler(RemoteMessage message) async {
   // Keep this minimal — no GetX/UI here; the isolate has no widget tree.
 }
 
+/// Picks the avatar through the Android system photo picker instead of the
+/// gallery intent. The picker hands back only the item the user chose, so the
+/// app needs no READ_MEDIA_IMAGES permission — which Google Play's photo and
+/// video permissions policy reserves for apps the pickers can't serve. A no-op
+/// off Android.
+void _useSystemPhotoPicker() {
+  final picker = ImagePickerPlatform.instance;
+  if (picker is ImagePickerAndroid) picker.useAndroidPhotoPicker = true;
+}
+
 Future<void> main() async {
   ErrorReporter.init();
   WidgetsFlutterBinding.ensureInitialized();
   _registerFontLicenses();
+  _useSystemPhotoPicker();
 
   // Portrait only. AndroidManifest and Info.plist lock it natively before the
   // first frame; this keeps Flutter in agreement.

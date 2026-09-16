@@ -86,6 +86,10 @@ class ProfileController extends GetxController {
       source: ImageSource.gallery,
       imageQuality: 80,
       maxWidth: 512,
+      // The avatar is uploaded as pixels; its EXIF is of no use to us. Asking
+      // for it would make iOS read the asset itself and prompt for full photo
+      // library access, which the system picker otherwise never needs.
+      requestFullMetadata: false,
     );
     if (picked == null) return;
 

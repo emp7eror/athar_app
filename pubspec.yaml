@@ -1,7 +1,7 @@
 name: athar
 description: "Athar (أثر) — offline-first bilingual prayer habit tracker."
 publish_to: 'none'
-version: 1.0.6+6
+version: 1.0.7+7
 
 environment:
   sdk: ">=3.10.7 <4.0.0"
@@ -31,6 +31,9 @@ dependencies:
   upgrader:
   share_plus:
   image_picker:
+  # Direct so the Android system photo picker can be switched on (see main).
+  image_picker_android:
+  image_picker_platform_interface:
   path_provider:
   confetti: ^0.7.0
   package_info_plus:

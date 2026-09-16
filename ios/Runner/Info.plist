@@ -50,10 +50,6 @@
 		<string>ar</string>
 		<string>en</string>
 	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Athar needs access to your photos so you can choose a profile picture.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Athar uses the camera only if you choose to take a profile picture.</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Athar uses motion data only when you turn on shake-to-count in the Dhikr counter.</string>
 	<key>UIBackgroundModes</key>
