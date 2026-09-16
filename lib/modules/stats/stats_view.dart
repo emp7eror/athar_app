@@ -104,7 +104,7 @@ class _Summary extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.star_rounded,
-                  tone: AtharTone.gold,
+                  // tone: AtharTone.gold,
                   value: '${u?.totalPoints ?? 0}',
                   label: 'points'.tr,
                   center: true,
@@ -113,7 +113,7 @@ class _Summary extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.local_fire_department_rounded,
-                  tone: AtharTone.warning,
+                  // tone: AtharTone.warning,
                   value: '${u?.currentStreak ?? 0}',
                   label: 'streak'.tr,
                   center: true,
@@ -146,7 +146,7 @@ class _Summary extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.history_rounded,
-                  tone: AtharTone.neutral,
+                  // tone: AtharTone.neutral,
                   value: '${u?.lastScore ?? 0}',
                   label: 'last_month_score'.tr,
                   center: true,
@@ -155,7 +155,7 @@ class _Summary extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.military_tech_rounded,
-                  tone: AtharTone.gold,
+                  // tone: AtharTone.gold,
                   value: '${u?.bestScore ?? 0}',
                   label: 'best_score'.tr,
                   center: true,
