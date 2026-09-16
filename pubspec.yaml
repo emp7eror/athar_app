@@ -1,7 +1,7 @@
 name: athar
 description: "Athar (أثر) — offline-first bilingual prayer habit tracker."
 publish_to: 'none'
-version: 1.0.5+5
+version: 1.0.6+6
 
 environment:
   sdk: ">=3.10.7 <4.0.0"
@@ -50,10 +50,6 @@ flutter:
     - assets/images/
     - assets/audio/
     - assets/frames/
-    # Font licences, shown on the app's licences page.
-    - assets/fonts/OFL-IBMPlexSansArabic.txt
-    - assets/fonts/OFL-Inter.txt
-    - assets/fonts/OFL-AmiriQuran.txt
 
   # Bundled so text renders offline and at once (see AtharFonts).
   fonts:

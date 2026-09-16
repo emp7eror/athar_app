@@ -111,5 +111,18 @@ class AdhanService extends GetxService {
     return (prayer: Prayer.fajr, time: t.fajr.add(const Duration(days: 1)));
   }
 
+  /// The prayer whose window the moment belongs to — the sky the app is under
+  /// right now. Before Fajr the night still belongs to Isha.
+  String currentPrayerKey() {
+    final t = getTodayPrayerTimes();
+    final now = DateTime.now();
+    if (now.isBefore(t.fajr)) return 'isha';
+    if (now.isBefore(t.dhuhr)) return 'fajr';
+    if (now.isBefore(t.asr)) return 'dhuhr';
+    if (now.isBefore(t.maghrib)) return 'asr';
+    if (now.isBefore(t.isha)) return 'maghrib';
+    return 'isha';
+  }
+
   static String prayerKey(Prayer p) => p.name; // fajr/dhuhr/asr/maghrib/isha
 }

@@ -84,7 +84,7 @@ class _SkyBackdrop extends GetView<HomeController> {
       height: top + 300,
       child: IgnorePointer(
         child: Obx(() {
-          final sky = PrayerSkyTheme.of(controller.nextPrayerKey.value);
+          final sky = PrayerSkyTheme.of(controller.currentPrayerKey.value);
           return Stack(
             fit: StackFit.expand,
             children: [
@@ -403,7 +403,7 @@ enum _PrayerState {
   missed(Icons.history_rounded, 'missed_tap_to_log'),
   nowWithBonus(Icons.bolt_rounded, 'prayer_state_now'),
   now(Icons.radio_button_unchecked_rounded, 'prayer_state_now'),
-  next(Icons.schedule_rounded, 'prayer_next_in'),
+  next(Icons.schedule_rounded, 'tour_home_next_title'),
   later(Icons.lock_clock_rounded, 'prayer_state_later');
 
   const _PrayerState(this.icon, this.labelKey);
@@ -457,7 +457,7 @@ class _PrayerRow extends StatelessWidget {
       );
       final accent = state == _PrayerState.later ? scheme.onSurfaceVariant : visual.accent(context);
       // Gold is for fills; as text on a light card it needs its deeper shade.
-      final accentText = accent == athar.gold ? athar.goldText : accent;
+      final accentText =active && bonusLeft != null ? athar.goldText : scheme.onSurfaceVariant;
       final tappable = !done && (active || missed);
       final points = done ? item.pointsEarned : item.points;
 
@@ -469,13 +469,14 @@ class _PrayerRow extends StatelessWidget {
           ? scheme.primaryContainer.withValues(alpha: 0.28)
           : Colors.transparent;
 
-      final label = state == _PrayerState.next ? state.labelKey.trParams({'time': controller.countdown.value}) : state.labelKey.tr;
+      // final label = state == _PrayerState.next ? state.labelKey.trParams({'time': controller.countdown.value}) : state.labelKey.tr;
+      final label =  state.labelKey.tr;
 
       return MergeSemantics(
         child: Material(
           color: tint,
           child: InkWell(
-            onTap: tappable && !busy ? () => controller.mark(item) : null,
+            onTap: tappable && !busy ? () => controller.mark(item,bonusLeft!=null) : null,
             child: ConstrainedBox(
               constraints: const BoxConstraints(minHeight: 64),
               child: Padding(
@@ -505,7 +506,7 @@ class _PrayerRow extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: context.text.bodySmall?.copyWith(
-                              color: state == _PrayerState.later ? scheme.onSurfaceVariant : accentText,
+                              color: state == _PrayerState.later ? scheme.onSurfaceVariant : scheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
                               fontFeatures: const [FontFeature.tabularFigures()],
                             ),

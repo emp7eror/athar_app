@@ -46,7 +46,7 @@ class PrayerDoneDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tone = outsideTime ? AtharTone.gold : AtharTone.success;
+    final tone = AtharTone.brand;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.lg),

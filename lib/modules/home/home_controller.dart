@@ -37,6 +37,8 @@ class HomeController extends GetxController {
   final quoteSource = ''.obs;
 
   final nextPrayerKey = ''.obs;
+  /// The prayer window we're inside now — drives the sky on the home page.
+  final currentPrayerKey = ''.obs;
   final countdown = '00:00:00'.obs;
   // Per-second "wall clock" so tiles can reactively re-evaluate time-sensitive
   // UI (on-time bonus countdown, window transitions) without each widget
@@ -166,7 +168,7 @@ class HomeController extends GetxController {
   /// time has passed but whose window has closed uses the missed flow.
   /// Prayers that haven't reached their scheduled time yet are rejected — the
   /// user can neither mark nor mute them until they actually start.
-  Future<void> mark(PrayerChecklistItem item) async {
+  Future<void> mark(PrayerChecklistItem item,bool hasBonus) async {
     if (item.isCompleted) return;
 
     // Reject future prayers outright (defense-in-depth; the UI also locks them).
@@ -176,14 +178,14 @@ class HomeController extends GetxController {
     }
 
     if (isActive(item.prayerName)) {
-      await _markOnTime(item);
+      await _markOnTime(item,hasBonus?10:0);
     } else {
       await _markMissed(item);
     }
   }
 
-  Future<void> _markOnTime(PrayerChecklistItem item) async {
-    final result = await PrayerConfirmDialog.show(item.prayerName, item.points);
+  Future<void> _markOnTime(PrayerChecklistItem item, int bonus) async {
+    final result = await PrayerConfirmDialog.show(item.prayerName, item.points+bonus,);
     if (result == null) return; // المستخدم ألغى
 
     marking.value = item.prayerName;
@@ -291,10 +293,12 @@ class HomeController extends GetxController {
   }
 
   void _startCountdown() {
+    currentPrayerKey.value = _adhan.currentPrayerKey();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       now.value = DateTime.now();
       final next = _adhan.nextPrayer();
       nextPrayerKey.value = AdhanService.prayerKey(next.prayer);
+      currentPrayerKey.value = _adhan.currentPrayerKey();
       final diff = next.time.difference(now.value);
       final d = diff.isNegative ? Duration.zero : diff;
       String two(int n) => n.toString().padLeft(2, '0');
