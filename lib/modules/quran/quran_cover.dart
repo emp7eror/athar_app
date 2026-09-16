@@ -26,7 +26,7 @@ class QuranCover extends GetView<QuranController> {
   /// "Surah Al-Baqarah · p. 12" for a page.
   static String where(int page) =>
       '${'quran_surah_n'.trParams({'name': surahForPage(page).localizedName})}'
-      '  ·  ${'quran_page_short'.trParams({'page': '$page'})}';
+          '  ·  ${'quran_page_short'.trParams({'page': '$page'})}';
 
   @override
   Widget build(BuildContext context) {
@@ -52,12 +52,15 @@ class QuranCover extends GetView<QuranController> {
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const TourTarget(id: TourTargets.quranContinue, child: _ContinueCard()),
-                          const SizedBox(height: AtharSpace.xl),
-                          AtharSectionHeader(title: 'quran_cover_stats'.tr),
-                          const TourTarget(id: TourTargets.quranStats, child: _Stats()),
-                          const SizedBox(height: AtharSpace.xl),
+                          const SizedBox(height: AtharSpace.lg),
+                          // The ways in come before the numbers: on a phone the
+                          // index and "by mood" then sit above the fold, and
+                          // the journey's totals are what you scroll for.
                           AtharSectionHeader(title: 'quran_cover_ways'.tr),
                           const TourTarget(id: TourTargets.quranWays, child: _Ways()),
+                          const SizedBox(height: AtharSpace.lg),
+                          AtharSectionHeader(title: 'quran_cover_stats'.tr),
+                          const TourTarget(id: TourTargets.quranStats, child: _Stats()),
                         ],
                       ),
                     ),
@@ -146,14 +149,19 @@ class _ContinueCard extends GetView<QuranController> {
                 children: [
                   _RewardBadge(done: controller.dailyRewardDone, points: controller.pagePoints.value),
                   const SizedBox(height: AtharSpace.md),
-                  Text(
-                    'quran_last_read'.tr,
-                    style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.75)),
+                  Row(
+                    children: [
+                      Text(
+                        'quran_last_read'.tr,
+                        style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.75)),
+                      ),
+                      SizedBox(width: 10,),Text(
+                        QuranCover.where(last),
+                        style: context.text.bodySmall?.copyWith(color: onBrand),
+                      ),
+                    ],
                   ),
-                  Text(
-                    QuranCover.where(last),
-                    style: context.text.titleMedium?.copyWith(color: onBrand),
-                  ),
+
                   const SizedBox(height: AtharSpace.md),
                   // Opens the khatma in detail: surah by surah, page by page.
                   Semantics(
@@ -209,6 +217,8 @@ class _ContinueCard extends GetView<QuranController> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: AtharSpace.md),
+                  const _ResumeActions(),
                   if (khatmas > 0) ...[
                     const SizedBox(height: AtharSpace.sm),
                     Row(
@@ -252,7 +262,7 @@ class _RewardBadge extends StatelessWidget {
         duration: AtharMotion.slow,
         padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm, vertical: AtharSpace.xxs + 2),
         decoration: BoxDecoration(
-          color: done ? athar.success : onBrand.withValues(alpha: 0.16),
+          color: onBrand.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(AtharRadius.pill),
           border: Border.all(
             color: done ? onBrand.withValues(alpha: 0.35) : athar.gold.withValues(alpha: 0.6),
@@ -280,82 +290,209 @@ class _RewardBadge extends StatelessWidget {
   }
 }
 
-/// The ways into the Mushaf, as grouped rows.
+/// The three ways to resume, as buttons on the continue card itself — the
+/// card already carries the pages they lead to, so they need no rows of their
+/// own. A way with nowhere to go (no bookmark, khatma finished) stays visible
+/// but quiet rather than disappearing.
+class _ResumeActions extends GetView<QuranController> {
+  const _ResumeActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      final next = controller.nextUnreadPage();
+
+      return Row(
+        children: [
+          Expanded(
+            child: _ResumeAction(
+              icon: Icons.auto_stories_rounded,
+              label: 'quran_continue'.tr,
+              onTap: () => controller.openAt(controller.lastReadPage.value),
+            ),
+          ),
+          const SizedBox(width: AtharSpace.xs),
+          Expanded(
+            child: _ResumeAction(
+              icon: Icons.flag_rounded,
+              label: next == null ? 'quran_khatma_all_read'.tr : 'quran_next_unread'.tr,
+              page: next,
+              onTap: next == null ? null : () => controller.openAt(next),
+            ),
+          ),
+          const SizedBox(width: AtharSpace.xs),
+          // The khatma in detail — surah by surah, juz by juz, page by page.
+          Expanded(
+            child: _ResumeAction(
+              icon: Icons.insights_rounded,
+              label: 'quran_khatma_map'.tr,
+              onTap: () => Get.to<void>(() => const KhatmaProgressView()),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+}
+
+class _ResumeAction extends StatelessWidget {
+  const _ResumeAction({required this.icon, required this.label, required this.onTap, this.page});
+
+  final IconData icon;
+  final String label;
+
+  /// The page it opens, shown under the label when there is one.
+  final int? page;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    const onBrand = Colors.white;
+    final enabled = onTap != null;
+    final ink = onBrand.withValues(alpha: enabled ? 1 : 0.55);
+
+    return MergeSemantics(
+      child: Material(
+        color: onBrand.withValues(alpha: enabled ? 0.16 : 0.07),
+        borderRadius: BorderRadius.circular(AtharRadius.md),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AtharRadius.md),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AtharSpace.xs, vertical: AtharSpace.sm),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: AtharSize.iconSm, color: ink),
+                const SizedBox(height: AtharSpace.xxs),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.labelSmall?.copyWith(color: ink),
+                ),
+                if (page != null)
+                  Text(
+                    'quran_page_short'.trParams({'page': '$page'}),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    style: context.text.labelSmall?.copyWith(
+                      color: onBrand.withValues(alpha: 0.7),
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The ways into the Mushaf: one strip, since none of them carries a page —
+/// they only open a way of choosing one.
 class _Ways extends GetView<QuranController> {
   const _Ways();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AtharListGroup(
-          children: [
-            Obx(() {
-              final last = controller.lastReadPage.value;
-              return AtharListRow(
-                icon: Icons.auto_stories_rounded,
-                title: 'quran_continue'.tr,
-                subtitle: QuranCover.where(last),
-                onTap: () => controller.openAt(last),
-              );
-            }),
-            // The next page this khatma is still missing, after the last one
-            // read — for finishing the khatma without hunting for gaps.
-            Obx(() {
-              final next = controller.nextUnreadPage();
-              return AtharListRow(
-                icon: Icons.flag_rounded,
-                tone: AtharTone.gold,
-                title: 'quran_next_unread'.tr,
-                subtitle: next == null ? 'quran_khatma_all_read'.tr : QuranCover.where(next),
-                onTap: next == null ? null : () => controller.openAt(next),
-              );
-            }),
-            Obx(() {
+    return AtharCard(
+      padding: const EdgeInsets.symmetric(vertical: AtharSpace.xs),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: _WayTile(
+              icon: Icons.menu_book_rounded,
+              label: 'quran_index'.tr,
+              onTap: () => Get.to<void>(() => const QuranIndexView()),
+            ),
+          ),
+          // The khatma in detail keeps its place on the card's progress bar;
+          // this slot goes to the page the reader saved themselves.
+          Expanded(
+            child: Obx(() {
               final bookmark = controller.bookmarkPage.value;
-              return AtharListRow(
+              return _WayTile(
                 icon: Icons.bookmark_rounded,
                 tone: AtharTone.warning,
-                title: 'quran_bookmark'.tr,
-                subtitle: bookmark == null ? 'quran_no_bookmark'.tr : QuranCover.where(bookmark),
+                label: bookmark == null ? 'quran_no_bookmark'.tr : 'quran_bookmark'.tr,
                 onTap: bookmark == null ? null : () => controller.openAt(bookmark),
               );
             }),
-          ],
-        ),
-        const SizedBox(height: AtharSpace.sm),
-        AtharListGroup(
-          children: [
-            AtharListRow(
-              icon: Icons.menu_book_rounded,
-              title: 'quran_index'.tr,
-              subtitle: 'quran_cover_index_sub'.tr,
-              onTap: () => Get.to<void>(() => const QuranIndexView()),
-            ),
-            AtharListRow(
-              icon: Icons.insights_rounded,
-              title: 'quran_khatma_map'.tr,
-              subtitle: 'quran_khatma_map_sub'.tr,
-              onTap: () => Get.to<void>(() => const KhatmaProgressView()),
-            ),
-            AtharListRow(
+          ),
+          Expanded(
+            child: _WayTile(
               icon: Icons.favorite_rounded,
-              tone: AtharTone.gold,
-              title: 'quran_mood'.tr,
-              subtitle: 'quran_mood_sub'.tr,
+              // tone: AtharTone.gold,
+              label: 'quran_mood'.tr,
               onTap: QuranMoodView.open,
             ),
-            AtharListRow(
+          ),
+          Expanded(
+            child: _WayTile(
               icon: Icons.shuffle_rounded,
-              tone: AtharTone.info,
-              title: 'quran_random_page'.tr,
-              subtitle: 'quran_cover_random_sub'.tr,
+              // tone: AtharTone.info,
+              label: 'quran_random_page'.tr,
               onTap: controller.randomPage,
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _WayTile extends StatelessWidget {
+  const _WayTile({required this.icon, required this.label, required this.onTap, this.tone = AtharTone.brand});
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final AtharTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+
+    return MergeSemantics(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AtharRadius.md),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AtharSpace.xxs, vertical: AtharSpace.sm),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: AtharSize.iconTile,
+                height: AtharSize.iconTile,
+                decoration: BoxDecoration(
+                  color: enabled ? tone.background(context) : context.colors.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: AtharSize.iconSm,
+                  color: enabled ? tone.foreground(context) : context.colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: AtharSpace.xs),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.labelSmall?.copyWith(
+                  color: enabled ? context.colors.onSurface : context.colors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -383,19 +520,19 @@ class _Stats extends GetView<QuranController> {
       ];
 
       Widget row(List<(IconData, String, String)> items) => Row(
-            children: [
-              for (final item in items)
-                Expanded(
-                  child: AtharStat(
-                    icon: item.$1,
-                    tone: AtharTone.gold,
-                    value: item.$2,
-                    label: item.$3,
-                    center: true,
-                  ),
-                ),
-            ],
-          );
+        children: [
+          for (final item in items)
+            Expanded(
+              child: AtharStat(
+                icon: item.$1,
+                tone: AtharTone.brand,
+                value: item.$2,
+                label: item.$3,
+                center: true,
+              ),
+            ),
+        ],
+      );
 
       return AtharCard(
         child: Column(
@@ -403,7 +540,7 @@ class _Stats extends GetView<QuranController> {
             row(stats),
             if (words.isNotEmpty) ...[
               const Padding(
-                padding: EdgeInsets.symmetric(vertical: AtharSpace.md),
+                padding: EdgeInsets.symmetric(vertical: AtharSpace.sm),
                 child: Divider(height: 1),
               ),
               row(words),

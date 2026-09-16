@@ -231,7 +231,7 @@ class _Statistics extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.star_rounded,
-                  tone: AtharTone.gold,
+                  // tone: AtharTone.gold,
                   value: '${profile.totalPoints}',
                   label: 'points'.tr,
                   center: true,
@@ -240,7 +240,7 @@ class _Statistics extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.local_fire_department_rounded,
-                  tone: AtharTone.warning,
+                  // tone: AtharTone.warning,
                   value: '${profile.currentStreak}',
                   label: 'streak'.tr,
                   center: true,
@@ -265,7 +265,7 @@ class _Statistics extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.history_rounded,
-                  tone: AtharTone.neutral,
+                  // tone: AtharTone.neutral,
                   value: '${profile.lastScore}',
                   label: 'last_month_score'.tr,
                   center: true,
@@ -274,7 +274,7 @@ class _Statistics extends StatelessWidget {
               Expanded(
                 child: AtharStat(
                   icon: Icons.military_tech_rounded,
-                  tone: AtharTone.gold,
+                  // tone: AtharTone.gold,
                   value: '${profile.bestScore}',
                   label: 'best_score'.tr,
                   center: true,

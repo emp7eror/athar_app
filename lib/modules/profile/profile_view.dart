@@ -181,7 +181,7 @@ class _HeroStat extends StatelessWidget {
     return MergeSemantics(
       child: Column(
         children: [
-          Icon(icon, size: AtharSize.icon, color: context.athar.gold),
+          Icon(icon, size: AtharSize.icon),
           const SizedBox(height: AtharSpace.xxs),
           FittedBox(
             fit: BoxFit.scaleDown,

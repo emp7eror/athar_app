@@ -95,7 +95,7 @@ class _MisbahaStrandState extends State<MisbahaStrand>
 
     return GestureDetector(
       onTap: _handleTap,
-      onHorizontalDragDown: _handleSwipe,
+      onHorizontalDragEnd: _handleSwipe,
       behavior: HitTestBehavior.opaque,
       child: AnimatedOpacity(
         opacity: widget.enabled ? 1 : 0.45,
@@ -125,7 +125,7 @@ class _MisbahaStrandState extends State<MisbahaStrand>
     );
   }
 
-  void _handleSwipe(DragDownDetails details) {
+  void _handleSwipe(DragEndDetails details) {
     print('ssss');
     _handleTap();
   }

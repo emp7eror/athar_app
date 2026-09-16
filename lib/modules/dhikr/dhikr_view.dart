@@ -192,7 +192,7 @@ class _DhikrSelector extends StatelessWidget {
                                 Icon(
                                   Icons.check_circle_rounded,
                                   size: AtharSize.iconSm,
-                                  color: active ? scheme.onPrimary : context.athar.success,
+                                  color: active ? scheme.onPrimary : scheme.onPrimaryContainer,
                                 ),
                               ],
                             ],

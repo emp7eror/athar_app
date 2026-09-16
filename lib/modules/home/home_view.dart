@@ -445,7 +445,6 @@ class _PrayerRow extends StatelessWidget {
       };
 
       final scheme = context.colors;
-      final athar = context.athar;
       final visual = resolvePrayerVisualTheme(
         done: done,
         late: late,
@@ -455,19 +454,16 @@ class _PrayerRow extends StatelessWidget {
         active: active,
         isNextUpcoming: isNextUpcoming,
       );
-      final accent = state == _PrayerState.later ? scheme.onSurfaceVariant : visual.accent(context);
-      // Gold is for fills; as text on a light card it needs its deeper shade.
-      final accentText =active && bonusLeft != null ? athar.goldText : scheme.onSurfaceVariant;
+      // Every colour on the row comes from the state's tone, so each theme
+      // preset accents its prayers in its own brand.
+      final accent = visual.accent(context);
+      final accentSurface = visual.accentSurface(context);
       final tappable = !done && (active || missed);
       final points = done ? item.pointsEarned : item.points;
 
-      // The prayer whose time is in stands out most; the next one, with its
-      // countdown, a step less.
-      final tint = active && !done
-          ? scheme.primaryContainer.withValues(alpha: 0.55)
-          : state == _PrayerState.next
-          ? scheme.primaryContainer.withValues(alpha: 0.28)
-          : Colors.transparent;
+      // Only the prayer whose time is in stands out; the next one sits on the
+      // same ground as the rest and is told apart by its icon and countdown.
+      final tint = active && !done ? scheme.primaryContainer.withValues(alpha: 0.55) : Colors.transparent;
 
       // final label = state == _PrayerState.next ? state.labelKey.trParams({'time': controller.countdown.value}) : state.labelKey.tr;
       final label =  state.labelKey.tr;
@@ -486,7 +482,7 @@ class _PrayerRow extends StatelessWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: BoxDecoration(color: accent.withValues(alpha: 0.12), shape: BoxShape.circle),
+                      decoration: BoxDecoration(color: accentSurface, shape: BoxShape.circle),
                       child: busy
                           ? Padding(
                               padding: const EdgeInsets.all(AtharSpace.sm),
@@ -506,7 +502,7 @@ class _PrayerRow extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: context.text.bodySmall?.copyWith(
-                              color: state == _PrayerState.later ? scheme.onSurfaceVariant : scheme.onSurfaceVariant,
+                              color: scheme.onSurfaceVariant,
                               fontWeight: FontWeight.w600,
                               fontFeatures: const [FontFeature.tabularFigures()],
                             ),
@@ -525,7 +521,7 @@ class _PrayerRow extends StatelessWidget {
                             style: context.text.titleSmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
                           ),
                         const SizedBox(height: AtharSpace.xxs),
-                        _PointsPill(points: points, bonusLeft: bonusLeft, color: accentText),
+                        _PointsPill(points: points, bonusLeft: bonusLeft, color: accent),
                       ],
                     ),
                   ],

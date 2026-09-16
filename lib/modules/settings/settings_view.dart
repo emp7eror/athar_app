@@ -139,7 +139,7 @@ class SettingsView extends StatelessWidget {
                     final info = snapshot.data;
                     return AtharListRow(
                       icon: Icons.info_rounded,
-                      tone: AtharTone.neutral,
+                      // tone: AtharTone.neutral,
                       title: 'app_version'.tr,
                       value: info == null ? '' : '${info.version}+${info.buildNumber}',
                       showChevron: false,
@@ -155,7 +155,7 @@ class SettingsView extends StatelessWidget {
                 ),
                 AtharListRow(
                   icon: Icons.privacy_tip_rounded,
-                  tone: AtharTone.neutral,
+                  // tone: AtharTone.neutral,
                   title: 'privacy_policy'.tr,
                   onTap: () => Get.to(() => LegalDocumentView(
                         fallbackTitle: 'privacy_policy'.tr,
@@ -164,7 +164,7 @@ class SettingsView extends StatelessWidget {
                 ),
                 AtharListRow(
                   icon: Icons.description_rounded,
-                  tone: AtharTone.neutral,
+                  // tone: AtharTone.neutral,
                   title: 'terms'.tr,
                   onTap: () => Get.to(() => LegalDocumentView(
                         fallbackTitle: 'terms'.tr,
@@ -173,7 +173,7 @@ class SettingsView extends StatelessWidget {
                 ),
                 AtharListRow(
                   icon: Icons.volunteer_activism_rounded,
-                  tone: AtharTone.gold,
+                  // tone: AtharTone.gold,
                   title: 'credits'.tr,
                   onTap: () => Get.to(() => const CreditsView()),
                 ),

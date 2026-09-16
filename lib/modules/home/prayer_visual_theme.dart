@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../core/theme/app_theme.dart';
+import '../../core/ui/athar_tone.dart';
 
 /// Single source of truth for the four visual states the prayer tile can be
 /// in. Every tile element (background, border, name, time, icon, points pill)
@@ -36,7 +36,7 @@ enum PrayerVisualTheme {
 ///   missed            ─▶ missed  (yet-to-log)
 ///   active+bonusPeek  ─▶ bonus   (preview / encouragement)
 ///   active            ─▶ upcoming
-///   isNextUpcoming    ─▶ upcoming
+///   isNextUpcoming    ─▶ neutral
 ///   else              ─▶ neutral
 PrayerVisualTheme resolvePrayerVisualTheme({
   required bool done,
@@ -53,29 +53,32 @@ PrayerVisualTheme resolvePrayerVisualTheme({
   if (missed) return PrayerVisualTheme.missed;
   if (active && bonusAvailable) return PrayerVisualTheme.bonus;
   if (active) return PrayerVisualTheme.upcoming;
-  if (isNextUpcoming) return PrayerVisualTheme.upcoming;
+  // The next prayer wears the same colour as the ones after it; its icon,
+  // label and countdown are what set it apart.
+  if (isNextUpcoming) return PrayerVisualTheme.neutral;
   return PrayerVisualTheme.neutral;
 }
 
-/// Themed color for the resolved state. Every tile element pulls from the
-/// same accent so shifting the palette is a one-line change.
+/// Themed colour for the resolved state. Each state maps to a design-system
+/// tone, so every theme preset resolves the accent its own way — the active
+/// and next prayers follow the preset's brand colour rather than a fixed
+/// green, and the tints below always sit on the right ground.
 extension PrayerVisualThemeColors on PrayerVisualTheme {
-  Color accent(BuildContext context) {
-    final p = context.athar;
-    switch (this) {
-      case PrayerVisualTheme.bonus:
-        return p.gold;
-        case PrayerVisualTheme.late:
-        return p.gold;
-      case PrayerVisualTheme.missed:
-        return p.danger;
-      case PrayerVisualTheme.onTime:
-      case PrayerVisualTheme.upcoming:
-        return p.success;
-      case PrayerVisualTheme.neutral:
-        return Theme.of(context).colorScheme.primary;
-    }
-  }
+  /// The meaning the row carries; all of its colours come from this.
+  AtharTone get tone => switch (this) {
+        PrayerVisualTheme.bonus || PrayerVisualTheme.late => AtharTone.gold,
+        PrayerVisualTheme.missed => AtharTone.danger,
+        PrayerVisualTheme.onTime => AtharTone.success,
+        // Active / next — the preset's own brand colour.
+        PrayerVisualTheme.upcoming => AtharTone.brand,
+        PrayerVisualTheme.neutral => AtharTone.neutral,
+      };
+
+  /// Icons and text.
+  Color accent(BuildContext context) => tone.foreground(context);
+
+  /// The quiet tint behind [accent] — icon disc, points pill.
+  Color accentSurface(BuildContext context) => tone.background(context);
 
   /// Whether this state should tint the row background/border, or keep the
   /// default card look. Neutral (distant future) tiles stay uncolored to

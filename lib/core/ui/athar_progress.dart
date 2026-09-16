@@ -37,7 +37,7 @@ class AtharProgressBar extends StatelessWidget {
           builder: (context, v, _) => LinearProgressIndicator(
             value: v,
             minHeight: height,
-            color: color ?? context.colors.primary,
+            color: context.colors.primary,
             backgroundColor: trackColor ?? context.colors.outlineVariant,
           ),
         ),
