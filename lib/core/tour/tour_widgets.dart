@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../design/athar_scale.dart';
 import '../theme/app_theme.dart';
 import 'tour_service.dart';
 
@@ -74,6 +75,7 @@ class TourHelpButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final service = _tours;
     if (service == null || !service.hasTour(pageId)) return const SizedBox.shrink();
+    final size = 22 * AtharScale.of(context).clamp(1.0, 1.2);
 
     void replay() {
       if (service.running.value != null) return;
@@ -86,21 +88,17 @@ class TourHelpButton extends StatelessWidget {
           tooltip: 'tour_help'.tr,
           icon: const Icon(Icons.help_outline_rounded),
         ),
+
       TourHelpStyle.circle => Tooltip(
           message: 'tour_help'.tr,
-          child: Material(
-            color: context.athar.card,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: replay,
-              child: Padding(
-                padding: const EdgeInsets.all(10),
-                child: Icon(
-                  Icons.help_outline_rounded,
-                  size: 22,
-                  color: context.colors.primary,
-                ),
+          child: InkWell(
+            onTap: replay,
+            child: Padding(
+              padding: const EdgeInsets.all(10),
+              child: Icon(
+                Icons.help,
+                size: size,
+                color: context.colors.primary,
               ),
             ),
           ),

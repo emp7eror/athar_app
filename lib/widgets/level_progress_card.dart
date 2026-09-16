@@ -24,10 +24,10 @@ class LevelProgressCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AtharTone.gold.background(context),
+              color: AtharTone.brand.background(context),
               borderRadius: BorderRadius.circular(AtharRadius.md),
             ),
-            child: Icon(Icons.workspace_premium_rounded, size: 26, color: context.athar.goldText),
+            child: Icon(Icons.workspace_premium_rounded, size: 26, color: AtharTone.brand.foreground(context)),
           ),
           const SizedBox(width: AtharSpace.sm),
           Expanded(
@@ -39,7 +39,7 @@ class LevelProgressCard extends StatelessWidget {
                 const SizedBox(height: AtharSpace.xs),
                 AtharProgressBar(
                   value: progress,
-                  color: context.athar.gold,
+                  color: AtharTone.brand.foreground(context),
                   semanticsLabel: 'progress_to_next'.tr,
                 ),
                 const SizedBox(height: AtharSpace.xs),

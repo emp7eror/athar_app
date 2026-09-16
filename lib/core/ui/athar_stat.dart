@@ -35,12 +35,7 @@ class AtharStat extends StatelessWidget {
             Icon(icon, size: AtharSize.icon, color: tone.foreground(context)),
             const SizedBox(height: AtharSpace.xs),
           ],
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: center ? Alignment.center : AlignmentDirectional.centerStart,
-            child: Text(value, maxLines: 1, style: context.type.statValue),
-          ),
-          const SizedBox(height: AtharSpace.xxs / 2),
+
           Text(
             label,
             maxLines: 2,
@@ -48,6 +43,14 @@ class AtharStat extends StatelessWidget {
             textAlign: center ? TextAlign.center : TextAlign.start,
             style: context.type.caption,
           ),
+          const SizedBox(height: AtharSpace.xxs / 2),
+
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: center ? Alignment.center : AlignmentDirectional.centerStart,
+            child: Text(value, maxLines: 1, style: context.type.statValue),
+          ),
+
         ],
       ),
     );

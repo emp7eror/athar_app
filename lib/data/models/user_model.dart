@@ -32,7 +32,7 @@ class LevelInfo {
 
   /// Localized flat name, preferring the server-provided [name] and falling
   /// back to picking the right bilingual title for older cached payloads.
-  String displayName(bool isAr) => name.isNotEmpty ? name : (isAr ? titleAr : titleEn);
+  String displayName(bool isAr) => name.isNotEmpty ? (isAr ? titleAr : titleEn):'';
 
   /// The level's frame asset, resolved entirely on-device from the bundled
   /// `assets/frames/` folder — the backend only ever tells us *which* level

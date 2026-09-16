@@ -1,3 +1,4 @@
+import 'package:athar/core/ui/athar_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
@@ -43,12 +44,7 @@ class HomeView extends GetView<HomeController> {
               child: RefreshIndicator(
                 onRefresh: controller.refreshAll,
                 child: ListView(
-                  padding: const EdgeInsets.fromLTRB(
-                    AtharSpace.screen,
-                    AtharSpace.xs,
-                    AtharSpace.screen,
-                    _navClearance,
-                  ),
+                  padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, _navClearance),
                   // Keeps the whole page built so tour steps can scroll to any part.
                   scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
                   children: const [
@@ -57,7 +53,7 @@ class HomeView extends GetView<HomeController> {
                     TourTarget(id: TourTargets.homeNextPrayer, child: _TodaySummary()),
                     SizedBox(height: AtharSpace.lg),
                     TourTarget(id: TourTargets.homePrayers, child: _PrayerList()),
-                    SizedBox(height: AtharSpace.lg),
+                    SizedBox(height: AtharSpace.md),
                     TourTarget(id: TourTargets.homePractices, child: _Practices()),
                   ],
                 ),
@@ -109,12 +105,7 @@ class _SkyBackdrop extends GetView<HomeController> {
                 top: top + AtharSpace.xl,
                 child: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 600),
-                  child: Icon(
-                    sky.watermark,
-                    key: ValueKey(sky.watermark),
-                    size: 150,
-                    color: Colors.white.withValues(alpha: 0.10),
-                  ),
+                  child: Icon(sky.watermark, key: ValueKey(sky.watermark), size: 150, color: Colors.white.withValues(alpha: 0.10)),
                 ),
               ),
               // Fades into the page so the list sits on plain ground.
@@ -172,7 +163,7 @@ class _Header extends GetView<HomeController> {
                             avatarUrl: controller.avatarUrl.value,
                             frameAsset: level?.frame,
                             level: level?.level,
-                            radius: 16,
+                            radius: 12,
                             backgroundColor: context.athar.brand,
                           ),
                           const SizedBox(width: AtharSpace.sm),
@@ -246,62 +237,114 @@ class _TodaySummary extends GetView<HomeController> {
           Row(
             children: [
               Expanded(
-                child: Semantics(
-                  header: true,
-                  child: Text('today'.tr, style: context.text.headlineMedium?.copyWith(color: onSky)),
-                ),
-              ),
-              // The location opens Settings, where it can be updated.
-              Material(
-                color: onSky.withValues(alpha: 0.14),
-                shape: const StadiumBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => Get.to(() => const SettingsView()),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(minHeight: 36),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 900),
+                  curve: Curves.easeInOut,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Icon(Icons.location_on_rounded, size: AtharSize.iconSm, color: onSky),
-                          const SizedBox(width: AtharSpace.xxs),
-                          ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 140),
-                            child: Text(
-                              controller.locationLabel.value.tr,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.text.labelMedium?.copyWith(color: onSky),
+                          Row(
+                            children: [
+                              Icon(Icons.mosque_outlined, size: 18,color: onSky,),
+                              const SizedBox(width: 6),
+                              Text('next_prayer'.tr, style: context.text.labelLarge?.copyWith(color: Colors.white.withValues(alpha: 0.85))),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 15),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Obx(
+                            () => Text(
+                              controller.nextPrayerKey.value.isEmpty ? '—' : controller.nextPrayerKey.value.tr,
+                              style: context.text.headlineMedium?.copyWith(color: Colors.white.withValues(alpha: 0.85)),
+                            ),
+                          ),
+                          Obx(
+                            () => Text(
+                              controller.countdown.value,
+                              style: context.text.displaySmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()], letterSpacing: 0,color: onSky.withValues(alpha: 0.80)),
+                            ),
+                          ),
+                          Material(
+                            color: onSky.withValues(alpha: 0.14),
+                            shape: const StadiumBorder(),
+                            clipBehavior: Clip.antiAlias,
+                            child: InkWell(
+                              onTap: () => Get.to(() => const SettingsView()),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(minHeight: 36),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.location_on_rounded, size: AtharSize.iconSm, color: onSky),
+                                      const SizedBox(width: AtharSpace.xxs),
+                                      ConstrainedBox(
+                                        constraints: const BoxConstraints(maxWidth: 140),
+                                        child: Text(
+                                          controller.locationLabel.value.tr,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: context.text.labelMedium?.copyWith(color: onSky),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ],
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                    ],
                   ),
                 ),
               ),
+              // The location opens Settings, where it can be updated.
             ],
           ),
           const SizedBox(height: AtharSpace.xxs),
-          Text(
-            'home_today_summary'.trParams({
-              'done': '$done',
-              'total': '$total',
-              'points': '${controller.pointsToday.value}',
-            }),
-            style: context.text.bodyMedium?.copyWith(color: onSky.withValues(alpha: 0.88)),
-          ),
-          const SizedBox(height: AtharSpace.sm),
-          AtharProgressBar(
-            value: total == 0 ? 0 : done / total,
-            height: 6,
-            color: context.athar.gold,
-            trackColor: onSky.withValues(alpha: 0.24),
-            semanticsLabel: 'today'.tr,
-            semanticsValue: '$done / $total',
-          ),
+          // AnimatedContainer(
+          //   duration: const Duration(milliseconds: 900),
+          //   curve: Curves.easeInOut,
+          //   child: Row(
+          //     children: [
+          //       Flexible(
+          //         child: Text(
+          //           'home_today_summary'.trParams({
+          //             'done': '$done',
+          //             'total': '$total',
+          //             'points': '${controller.pointsToday.value}',
+          //           }),
+          //           maxLines: 1,
+          //           overflow: TextOverflow.ellipsis,
+          //           style: context.text.bodySmall?.copyWith(
+          //             color: onSky.withValues(alpha: 0.88),
+          //           ),
+          //         ),
+          //       ),
+          //       const SizedBox(width: AtharSpace.sm),
+          //       Expanded(
+          //         child: AtharProgressBar(
+          //           value: total == 0 ? 0.0 : (done / total).clamp(0.0, 1.0),
+          //           height: 6,
+          //           trackColor: onSky.withValues(alpha: 0.24),
+          //           semanticsLabel: 'today'.tr,
+          //           semanticsValue: '$done / $total',
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ),
         ],
       );
     });
@@ -342,8 +385,7 @@ class _PrayerList extends GetView<HomeController> {
           children: [
             for (var i = 0; i < items.length; i++) ...[
               _PrayerRow(item: items[i]),
-              if (i < items.length - 1)
-                const Divider(height: 1, indent: AtharSpace.md + 44 + AtharSpace.sm),
+              if (i < items.length - 1) const Divider(height: 1, indent: AtharSpace.md + 44 + AtharSpace.sm),
             ],
           ],
         ),
@@ -424,12 +466,10 @@ class _PrayerRow extends StatelessWidget {
       final tint = active && !done
           ? scheme.primaryContainer.withValues(alpha: 0.55)
           : state == _PrayerState.next
-              ? scheme.primaryContainer.withValues(alpha: 0.28)
-              : Colors.transparent;
+          ? scheme.primaryContainer.withValues(alpha: 0.28)
+          : Colors.transparent;
 
-      final label = state == _PrayerState.next
-          ? state.labelKey.trParams({'time': controller.countdown.value})
-          : state.labelKey.tr;
+      final label = state == _PrayerState.next ? state.labelKey.trParams({'time': controller.countdown.value}) : state.labelKey.tr;
 
       return MergeSemantics(
         child: Material(
@@ -481,9 +521,7 @@ class _PrayerRow extends StatelessWidget {
                         if (item.time != null)
                           Text(
                             DateFormat('h:mm a', Get.locale?.languageCode).format(item.time!),
-                            style: context.text.titleSmall?.copyWith(
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
+                            style: context.text.titleSmall?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
                           ),
                         const SizedBox(height: AtharSpace.xxs),
                         _PointsPill(points: points, bonusLeft: bonusLeft, color: accentText),
@@ -508,8 +546,7 @@ class _PointsPill extends StatelessWidget {
   final Duration? bonusLeft;
   final Color color;
 
-  static String _mmss(Duration d) =>
-      '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
+  static String _mmss(Duration d) => '${d.inMinutes.toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -517,29 +554,14 @@ class _PointsPill extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: AtharSpace.xs, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AtharRadius.pill),
-      ),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AtharRadius.pill)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (left != null) ...[
-            Icon(Icons.bolt_rounded, size: 14, color: color),
-            const SizedBox(width: 2),
-          ],
+          if (left != null) ...[Icon(Icons.bolt_rounded, size: 14, color: color), const SizedBox(width: 2)],
           Text(
-            left == null
-                ? '+$points ${'point'.tr}'
-                : 'bonus_pill'.trParams({
-                    'points': '${HomeController.onTimeBonusPoints}',
-                    'time': _mmss(left),
-                  }),
-            style: context.text.labelSmall?.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
+            left == null ? '+$points ${'point'.tr}' : 'bonus_pill'.trParams({'points': '${HomeController.onTimeBonusPoints}', 'time': _mmss(left)}),
+            style: context.text.labelSmall?.copyWith(color: color, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()]),
           ),
         ],
       ),
@@ -557,22 +579,20 @@ class _Practices extends StatelessWidget {
   Widget build(BuildContext context) {
     final lastPage = Get.find<StorageProvider>().quranLastPageOrNull;
 
-    return AtharListGroup(
-      title: 'home_practices'.tr,
+    return AtharGridGroup(
+      // title: 'home_practices'.tr,
       children: [
-        AtharListRow(
+        AtharGridTile(
           icon: Icons.all_inclusive_rounded,
-          tone: AtharTone.gold,
+          isStart: true,
           title: 'dhikr_home_card_title'.tr,
-          subtitle: 'home_dhikr_action'.tr,
+          subtitle: 'dhikr_home_card_sub'.tr,
           onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
         ),
-        AtharListRow(
+        AtharGridTile(
           icon: Icons.menu_book_rounded,
           title: 'quran_home_card_title'.tr,
-          subtitle: lastPage == null
-              ? 'home_quran_start'.tr
-              : 'home_quran_continue'.trParams({'page': '$lastPage'}),
+          subtitle: 'quran_home_card_sub'.tr,
           onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
         ),
       ],

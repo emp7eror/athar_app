@@ -70,7 +70,7 @@ class FriendsView extends GetView<FriendsController> {
                 else ...[
                   AtharSectionHeader(
                     title: 'friends_list_title'.tr,
-                    subtitle: '${friends.length}',
+                    subtitle: 'tour_friends_list_body'.tr ,
                   ),
                   AtharListGroup(
                     children: [
@@ -98,10 +98,10 @@ class _MyCodeCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Get.find<StorageProvider>().cachedUser;
     final code = (user?['user_code'] ?? '------') as String;
-    const onBrand = Colors.white;
+    final onBrand = context.colors.onSurface;
 
     return AtharCard(
-      tone: AtharCardTone.brand,
+      // tone: AtharCardTone.surface,
       padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.md, AtharSpace.xs, AtharSpace.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -360,7 +360,7 @@ class _TodayTicks extends StatelessWidget {
                             ? Icons.verified_rounded
                             : Icons.task_alt_rounded,
                     size: 18,
-                    color: !p.isCompleted ? scheme.outline : (p.isOnTime ? athar.success : athar.warning),
+                    color: !p.isCompleted ? scheme.outline : scheme.onSurface,
                   ),
                   const SizedBox(height: 2),
                   Text(

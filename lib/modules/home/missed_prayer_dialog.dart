@@ -127,9 +127,9 @@ class _MissedPrayerDialogState extends State<MissedPrayerDialog> {
           children: [
             PrayerDialogHeader(
               icon: Icons.history_rounded,
-              tone: AtharTone.warning,
+              tone: AtharTone.brand,
               title: 'missed_prayer_title'.tr,
-              badge: AtharBadge(label: widget.prayerName.tr, tone: AtharTone.warning),
+              badge: AtharBadge(label: widget.prayerName.tr, tone: AtharTone.brand),
               subtitle: 'missed_prayer_desc'.tr,
             ),
             Flexible(

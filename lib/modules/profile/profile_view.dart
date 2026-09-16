@@ -89,13 +89,13 @@ class _IdentityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const onBrand = Colors.white;
+    final onBrand =  context.colors.onSurface;
     final u = controller.user.value;
     final isAr = Get.locale?.languageCode == 'ar';
     final avatarUrl = (Get.find<StorageProvider>().cachedUser ?? {})['avatar_url'] as String?;
 
     return AtharCard(
-      tone: AtharCardTone.brand,
+      // tone: AtharCardTone.surface,
       padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.xl, AtharSpace.lg, AtharSpace.lg),
       child: Column(
         children: [
@@ -108,7 +108,7 @@ class _IdentityCard extends StatelessWidget {
               children: [
                 Obx(
                   () => controller.uploading.value
-                      ? const SizedBox.square(
+                      ?  SizedBox.square(
                           dimension: 122,
                           child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: onBrand)),
                         )
@@ -144,7 +144,7 @@ class _IdentityCard extends StatelessWidget {
             Text(
               u!.level!.displayName(isAr),
               textAlign: TextAlign.center,
-              style: context.text.titleSmall?.copyWith(color: context.athar.gold),
+              style: context.text.titleSmall?.copyWith(color: context.colors.onSurface),
             ),
           ],
           const SizedBox(height: AtharSpace.lg),
@@ -176,7 +176,7 @@ class _HeroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const onBrand = Colors.white;
+    final onBrand = context.colors.onSurface;
 
     return MergeSemantics(
       child: Column(

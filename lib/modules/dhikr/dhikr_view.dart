@@ -277,7 +277,7 @@ class _CounterDial extends StatelessWidget {
                       strokeWidth: 4,
                       strokeCap: StrokeCap.round,
                       backgroundColor: athar.beige,
-                      valueColor: AlwaysStoppedAnimation(rewarded ? athar.gold : scheme.primary),
+                      valueColor: AlwaysStoppedAnimation(rewarded ? scheme.primary : scheme.primary),
                     ),
                   ),
                 ),
@@ -311,7 +311,7 @@ class _CounterDial extends StatelessWidget {
                     key: const ValueKey('done'),
                     icon: Icons.verified_rounded,
                     text: 'dhikr_reward_done'.tr,
-                    color: athar.goldText,
+                    color: athar.textMuted,
                   )
                 : _Caption(
                     key: const ValueKey('remaining'),
@@ -374,7 +374,7 @@ class _MisbahaZone extends StatelessWidget {
               count: controller.countOf(controller.selected.value),
               enabled: !paused,
               onTap: controller.tap,
-              strike: controller.shakeStrikes.value,
+              // motion: controller.shakeStrikes.value,
             ),
           ),
           // The cooldown message wins; otherwise, with shake counting on, a
