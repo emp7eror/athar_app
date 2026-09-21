@@ -74,6 +74,7 @@ class AchievementCard extends StatelessWidget {
                       name: name,
                       avatarUrl: avatarUrl,
                       frameAsset: newLevel.frame,
+                      frameUrl: newLevel.frameUrl,
                       level: newLevel.level,
                       radius: 60,
                       backgroundColor: athar.gold,

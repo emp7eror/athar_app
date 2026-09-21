@@ -9,8 +9,12 @@ class ApiEndpoints {
   static const String passwordVerify = '/auth/password/verify';
   static const String passwordReset = '/auth/password/reset';
   static const String logout = '/auth/logout';
+  static const String deleteAccount = '/account';
   static const String fcmToken = '/auth/fcm-token';
   static const String location = '/user/location';
+  /// Public: setting a location by name is the way in when the device's own
+  /// location is unavailable.
+  static const String cities = '/cities';
   static const String timezone = '/user/timezone';
 
   static const String prayersToday = '/prayers/today';

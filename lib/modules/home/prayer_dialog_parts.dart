@@ -78,6 +78,7 @@ class PrayerQuestion<T> extends StatelessWidget {
     required this.onSelected,
     this.showError = false,
     this.errorText,
+    this.required = true,
   });
 
   final String label;
@@ -88,6 +89,10 @@ class PrayerQuestion<T> extends StatelessWidget {
   final void Function(T) onSelected;
   final bool showError;
   final String? errorText;
+
+  /// Marks the question with a * . False where an answer is pre-filled and
+  /// the user only corrects it if it's wrong.
+  final bool required;
 
   @override
   Widget build(BuildContext context) {
@@ -101,9 +106,10 @@ class PrayerQuestion<T> extends StatelessWidget {
           Row(
             children: [
               Flexible(child: Text(label, style: context.type.cardTitle)),
-              ExcludeSemantics(
-                child: Text(' *', style: context.type.cardTitle.copyWith(color: error)),
-              ),
+              if (required)
+                ExcludeSemantics(
+                  child: Text(' *', style: context.type.cardTitle.copyWith(color: error)),
+                ),
             ],
           ),
           const SizedBox(height: AtharSpace.sm),

@@ -29,9 +29,13 @@ class PrayerConfirmResult {
   });
 }
 
-/// Confirms an on-time prayer. Nothing is pre-selected: every question has to
-/// be answered on purpose, so the analytics reflect what really happened
-/// rather than whatever was selected by default.
+/// Confirms an on-time prayer.
+///
+/// Every question opens on its most common answer, so logging a prayer is one
+/// tap: confirm, or correct what differs. The defaults deliberately claim the
+/// least — home, alone — because those feed `mosque_rate` and
+/// `congregation_rate` in the stats and the coach, and a default that
+/// over-claims would quietly inflate them.
 class PrayerConfirmDialog extends StatefulWidget {
   final String prayerName;
   final int    points;
@@ -55,18 +59,11 @@ class PrayerConfirmDialog extends StatefulWidget {
 }
 
 class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
-  PrayerDifficulty?   _difficulty;
-  PrayerMood?         _mood;
-  PrayerPlace?        _place;
-  PrayerCongregation? _congregation;
+  PrayerDifficulty   _difficulty   = PrayerDifficulty.easy;
+  PrayerMood         _mood         = PrayerMood.focused;
+  PrayerPlace        _place        = PrayerPlace.home;
+  PrayerCongregation _congregation = PrayerCongregation.alone;
   final _noteCtrl = TextEditingController();
-
-  /// Set after a confirm attempt with unanswered questions, so each one shows
-  /// its own "choose an answer" line.
-  bool _showErrors = false;
-
-  bool get _complete =>
-      _difficulty != null && _mood != null && _place != null && _congregation != null;
 
   @override
   void dispose() {
@@ -75,16 +72,12 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
   }
 
   void _submit() {
-    if (!_complete) {
-      setState(() => _showErrors = true);
-      return;
-    }
     Get.back(
       result: PrayerConfirmResult(
-        difficulty:   _difficulty!,
-        mood:         _mood!,
-        place:        _place!,
-        congregation: _congregation!,
+        difficulty:   _difficulty,
+        mood:         _mood,
+        place:        _place,
+        congregation: _congregation,
         note:         _noteCtrl.text.trim(),
       ),
     );
@@ -108,7 +101,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                 icon: Icons.star_rounded,
                 tone: AtharTone.gold,
               ),
-              subtitle: 'prayer_required_hint'.tr,
+              subtitle: 'prayer_answers_hint'.tr,
             ),
             Flexible(
               child: SingleChildScrollView(
@@ -118,7 +111,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                   children: [
                     PrayerQuestion<PrayerPlace>(
                       label: 'prayer_place'.tr,
-                      showError: _showErrors && _place == null,
+                      required: false,
                       options: PrayerPlace.values,
                       labels: [
                         'place_mosque'.tr,
@@ -137,7 +130,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                     ),
                     PrayerQuestion<PrayerCongregation>(
                       label: 'prayer_congregation'.tr,
-                      showError: _showErrors && _congregation == null,
+                      required: false,
                       options: PrayerCongregation.values,
                       labels: [
                         'congregation_jamaah'.tr,
@@ -152,7 +145,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                     ),
                     PrayerQuestion<PrayerMood>(
                       label: 'prayer_mood'.tr,
-                      showError: _showErrors && _mood == null,
+                      required: false,
                       options: const [
                         PrayerMood.focused,
                         PrayerMood.peaceful,
@@ -176,7 +169,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                     ),
                     PrayerQuestion<PrayerDifficulty>(
                       label: 'prayer_difficulty'.tr,
-                      showError: _showErrors && _difficulty == null,
+                      required: false,
                       options: PrayerDifficulty.values,
                       labels: [
                         'difficulty_easy'.tr,
@@ -197,7 +190,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
             ),
             PrayerDialogActions(
               confirmLabel: 'confirm_prayer'.tr,
-              ready: _complete,
+              ready: true,
               onConfirm: _submit,
               onCancel: () => Get.back(result: null),
             ),

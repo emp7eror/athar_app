@@ -198,6 +198,7 @@ class _Header extends StatelessWidget {
           name: profile.name,
           avatarUrl: profile.avatarUrl,
           frameAsset: profile.level.frame,
+          frameUrl: profile.level.frameUrl,
           level: profile.level.level,
           radius: 30,
         ),

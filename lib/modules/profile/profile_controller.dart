@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../core/services/prayer_notification_scheduler.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/user_model.dart';
@@ -15,6 +16,7 @@ class ProfileController extends GetxController {
   final loading    = false.obs;
   final uploading  = false.obs;
   final editing    = false.obs;
+  final deleting   = false.obs;
 
   // edit form
   late final nameCtrl = TextEditingController();
@@ -47,10 +49,16 @@ class ProfileController extends GetxController {
     }
   }
 
+  /// The age wheel runs "not set" (0), then 10‑100. Age is optional: 0 means
+  /// the user hasn't told us, and nothing in the app reads it.
+  static int ageAtWheel(int index) => index == 0 ? 0 : index + 9;
+
+  static int ageWheelIndex(int age) => age == 0 ? 0 : (age - 9).clamp(0, 91);
+
   void startEdit() {
     nameCtrl.text        = user.value?.name ?? '';
     emailCtrl.text       = user.value?.email ?? '';
-    selectedAge.value    = user.value?.age ?? 18;
+    selectedAge.value    = user.value?.age ?? 0;
     selectedGender.value = user.value?.gender;
     editing.value       = true;
   }
@@ -114,6 +122,26 @@ class ProfileController extends GetxController {
     await _api.logout();
     _storage.clear();
     Get.offAllNamed('/auth');
+  }
+
+  /// Erases the account on the server, then everything this device kept for
+  /// it. Reminders are cancelled first: they are scheduled locally and would
+  /// otherwise keep firing for an account that no longer exists.
+  Future<void> deleteAccount() async {
+    deleting.value = true;
+    try {
+      await _api.deleteAccount();
+      await Get.find<PrayerNotificationScheduler>().cancelAll();
+      await _storage.eraseAll();
+      deleting.value = false;
+      Get.offAllNamed('/auth');
+      AppSnackbar.show('profile'.tr, 'account_deleted_done'.tr);
+    } on ApiException catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+      deleting.value = false;
+      AppSnackbar.error('delete_account'.tr, e.message);
+      rethrow;
+    }
   }
 
   @override

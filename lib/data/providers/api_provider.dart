@@ -184,6 +184,10 @@ class ApiProvider {
 
   Future<void> logout() async => _dio.post(ApiEndpoints.logout);
 
+  /// Erases the account and everything belonging to it. Immediate and
+  /// unrecoverable — the caller confirms with the user first.
+  Future<void> deleteAccount() async => _dio.delete(ApiEndpoints.deleteAccount);
+
   Future<Map<String, dynamic>> getProfile() async =>
       _unwrap(await _dio.get('/profile'));
 
@@ -211,6 +215,15 @@ class ApiProvider {
 
   Future<Map<String, dynamic>> updateLocation(double lat, double lng) async =>
       _unwrap(await _dio.post(ApiEndpoints.location, data: {'lat': lat, 'lng': lng}));
+
+  /// Cities matching [query], for choosing a location by name. Public, so it
+  /// works before sign-in and without location permission.
+  Future<List<Map<String, dynamic>>> searchCities(String query) async {
+    final res = await _unwrap(await _dio.get(ApiEndpoints.cities, queryParameters: {'q': query}));
+    return (res['cities'] as List<dynamic>? ?? const [])
+        .map((c) => Map<String, dynamic>.from(c as Map))
+        .toList();
+  }
 
   /// Pins the device's IANA timezone server-side. Rate-limited to once a day
   /// by the API (429), so the server — not the device — owns "what time is it

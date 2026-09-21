@@ -162,6 +162,7 @@ class _Header extends GetView<HomeController> {
                             name: controller.userName.value,
                             avatarUrl: controller.avatarUrl.value,
                             frameAsset: level?.frame,
+                            frameUrl: level?.frameUrl,
                             level: level?.level,
                             radius: 12,
                             backgroundColor: context.athar.brand,

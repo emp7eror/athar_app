@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../core/theme/app_theme.dart';
 
@@ -8,16 +11,21 @@ import '../core/theme/app_theme.dart';
 /// popup, the achievement share card, and the profile preview modal — goes
 /// through this single widget so a frame appears consistently everywhere.
 ///
-/// [frameAsset] is the path returned by the backend (e.g.
-/// `assets/frames/frame_3.png`). If the file doesn't exist yet in the bundle,
-/// the frame silently renders nothing rather than crashing — see
-/// `assets/frames/README.md`.
+/// Frames come from one of two places. [frameAsset] is bundled with the app
+/// (`assets/frames/frame_3.png`) and is what the levels shipped in this build
+/// use: instant and offline. [frameUrl] is sent by the server for levels added
+/// since, and is downloaded once and cached on disk.
+///
+/// The url wins when both are given, falling back to the asset if the download
+/// fails. If neither resolves, the frame renders nothing rather than crashing
+/// — see `assets/frames/README.md`.
 class FramedAvatar extends StatelessWidget {
   const FramedAvatar({
     super.key,
     required this.name,
     this.avatarUrl,
     this.frameAsset,
+    this.frameUrl,
     this.radius = 24,
     this.backgroundColor,
     this.glow = true,
@@ -27,6 +35,9 @@ class FramedAvatar extends StatelessWidget {
   final String name;
   final String? avatarUrl;
   final String? frameAsset;
+
+  /// Frame artwork for a level added after this build shipped.
+  final String? frameUrl;
   final double radius;
   final Color? backgroundColor;
 
@@ -34,14 +45,18 @@ class FramedAvatar extends StatelessWidget {
   /// surrounding design already carries its own emphasis.
   final bool glow;
 
-  /// The user's level (1..5). The halo grows with rank, so a higher level is
-  /// visible at a glance. Null falls back to the faintest glow.
+  /// The user's level. The halo grows with rank, so a higher level is visible
+  /// at a glance. Null falls back to the faintest glow.
   final int? level;
 
-  /// Levels run 1..5 — maps rank onto 0..1 so the halo can scale smoothly.
+  /// The halo was designed across five steps; a level added beyond them keeps
+  /// the brightest one rather than growing without limit.
+  static const _haloSteps = 5;
+
+  /// Maps rank onto 0..1 so the halo can scale smoothly.
   double get _rankFactor {
-    final l = (level ?? 1).clamp(1, 5);
-    return (l - 1) / 4;
+    final l = (level ?? 1).clamp(1, _haloSteps);
+    return (l - 1) / (_haloSteps - 1);
   }
 
   static double _lerp(double from, double to, double t) => from + (to - from) * t;
@@ -103,20 +118,80 @@ class FramedAvatar extends StatelessWidget {
                     ),
                   ),
                 ),
-          if (frameAsset != null && frameAsset!.isNotEmpty)
+          if ((frameUrl != null && frameUrl!.isNotEmpty) || (frameAsset != null && frameAsset!.isNotEmpty))
             // Slightly larger than the avatar so the ring/border sits
             // outside the photo instead of covering it.
             SizedBox(
               width: size * 1.28,
               height: size * 1.28,
-              child: Image.asset(
-                frameAsset!,
-                fit: BoxFit.contain,
-                errorBuilder: (_, _, _) => const SizedBox.shrink(),
-              ),
+              child: _Frame(url: frameUrl, asset: frameAsset),
             ),
         ],
       ),
+    );
+  }
+}
+
+/// The frame image: the downloaded one when the server named it, the bundled
+/// asset otherwise. Nothing renders while a download is in flight, so a frame
+/// never flashes a placeholder.
+class _Frame extends StatefulWidget {
+  const _Frame({required this.url, required this.asset});
+
+  final String? url;
+  final String? asset;
+
+  @override
+  State<_Frame> createState() => _FrameState();
+}
+
+class _FrameState extends State<_Frame> {
+  /// Held in state rather than created in build, so a rebuild doesn't start
+  /// the download again.
+  Future<File>? _download;
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  @override
+  void didUpdateWidget(_Frame old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) _start();
+  }
+
+  void _start() {
+    final url = widget.url;
+    _download = (url == null || url.isEmpty) ? null : DefaultCacheManager().getSingleFile(url);
+  }
+
+  Widget _asset() {
+    final asset = widget.asset;
+    if (asset == null || asset.isEmpty) return const SizedBox.shrink();
+
+    return Image.asset(asset, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final download = _download;
+    if (download == null) return _asset();
+
+    return FutureBuilder<File>(
+      future: download,
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          return Image.file(
+            snapshot.data!,
+            fit: BoxFit.contain,
+            errorBuilder: (_, _, _) => _asset(),
+          );
+        }
+        // Still downloading, or it failed: the bundled frame if there is one.
+        return _asset();
+      },
     );
   }
 }

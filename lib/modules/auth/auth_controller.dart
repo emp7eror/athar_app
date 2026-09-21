@@ -23,8 +23,8 @@ class AuthController extends GetxController {
   final name = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
-  final age = TextEditingController();
-  /// Required when registering — drives Arabic grammatical agreement.
+  /// Optional — drives Arabic grammatical agreement when given. Left null,
+  /// the server falls back to the masculine form, which is Arabic's default.
   final gender = Rxn<String>();
 
   void toggleMode() => isRegister.toggle();
@@ -51,13 +51,6 @@ class AuthController extends GetxController {
   Future<void> submit() async {
     if (loading.value) return;
 
-    // Caught here so the user gets a clear message instead of a raw 422 from
-    // the server's `required` rule.
-    if (isRegister.value && gender.value == null) {
-      AppSnackbar.error('app_name'.tr, 'gender_required'.tr);
-      return;
-    }
-
     loading.value = true;
     try {
       final Map<String, dynamic> res = isRegister.value
@@ -65,7 +58,6 @@ class AuthController extends GetxController {
               'name': name.text.trim(),
               'email': email.text.trim(),
               'password': password.text,
-              'age': int.tryParse(age.text) ?? 0,
               'gender': gender.value,
             })
           : await _api.login(email.text.trim(), password.text);
@@ -102,7 +94,7 @@ class AuthController extends GetxController {
 
   @override
   void onClose() {
-    name.dispose(); email.dispose(); password.dispose(); age.dispose();
+    name.dispose(); email.dispose(); password.dispose();
     super.onClose();
   }
 

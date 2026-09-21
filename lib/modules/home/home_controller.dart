@@ -273,6 +273,16 @@ class HomeController extends GetxController {
     }
   }
 
+  /// The location changed without GPS — a city was picked by name. Refresh
+  /// everything that depends on where the user is, the same way the device
+  /// path does.
+  Future<void> onLocationChanged() async {
+    _refreshLocationLabel();
+    await refreshAll();
+    _startCountdown();
+    await _scheduler.reschedule();
+  }
+
   Future<void> updateLocation() async {
     updatingLocation.value = true;
     try {
@@ -293,6 +303,9 @@ class HomeController extends GetxController {
   }
 
   void _startCountdown() {
+    // Called again whenever the location changes; without this the previous
+    // ticker would keep running alongside the new one.
+    _ticker?.cancel();
     currentPrayerKey.value = _adhan.currentPrayerKey();
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       now.value = DateTime.now();

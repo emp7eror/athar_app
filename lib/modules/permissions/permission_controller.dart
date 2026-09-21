@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -20,12 +21,30 @@ enum PermStep { location, notification }
 ///  * If a permission is already granted, that step is skipped silently — the
 ///    user isn't re-prompted every launch.
 class PermissionController extends GetxController with WidgetsBindingObserver {
+  /// Whether the notification step can be passed without granting.
+  ///
+  /// iOS only, for now: App Store Guideline 4.5.4 requires the app to work
+  /// with notifications denied, so on iOS the step offers "not now", a denied
+  /// system dialog carries on into the app, and the gate never asks again.
+  /// Android keeps the blocking step by product choice — to let Android follow
+  /// the same path, make this `true` unconditionally.
+  static bool get notificationStepSkippable => defaultTargetPlatform == TargetPlatform.iOS;
+
   final PermissionService _perms = Get.find<PermissionService>();
   final StorageProvider _storage = Get.find<StorageProvider>();
 
   final Rx<PermStep> step = PermStep.location.obs;
   final Rx<PermState> state = PermState.denied.obs;
   final RxBool busy = false.obs;
+
+  /// The gate routes away exactly once. A system permission dialog closing
+  /// sends the app through `resumed`, and that can land *after* the gate has
+  /// already left for /auth — re-running the walk would fire a second
+  /// `offAllNamed`, tearing down the auth page's controller while its view is
+  /// still on screen. The next rebuild would then read a disposed
+  /// TextEditingController, which is what made tapping the email field throw
+  /// on a first install.
+  bool _finished = false;
 
   @override
   void onInit() {
@@ -43,7 +62,7 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
   /// When the user returns from the system Settings screen, re-check silently.
   @override
   void didChangeAppLifecycleState(AppLifecycleState lifecycle) {
-    if (lifecycle == AppLifecycleState.resumed) {
+    if (lifecycle == AppLifecycleState.resumed && !_finished) {
       _evaluate();
     }
   }
@@ -53,6 +72,7 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
   /// Walks the required permissions in order, advancing past any already
   /// granted, and stops on the first that still needs the user.
   Future<void> _evaluate() async {
+    if (_finished) return;
     busy.value = true;
 
     final loc = await _perms.locationStatus();
@@ -65,7 +85,10 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
     }
 
     final notif = await _perms.notificationStatus();
-    if (!notif.isGranted) {
+    // Once turned down on a platform where the step is optional, it is not
+    // raised again; Settings → Notifications remains the way back in.
+    final asked = notificationStepSkippable && _storage.notifPromptDeclined;
+    if (!notif.isGranted && !asked) {
       step.value = PermStep.notification;
       state.value = notif;
       busy.value = false;
@@ -88,9 +111,30 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
 
     if (result.isGranted) {
       await _evaluate(); // advance to next step / finish
+      return;
     }
-    // If denied/permanentlyDenied/serviceDisabled we stay put; the view now
-    // shows "try again" and/or "open settings" based on [state].
+
+    // Answering "don't allow" is an answer, not a dead end: where the step is
+    // optional, carry on into the app instead of leaving the user on a screen
+    // whose only buttons ask again.
+    if (!isLocationStep && notificationStepSkippable) {
+      skipNotifications();
+      return;
+    }
+    // Otherwise we stay put; the view now shows "try again" and/or "open
+    // settings" based on [state].
+  }
+
+  /// A city chosen by name counts as a location: prayer times come from
+  /// coordinates, and these are as real as the device's own. The step is
+  /// satisfied, so the gate moves on instead of insisting on permission.
+  Future<void> onCityChosen() => _evaluate();
+
+  /// "Not now" — remember it and open the app. Reminders simply don't get
+  /// scheduled; everything else works as it always did.
+  void skipNotifications() {
+    _storage.notifPromptDeclined = true;
+    _finish();
   }
 
   /// "Try again" — for a plain denial we can prompt again; for a permanent
@@ -109,6 +153,11 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
   }
 
   void _finish() {
+    if (_finished) return;
+    _finished = true;
+    // Nothing more to react to; stop listening before the route changes.
+    WidgetsBinding.instance.removeObserver(this);
+
     _storage.seenOnboarding = true; // reached the app; onboarding is done
     // Notification permission was just resolved — (re)build the prayer schedule
     // now instead of waiting for the next foreground resume.

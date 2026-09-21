@@ -1,5 +1,6 @@
 import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -22,7 +23,15 @@ class LevelUpPopup {
     required String? avatarUrl,
     required LevelInfo newLevel,
     required int totalPoints,
-  }) {
+  }) async {
+    // A level added after this build shipped carries its frame as a url, and
+    // this is the moment the frame matters most — it is also the first time
+    // the user has ever earned it, so nothing is cached yet. Fetch it before
+    // the curtain goes up, so the celebration opens complete rather than
+    // popping the frame in a moment later. A slow or failed download just
+    // means the avatar appears unframed, exactly as it would have anyway.
+    await warmFrame(newLevel);
+
     return Get.dialog(
       _LevelUpPopupBody(
         name: name,
@@ -33,6 +42,23 @@ class LevelUpPopup {
       barrierDismissible: false,
       barrierColor: Colors.black87,
     );
+  }
+
+  /// Downloads a level's frame into the cache if it has one, giving up
+  /// quietly after [timeout] so a bad connection never holds up the
+  /// celebration.
+  static Future<void> warmFrame(
+    LevelInfo level, {
+    Duration timeout = const Duration(seconds: 4),
+  }) async {
+    final url = level.frameUrl;
+    if (url == null || url.isEmpty) return; // bundled, or no frame at all
+
+    try {
+      await DefaultCacheManager().getSingleFile(url).timeout(timeout);
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+    }
   }
 }
 
@@ -144,6 +170,7 @@ class _LevelUpPopupBodyState extends State<_LevelUpPopupBody> {
                         name: widget.name,
                         avatarUrl: widget.avatarUrl,
                         frameAsset: widget.newLevel.frame,
+                        frameUrl: widget.newLevel.frameUrl,
                         level: widget.newLevel.level,
                         radius: 48,
                         backgroundColor: athar.gold,

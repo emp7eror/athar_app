@@ -9,6 +9,7 @@ import '../../widgets/framed_avatar.dart';
 import '../../widgets/gender_selector.dart';
 import '../../widgets/level_progress_card.dart';
 import '../tour/app_tours.dart';
+import 'delete_account_dialog.dart';
 import 'profile_controller.dart';
 
 /// Profile: who you are in Athar — your framed photo, level and totals — then
@@ -56,6 +57,16 @@ class ProfileView extends GetView<ProfileController> {
                         destructive: true,
                         showChevron: false,
                         onTap: _confirmLogout,
+                      ),
+                      // Deleting the account lives with the other account
+                      // actions, one step deeper behind its own confirmation.
+                      AtharListRow(
+                        icon: Icons.delete_forever_rounded,
+                        title: 'delete_account'.tr,
+                        subtitle: 'delete_account_row_sub'.tr,
+                        destructive: true,
+                        showChevron: false,
+                        onTap: DeleteAccountDialog.show,
                       ),
                     ],
                   ),
@@ -116,6 +127,7 @@ class _IdentityCard extends StatelessWidget {
                           name: u?.name ?? '',
                           avatarUrl: avatarUrl,
                           frameAsset: u?.level?.frame,
+                          frameUrl: u?.level?.frameUrl,
                           level: u?.level?.level,
                           radius: 34,
                         ),
@@ -215,7 +227,12 @@ class _Details extends StatelessWidget {
       children: [
         AtharListRow(icon: Icons.person_rounded, title: 'name'.tr, value: u?.name ?? '-', showChevron: false),
         AtharListRow(icon: Icons.email_rounded, title: 'email'.tr, value: u?.email ?? '-', showChevron: false),
-        AtharListRow(icon: Icons.cake_rounded, title: 'age'.tr, value: '${u?.age ?? '-'}', showChevron: false),
+        AtharListRow(
+          icon: Icons.cake_rounded,
+          title: 'age'.tr,
+          value: (u?.age ?? 0) == 0 ? 'age_not_set'.tr : '${u!.age}',
+          showChevron: false,
+        ),
         if (gender == 'male' || gender == 'female')
           AtharListRow(
             icon: gender == 'female' ? Icons.female_rounded : Icons.male_rounded,
@@ -280,16 +297,19 @@ class _EditForm extends StatelessWidget {
                 itemExtent: 44,
                 diameterRatio: 2.0,
                 physics: const FixedExtentScrollPhysics(),
-                controller: FixedExtentScrollController(initialItem: controller.selectedAge.value - 10),
-                onSelectedItemChanged: (i) => controller.selectedAge.value = i + 10,
+                controller: FixedExtentScrollController(
+                  initialItem: ProfileController.ageWheelIndex(controller.selectedAge.value),
+                ),
+                onSelectedItemChanged: (i) => controller.selectedAge.value = ProfileController.ageAtWheel(i),
                 childDelegate: ListWheelChildBuilderDelegate(
-                  childCount: 91,
+                  // One extra row at the top for "not set" (age 0).
+                  childCount: 92,
                   builder: (ctx, i) {
-                    final age = i + 10;
+                    final age = ProfileController.ageAtWheel(i);
                     final selected = age == controller.selectedAge.value;
                     return Center(
                       child: Text(
-                        '$age',
+                        age == 0 ? 'age_not_set'.tr : '$age',
                         style: selected
                             ? ctx.text.titleLarge?.copyWith(color: scheme.primary)
                             : ctx.text.bodyLarge?.copyWith(color: scheme.onSurfaceVariant),

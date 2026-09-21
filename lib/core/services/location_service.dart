@@ -12,6 +12,29 @@ class LocationService extends GetxService {
   final _api = ApiProvider();
 
 
+  /// Stores a city the user picked by name: its coordinates drive prayer
+  /// times exactly as GPS ones would, and its own names are kept as the label
+  /// rather than the server's nearest match, so what they chose is what they
+  /// see. Works without location permission — the point of it.
+  Future<void> saveManualCity({
+    required double lat,
+    required double lng,
+    String? nameAr,
+    String? nameEn,
+  }) async {
+    final storage = Get.find<StorageProvider>();
+    storage.saveCoords(lat, lng);
+    storage.saveCity(nameAr, nameEn);
+    storage.locationIsManual = true;
+    storage.locationSetBefore = true;
+    try {
+      await _api.updateLocation(lat, lng);
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+      // Offline-first: the city is stored locally regardless of sync success.
+    }
+  }
+
   /// Fetches device GPS, persists locally, and syncs to the API.
   /// Throws a translatable key string on failure so the UI can show a snackbar.
   Future<void> refreshFromDevice() async {
@@ -73,6 +96,8 @@ class LocationService extends GetxService {
   Future<void> saveCoordinates(double lat, double lng) async {
       final storage = Get.find<StorageProvider>();
     storage.saveCoords(lat, lng);
+    // Read from the device, so it is no longer a hand-picked city.
+    storage.locationIsManual = false;
     try {
       final res = await _api.updateLocation(lat, lng);
       final city = res['city'] as Map<String, dynamic>?;

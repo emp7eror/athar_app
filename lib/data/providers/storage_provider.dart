@@ -13,6 +13,8 @@ class StorageProvider extends GetxService {
   static const _kUser = 'user';
   static const _kSeenOnboarding = 'seen_onboarding';
   static const _kLocationSetBefore = 'location_set_before';
+  static const _kNotifPromptDeclined = 'notif_prompt_declined';
+  static const _kLocationIsManual = 'location_is_manual';
   static const _kDarkMode = 'dark_mode';
 
   // ── Notification preferences ──
@@ -140,6 +142,18 @@ class StorageProvider extends GetxService {
   bool get locationSetBefore => _box.read(_kLocationSetBefore) ?? false;
   set locationSetBefore(bool v) => _box.write(_kLocationSetBefore, v);
 
+  /// The location was chosen by name rather than read from the device. A
+  /// deliberate choice is never silently replaced by GPS; only asking for
+  /// "use my location" clears this.
+  bool get locationIsManual => _box.read(_kLocationIsManual) ?? false;
+  set locationIsManual(bool v) => _box.write(_kLocationIsManual, v);
+
+  /// The user has turned the permission gate's notification step down once.
+  /// The gate then stops asking; reminders can still be switched on from
+  /// Settings at any time.
+  bool get notifPromptDeclined => _box.read(_kNotifPromptDeclined) ?? false;
+  set notifPromptDeclined(bool v) => _box.write(_kNotifPromptDeclined, v);
+
   bool get darkMode => _box.read(_kDarkMode) ?? false;
   set darkMode(bool v) => _box.write(_kDarkMode, v);
 
@@ -235,4 +249,9 @@ class StorageProvider extends GetxService {
     _box.remove(_kToken);
     _box.remove(_kUser);
   }
+
+  /// Everything this device remembers — session, location, reading progress,
+  /// tour flags, preferences. Used when an account is deleted, so nothing of
+  /// it survives on the device.
+  Future<void> eraseAll() => _box.erase();
 }

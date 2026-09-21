@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../core/localization/localization_controller.dart';
 import '../../core/services/permission_service.dart';
+import '../../widgets/city_picker_sheet.dart';
 import '../../core/theme/theme_controller.dart';
 import '../../core/ui/athar_ui.dart';
 import 'permission_controller.dart';
@@ -230,6 +231,38 @@ class _Actions extends StatelessWidget {
             variant: AtharButtonVariant.secondary,
             expand: true,
             onPressed: busy ? null : controller.onTryAgain,
+          ),
+        ],
+        // Location has an answer that needs no permission at all: name the
+        // city. Offered in every state, so denying the system dialog is never
+        // a dead end.
+        if (isLocation) ...[
+          const SizedBox(height: AtharSpace.xs),
+          AtharButton(
+            label: 'perm_location_pick_city'.tr,
+            icon: Icons.location_city_rounded,
+            variant: AtharButtonVariant.ghost,
+            expand: true,
+            onPressed: busy
+                ? null
+                : () async {
+                    if (await CityPickerSheet.show(context)) {
+                      await controller.onCityChosen();
+                    }
+                  },
+          ),
+        ],
+        // A way past the notification step, in every state it can be in —
+        // reminders are the only thing behind it. See
+        // PermissionController.notificationStepSkippable for why this is iOS
+        // only today.
+        if (!isLocation && PermissionController.notificationStepSkippable) ...[
+          const SizedBox(height: AtharSpace.xs),
+          AtharButton(
+            label: 'perm_notif_skip'.tr,
+            variant: AtharButtonVariant.ghost,
+            expand: true,
+            onPressed: busy ? null : controller.skipNotifications,
           ),
         ],
       ],

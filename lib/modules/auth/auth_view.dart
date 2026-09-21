@@ -63,16 +63,10 @@ class AuthView extends GetView<AuthController> {
                             ),
                           ),
                           const SizedBox(height: AtharSpace.sm),
-                          TextField(
-                            controller: controller.age,
-                            keyboardType: TextInputType.number,
-                            textInputAction: TextInputAction.next,
-                            decoration: InputDecoration(
-                              hintText: 'age'.tr,
-                              prefixIcon: const Icon(Icons.cake_rounded),
-                            ),
-                          ),
-                          const SizedBox(height: AtharSpace.sm),
+                          // Optional: it only chooses the Arabic wording used
+                          // about the user. Skipping it is a normal path.
+                          Text('gender_optional'.tr, style: context.type.caption),
+                          const SizedBox(height: AtharSpace.xxs),
                           GenderSelector(
                             value: controller.gender.value,
                             onChanged: (v) => controller.gender.value = v,

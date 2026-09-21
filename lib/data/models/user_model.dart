@@ -6,6 +6,10 @@ class LevelInfo {
   final int pointsToNext;
   final double progress;
 
+  /// Artwork for levels added after this build shipped. Null for the levels
+  /// whose frames are bundled — see [frame].
+  final String? frameUrl;
+
   LevelInfo({
     required this.level,
     this.name = '',
@@ -15,6 +19,7 @@ class LevelInfo {
     this.nextAt,
     this.pointsToNext = 0,
     this.progress = 0,
+    this.frameUrl,
   }) : rank = rank ?? level;
 
   factory LevelInfo.fromJson(Map<String, dynamic> j) => LevelInfo(
@@ -28,16 +33,20 @@ class LevelInfo {
     nextAt: j['next_at'],
     pointsToNext: j['points_to_next'] ?? 0,
     progress: (j['progress'] ?? 0).toDouble(),
+    frameUrl: (j['frame_url'] as String?)?.trim(),
   );
 
   /// Localized flat name, preferring the server-provided [name] and falling
   /// back to picking the right bilingual title for older cached payloads.
   String displayName(bool isAr) => name.isNotEmpty ? (isAr ? titleAr : titleEn):'';
 
-  /// The level's frame asset, resolved entirely on-device from the bundled
-  /// `assets/frames/` folder — the backend only ever tells us *which* level
-  /// a user is on, never a file path, so this stays correct even against a
-  /// stale cached user object (the numeric level id has always been present).
+  /// The level's bundled frame asset. Levels 1-5 shipped with the app, so
+  /// these render offline and instantly, and stay correct even against a
+  /// stale cached user object.
+  ///
+  /// A level added on the server later has no asset here; it carries
+  /// [frameUrl] instead, which [FramedAvatar] prefers when present. Nothing
+  /// breaks if neither resolves — the avatar simply appears unframed.
   String get frame => 'assets/frames/frame_$level.png';
 }
 

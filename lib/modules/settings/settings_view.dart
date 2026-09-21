@@ -11,6 +11,7 @@ import '../../core/ui/athar_ui.dart';
 import '../../core/utils/snackbar.dart';
 import '../../core/utils/store_link.dart';
 import '../../data/providers/api_provider.dart';
+import '../../widgets/city_picker_sheet.dart';
 import '../home/home_controller.dart';
 import '../tour/app_tours.dart';
 import 'appearance_view.dart';
@@ -104,7 +105,7 @@ class SettingsView extends StatelessWidget {
                             )
                           : null,
                       showChevron: false,
-                      onTap: updating ? null : () => home.updateLocation(),
+                      onTap: updating ? null : () => _chooseLocationSource(context, home),
                     );
                   }),
                 ),
@@ -184,4 +185,47 @@ class SettingsView extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Location can come from the device or from a name. Asking which keeps the
+/// app usable when location permission is denied or unavailable.
+Future<void> _chooseLocationSource(BuildContext context, HomeController home) async {
+  await showAtharSheet<void>(
+    context: context,
+    scrollControlled: false,
+    builder: (sheetContext) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: AtharSpace.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AtharSheetHeader(title: 'location'.tr),
+            AtharListGroup(
+              children: [
+                AtharListRow(
+                  icon: Icons.my_location_rounded,
+                  title: 'location_use_device'.tr,
+                  subtitle: 'location_use_device_sub'.tr,
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    home.updateLocation();
+                  },
+                ),
+                AtharListRow(
+                  icon: Icons.location_city_rounded,
+                  title: 'location_pick_city'.tr,
+                  subtitle: 'location_pick_city_sub'.tr,
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    if (await CityPickerSheet.show(context)) home.onLocationChanged();
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
