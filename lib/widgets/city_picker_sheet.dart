@@ -118,47 +118,72 @@ class _CityPickerSheetState extends State<CityPickerSheet> {
             ),
           ),
           const SizedBox(height: AtharSpace.sm),
-          SizedBox(
-            height: 320,
-            child: switch ((_loading, _failed, query.length, _results.isEmpty)) {
-              (true, _, _, _) => const AtharLoadingState(),
-              (_, true, _, _) => AtharErrorState(
-                  message: 'city_picker_failed'.tr,
-                  onRetry: () => _search(query),
+        Flexible(
+            child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxHeight: 320,
                 ),
-              (_, _, < 2, _) => AtharEmptyState(
-                  icon: Icons.travel_explore_rounded,
-                  title: 'city_picker_prompt'.tr,
-                ),
-              (_, _, _, true) => AtharEmptyState(
-                  icon: Icons.search_off_rounded,
-                  title: 'city_picker_none'.tr,
-                ),
-              _ => ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: AtharSpace.lg),
-                  itemCount: _results.length,
-                  itemBuilder: (context, i) {
-                    final city = _results[i];
-                    final name = (isAr ? city['name_ar'] : city['name_en'])?.toString() ?? '';
-                    final busy = _saving == city['name_en']?.toString();
+                child: switch ((_loading, _failed, query.length, _results.isEmpty)) {
+                  (true, _, _, _) => const AtharLoadingState(),
 
-                    return AtharListRow(
-                      icon: Icons.location_city_rounded,
-                      title: name.isEmpty ? (city['name_en']?.toString() ?? '') : name,
-                      subtitle: city['country_code']?.toString(),
-                      showChevron: false,
-                      trailing: busy
-                          ? const SizedBox.square(
+                  (_, true, _, _) =>
+                      AtharErrorState(
+                        message: 'city_picker_failed'.tr,
+                        onRetry: () => _search(query),
+                      ),
+
+                  (_, _, < 2, _) =>
+                      AtharEmptyState(
+                        icon: Icons.travel_explore_rounded,
+                        title: 'city_picker_prompt'.tr,
+                      ),
+
+                  (_, _, _, true) =>
+                      AtharEmptyState(
+                        icon: Icons.search_off_rounded,
+                        title: 'city_picker_none'.tr,
+                      ),
+
+                  _ =>
+                      ListView.builder(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AtharSpace.lg,
+                        ),
+                        itemCount: _results.length,
+                        itemBuilder: (context, i) {
+                          final city = _results[i];
+                          final name =
+                              (isAr ? city['name_ar'] : city['name_en'])
+                                  ?.toString() ??
+                                  '';
+
+                          final busy =
+                              _saving == city['name_en']?.toString();
+
+                          return AtharListRow(
+                            icon: Icons.location_city_rounded,
+                            title: name.isEmpty
+                                ? (city['name_en']?.toString() ?? '')
+                                : name,
+                            subtitle: city['country_code']?.toString(),
+                            showChevron: false,
+                            trailing: busy
+                                ? const SizedBox.square(
                               dimension: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                              ),
                             )
-                          : null,
-                      onTap: _saving != null ? null : () => _choose(city),
-                    );
-                  },
+                                : null,
+                            onTap: _saving != null
+                                ? null
+                                : () => _choose(city),
+                          );
+                        },
+                      ),
+                }
                 ),
-            },
-          ),
+                ),
           const SizedBox(height: AtharSpace.lg),
         ],
       ),
