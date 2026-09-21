@@ -52,7 +52,8 @@ class LevelUpPopup {
     Duration timeout = const Duration(seconds: 4),
   }) async {
     final url = level.frameUrl;
-    if (url == null || url.isEmpty) return; // bundled, or no frame at all
+    // Only a full URL is a download; a plain name is already in the bundle.
+    if (url == null || !(url.startsWith('http://') || url.startsWith('https://'))) return;
 
     try {
       await DefaultCacheManager().getSingleFile(url).timeout(timeout);

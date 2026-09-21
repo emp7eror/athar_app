@@ -11,14 +11,16 @@ import '../core/theme/app_theme.dart';
 /// popup, the achievement share card, and the profile preview modal — goes
 /// through this single widget so a frame appears consistently everywhere.
 ///
-/// Frames come from one of two places. [frameAsset] is bundled with the app
-/// (`assets/frames/frame_3.png`) and is what the levels shipped in this build
-/// use: instant and offline. [frameUrl] is sent by the server for levels added
-/// since, and is downloaded once and cached on disk.
+/// The frame comes from whichever source the server's value describes:
 ///
-/// The url wins when both are given, falling back to the asset if the download
-/// fails. If neither resolves, the frame renders nothing rather than crashing
-/// — see `assets/frames/README.md`.
+///  * `https://…`   — downloaded once and cached on disk. This is how a level
+///    added after the app shipped gets its artwork.
+///  * any other text — a file inside this build, e.g. `frame_6.png`, looked up
+///    under `assets/frames/`.
+///  * nothing at all — [frameAsset], the frame bundled for that level number.
+///
+/// Whatever the source, a frame that can't be loaded renders nothing rather
+/// than crashing — see `assets/frames/README.md`.
 class FramedAvatar extends StatelessWidget {
   const FramedAvatar({
     super.key,
@@ -36,7 +38,8 @@ class FramedAvatar extends StatelessWidget {
   final String? avatarUrl;
   final String? frameAsset;
 
-  /// Frame artwork for a level added after this build shipped.
+  /// What the server says this level's frame is: a full http(s) URL to
+  /// download, or the name of a file bundled with the app.
   final String? frameUrl;
   final double radius;
   final Color? backgroundColor;
@@ -132,9 +135,9 @@ class FramedAvatar extends StatelessWidget {
   }
 }
 
-/// The frame image: the downloaded one when the server named it, the bundled
-/// asset otherwise. Nothing renders while a download is in flight, so a frame
-/// never flashes a placeholder.
+/// The frame image, resolved from the shape of what the server sent. Nothing
+/// renders while a download is in flight, so a frame never flashes a
+/// placeholder.
 class _Frame extends StatefulWidget {
   const _Frame({required this.url, required this.asset});
 
@@ -162,13 +165,27 @@ class _FrameState extends State<_Frame> {
     if (old.url != widget.url) _start();
   }
 
+  /// A value that starts with http(s) is fetched; anything else is a file in
+  /// this build and needs no network at all.
+  static bool _isRemote(String? value) =>
+      value != null && (value.startsWith('http://') || value.startsWith('https://'));
+
   void _start() {
     final url = widget.url;
-    _download = (url == null || url.isEmpty) ? null : DefaultCacheManager().getSingleFile(url);
+    _download = _isRemote(url) ? DefaultCacheManager().getSingleFile(url!) : null;
   }
 
+  /// The bundled frame: the name the server gave, or the one for this level.
+  /// A bare name is looked up under `assets/frames/`; a full asset path is
+  /// used as given.
   Widget _asset() {
-    final asset = widget.asset;
+    final named = widget.url;
+    var asset = widget.asset;
+
+    if (!_isRemote(named) && named != null && named.isNotEmpty) {
+      asset = named.contains('/') ? named : 'assets/frames/$named';
+    }
+
     if (asset == null || asset.isEmpty) return const SizedBox.shrink();
 
     return Image.asset(asset, fit: BoxFit.contain, errorBuilder: (_, _, _) => const SizedBox.shrink());
