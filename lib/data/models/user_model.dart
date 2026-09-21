@@ -36,9 +36,13 @@ class LevelInfo {
     frameUrl: (j['frame_url'] as String?)?.trim(),
   );
 
-  /// Localized flat name, preferring the server-provided [name] and falling
-  /// back to picking the right bilingual title for older cached payloads.
-  String displayName(bool isAr) => name.isNotEmpty ? (isAr ? titleAr : titleEn):'';
+  /// The level's title in the reading language. [titleAr] arrives already
+  /// agreeing with the user's gender, so it is preferred; [name] is the
+  /// server's own locale pick and covers a payload that carries only that.
+  String displayName(bool isAr) {
+    final title = isAr ? titleAr : titleEn;
+    return title.isNotEmpty ? title : name;
+  }
 
   /// The level's bundled frame asset. Levels 1-5 shipped with the app, so
   /// these render offline and instantly, and stay correct even against a
