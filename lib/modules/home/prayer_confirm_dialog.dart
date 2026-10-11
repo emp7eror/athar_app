@@ -40,16 +40,21 @@ class PrayerConfirmDialog extends StatefulWidget {
   final String prayerName;
   final int    points;
 
+  /// Extra points for praying in congregation, shown on that choice and added
+  /// to the badge while it is selected. The server decides the real award.
+  final int    jamaahBonus;
+
   const PrayerConfirmDialog({
     super.key,
     required this.prayerName,
     required this.points,
+    this.jamaahBonus = 0,
   });
 
   /// Shows the dialog; resolves to the answers, or null when cancelled.
-  static Future<PrayerConfirmResult?> show(String prayerName, int points) {
+  static Future<PrayerConfirmResult?> show(String prayerName, int points, {int jamaahBonus = 0}) {
     return Get.dialog<PrayerConfirmResult>(
-      PrayerConfirmDialog(prayerName: prayerName, points: points),
+      PrayerConfirmDialog(prayerName: prayerName, points: points, jamaahBonus: jamaahBonus),
       barrierDismissible: false,
     );
   }
@@ -70,6 +75,10 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
     _noteCtrl.dispose();
     super.dispose();
   }
+
+  /// What confirming would earn with the answers as they stand.
+  int get _points =>
+      widget.points + (_congregation == PrayerCongregation.jamaah ? widget.jamaahBonus : 0);
 
   void _submit() {
     Get.back(
@@ -97,7 +106,7 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
               icon: Icons.mosque_rounded,
               title: widget.prayerName.tr,
               badge: AtharBadge(
-                label: '+${widget.points} ${'points'.tr}',
+                label: '+$_points ${'points'.tr}',
                 icon: Icons.star_rounded,
                 tone: AtharTone.gold,
               ),
@@ -133,7 +142,10 @@ class _PrayerConfirmDialogState extends State<PrayerConfirmDialog> {
                       required: false,
                       options: PrayerCongregation.values,
                       labels: [
-                        'congregation_jamaah'.tr,
+                        // The bonus is named on the choice that earns it.
+                        widget.jamaahBonus > 0
+                            ? 'congregation_jamaah_bonus'.trParams({'points': '${widget.jamaahBonus}'})
+                            : 'congregation_jamaah'.tr,
                         'congregation_alone'.tr,
                       ],
                       icons: const [

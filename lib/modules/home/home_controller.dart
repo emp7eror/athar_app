@@ -51,6 +51,10 @@ class HomeController extends GetxController {
   static const onTimeBonusWindow = Duration(minutes: 30);
   static const onTimeBonusPoints = 10;
 
+  /// Extra points for a prayer in congregation. Sent with today's checklist;
+  /// the default only covers the moment before that first arrives.
+  final jamaahBonus = 5.obs;
+
   /// Time remaining in the on-time bonus window for [prayerTime], or null if
   /// the prayer hasn't started, is already past its 30-min window, or has no
   /// known start time. Reactive on [now].
@@ -185,7 +189,11 @@ class HomeController extends GetxController {
   }
 
   Future<void> _markOnTime(PrayerChecklistItem item, int bonus) async {
-    final result = await PrayerConfirmDialog.show(item.prayerName, item.points+bonus,);
+    final result = await PrayerConfirmDialog.show(
+      item.prayerName,
+      item.points + bonus,
+      jamaahBonus: jamaahBonus.value,
+    );
     if (result == null) return; // المستخدم ألغى
 
     marking.value = item.prayerName;
@@ -415,6 +423,7 @@ class HomeController extends GetxController {
         .toList();
     pointsToday.value = (res['points_today'] as num?)?.toInt() ?? 0;
     forgotToMarkUsed.value = res['forgot_to_mark_used'] == true;
+    jamaahBonus.value = (res['jamaah_bonus'] as num?)?.toInt() ?? jamaahBonus.value;
   }
 
   String _formatDate(DateTime d) => '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';

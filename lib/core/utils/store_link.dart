@@ -23,6 +23,13 @@ class StoreLink {
     return null;
   }
 
+  /// A link to put in an invitation. The store listing when this platform has
+  /// one; otherwise the app's own site, since a friend on the other platform
+  /// still needs somewhere to start.
+  static String get shareUrl => (_current() ?? Uri.parse(_website)).toString();
+
+  static const _website = 'https://athar.ferasmelhem.com';
+
   /// Opens the store listing in an external app/browser. Returns false if
   /// there's no known link for this platform (e.g. iOS before the App Store
   /// id above is filled in) or the launch itself failed.

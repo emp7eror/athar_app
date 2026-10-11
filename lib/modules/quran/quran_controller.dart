@@ -30,7 +30,7 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   final page = 1.obs;
   final totalPages = 604.obs;
   final requiredSeconds = 60.obs;
-  final pagePoints = 20.obs;
+  final pagePoints = 10.obs;
 
   /// Short pages with their own, shorter reading time — Al-Fatiha and the
   /// opening of Al-Baqarah — as the server sets them. Other pages use
@@ -95,7 +95,7 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   /// How many pages may earn the reward per day, and how many already have
   /// today. The server enforces the limit; these only let the reader stop
   /// counting down toward a reward that can't come.
-  final dailyRewardPages = 1.obs;
+  final dailyRewardPages = 5.obs;
   final rewardedToday = 0.obs;
 
   /// The day [rewardedToday] was counted on. Once the date changes the reward
@@ -104,6 +104,11 @@ class QuranController extends GetxController with WidgetsBindingObserver {
 
   bool get dailyRewardDone =>
       _countsDay == _today() && rewardedToday.value >= dailyRewardPages.value;
+
+  /// Pages that have earned today — zero once the date has moved on, even
+  /// before the server has said so.
+  int get rewardedTodayCount =>
+      _countsDay == _today() ? rewardedToday.value : 0;
 
   static DateTime _today() {
     final now = DateTime.now();
@@ -288,8 +293,8 @@ class QuranController extends GetxController with WidgetsBindingObserver {
               requiredSeconds.value,
             ),
       });
-      pagePoints.value = _asInt(res['page_points'], 20);
-      dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 1);
+      pagePoints.value = _asInt(res['page_points'], 10);
+      dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 5);
       _maxCreditedSeconds = _asInt(res['max_credited_seconds'], 1800);
       pageEdition.value = res['page_edition']?.toString() ?? '';
 

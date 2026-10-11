@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../core/tour/tour_widgets.dart';
 import '../../core/ui/athar_ui.dart';
 import '../../core/utils/snackbar.dart';
+import '../../core/utils/store_link.dart';
 import '../../data/models/friend_model.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
@@ -133,16 +134,46 @@ class _MyCodeCard extends StatelessWidget {
                 icon: Icons.share_rounded,
                 tooltip: 'share'.tr,
                 color: onBrand,
-                onPressed: () => SharePlus.instance.share(ShareParams(text: '${'share_code_msg'.tr} $code')),
+                // An invitation, not just a code: where to get the app, and
+                // what to do with the code once it's installed.
+                onPressed: () => SharePlus.instance.share(
+                  ShareParams(text: '${'share_invite_msg'.tr} $code\n${StoreLink.shareUrl}'),
+                ),
               ),
             ],
           ),
           Padding(
             padding: const EdgeInsetsDirectional.only(end: AtharSpace.md),
-            child: Text(
-              'share_code_hint'.tr,
-              style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.75)),
-            ),
+            child: Obx(() {
+              final controller = Get.find<FriendsController>();
+              final points = controller.invitePoints.value;
+              final invited = controller.invitedCount.value;
+              final muted = context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.75));
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Until the server has said what an invitation earns, the
+                  // card makes no promise about points.
+                  Text(
+                    points > 0
+                        ? 'invite_hint'.trParams({'points': '$points'})
+                        : 'share_code_hint'.tr,
+                    style: muted,
+                  ),
+                  if (invited > 0) ...[
+                    const SizedBox(height: AtharSpace.xs),
+                    Text(
+                      'invite_stats'.trParams({
+                        'count': '$invited',
+                        'points': '${controller.inviteEarned.value}',
+                      }),
+                      style: context.text.labelMedium?.copyWith(color: context.athar.gold),
+                    ),
+                  ],
+                ],
+              );
+            }),
           ),
         ],
       ),

@@ -147,7 +147,12 @@ class _ContinueCard extends GetView<QuranController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _RewardBadge(done: controller.dailyRewardDone, points: controller.pagePoints.value),
+                  _RewardBadge(
+                    done: controller.dailyRewardDone,
+                    points: controller.pagePoints.value,
+                    earned: controller.rewardedTodayCount,
+                    limit: controller.dailyRewardPages.value,
+                  ),
                   const SizedBox(height: AtharSpace.md),
                   Row(
                     children: [
@@ -246,10 +251,33 @@ class _ContinueCard extends GetView<QuranController> {
 
 /// Today's reward at a glance: taken, or still waiting for a page to be read.
 class _RewardBadge extends StatelessWidget {
-  const _RewardBadge({required this.done, required this.points});
+  const _RewardBadge({
+    required this.done,
+    required this.points,
+    required this.earned,
+    required this.limit,
+  });
 
   final bool done;
+
+  /// Points for one page.
   final int points;
+
+  /// Pages that have earned today, out of [limit].
+  final int earned;
+  final int limit;
+
+  String get _label {
+    if (done) return 'quran_reward_taken'.tr;
+    // One page a day needs no count; several do, or the reader can't tell
+    // how much of today's reward is still open.
+    if (limit <= 1) return 'quran_reward_open'.trParams({'points': '$points'});
+    return 'quran_reward_progress'.trParams({
+      'earned': '$earned',
+      'limit': '$limit',
+      'points': '$points',
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -279,7 +307,7 @@ class _RewardBadge extends StatelessWidget {
             const SizedBox(width: AtharSpace.xs),
             Flexible(
               child: Text(
-                done ? 'quran_reward_taken'.tr : 'quran_reward_open'.trParams({'points': '$points'}),
+                _label,
                 style: context.text.labelMedium?.copyWith(color: onBrand),
               ),
             ),

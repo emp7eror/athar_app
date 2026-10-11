@@ -14,6 +14,12 @@ class FriendsController extends GetxController {
   final loading = false.obs;
   final codeInput = TextEditingController();
 
+  /// Invitations: points for each new friend who joins with the user's code,
+  /// how many have, and what that has earned. All from the server.
+  final invitePoints = 0.obs;
+  final invitedCount = 0.obs;
+  final inviteEarned = 0.obs;
+
   @override
   void onInit() {
     super.onInit();
@@ -27,6 +33,13 @@ class FriendsController extends GetxController {
       friends.value = (res['friends'] as List).map((e) => FriendModel.fromJson(e)).toList();
       pending.value =
           (res['pending_incoming'] as List).map((e) => PendingRequest.fromJson(e)).toList();
+
+      final referral = res['referral'];
+      if (referral is Map) {
+        invitePoints.value = (referral['inviter_points'] as num?)?.toInt() ?? 0;
+        invitedCount.value = (referral['invited_count'] as num?)?.toInt() ?? 0;
+        inviteEarned.value = (referral['points_earned'] as num?)?.toInt() ?? 0;
+      }
     } on ApiException catch (e) {
       ErrorReporter.report(e, StackTrace.current);
 
