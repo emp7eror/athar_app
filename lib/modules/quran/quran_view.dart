@@ -647,24 +647,32 @@ class _NavButton extends StatelessWidget {
 class _ReadingIndicator extends StatelessWidget {
   const _ReadingIndicator();
 
+  /// Seconds a page read before shows «قرأت هذه الصفحة من قبل» before the
+  /// ring and the reward come back.
+  static const _readBeforeNotice = 4;
+
   @override
   Widget build(BuildContext context) {
     return Obx(() {
       final controller = Get.find<QuranController>();
 
       // A page counts as read the moment its reading time is up — no turn
-      // needed. Until then, say whether it will also earn points: only a page
-      // not rewarded before, while today's reward is open.
+      // needed. Until then the ring shows the time running, on a page read
+      // before too: every full read earns while today's points last.
       final ready = controller.readingProgress >= 1;
-      // Read on an earlier visit: say so while this visit's time runs.
       final readBefore = !ready && controller.isCurrentPageRead;
       final canEarn =
           !controller.isCurrentPageCompleted && !controller.dailyRewardDone;
+      // A page read before first says so; staying on it brings the ring and
+      // the reward back (counted from the page's opening, so nothing is lost).
+      final notice = readBefore && controller.elapsed.value < _readBeforeNotice;
 
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (ready || readBefore)
+          // The tick once this visit's reading time is done — or, briefly, on
+          // a page read before.
+          if (ready || notice)
             Icon(
               Icons.check_circle_rounded,
               size: 16,
@@ -690,13 +698,17 @@ class _ReadingIndicator extends StatelessWidget {
             child: Text(
               ready
                   ? 'quran_page_read_done'.tr
-                  : readBefore
+                  : notice
                   ? 'quran_page_read_before'.tr
                   : canEarn
                   ? 'quran_read_to_earn'.trParams({
                       'points': '${controller.pagePoints.value}',
                     })
-                  : 'quran_keep_reading'.tr,
+                  // Why this read won't earn: today's points are taken, or
+                  // the page earned too recently.
+                  : controller.dailyRewardDone
+                  ? 'quran_daily_points_taken'.tr
+                  : 'quran_page_read_before'.tr,
               overflow: TextOverflow.ellipsis,
               style: context.text.bodySmall?.copyWith(
                 color: context.athar.textMuted,

@@ -49,6 +49,9 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   /// it is read again later (the server sets how much later).
   final completed = <int>{}.obs;
 
+  /// How long the server waits before a page can earn again (0: no wait).
+  int _rereadAfterMinutes = 0;
+
   /// Every page ever counted as read, rewarded or not.
   final readPages = <int>{}.obs;
 
@@ -318,6 +321,7 @@ class QuranController extends GetxController with WidgetsBindingObserver {
       });
       _applyWerd(res);
       _maxCreditedSeconds = _asInt(res['max_credited_seconds'], 1800);
+      _rereadAfterMinutes = _asInt(res['reread_after_minutes'], 0);
       pageEdition.value = res['page_edition']?.toString() ?? '';
 
       completed
@@ -587,7 +591,9 @@ class QuranController extends GetxController with WidgetsBindingObserver {
       if (res['khatma_completed'] == true) khatmaReadPages.clear();
 
       if (res['status']?.toString() == 'rewarded') {
-        completed.add(p);
+        // Recorded only when the server keeps a gap before a page can earn
+        // again; with none (the default) a re-read earns at once.
+        if (_rereadAfterMinutes > 0) completed.add(p);
         final points = _asInt(res['points_awarded'], pagePoints.value);
         rewardFlash.value = points;
         _syncCachedUser(res);
