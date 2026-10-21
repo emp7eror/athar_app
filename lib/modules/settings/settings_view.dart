@@ -69,13 +69,16 @@ class SettingsView extends StatelessWidget {
             // The account — what the Profile tab used to hold.
             AtharListGroup(
               children: [
-                Obx(
+                TourTarget(
+                  id: TourTargets.settingsProfile,
+                  child: Obx(
                   () => AtharListRow(
                     icon: Icons.person_rounded,
                     title: 'profile'.tr,
                     subtitle: home.userName.value.isEmpty ? null : home.userName.value,
                     onTap: ProfileView.open,
                   ),
+                ),
                 ),
               ],
             ),
@@ -142,7 +145,7 @@ class SettingsView extends StatelessWidget {
                     onTap: () => timezone.syncIfChanged(),
                   ),
                 ),
-                const PrayerCalculationRow(),
+                const TourTarget(id: TourTargets.settingsCalcMethod, child: PrayerCalculationRow()),
                 TourTarget(
                   id: TourTargets.settingsReminders,
                   child: AtharListRow(

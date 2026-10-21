@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/ui/athar_ui.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 import 'adhkar_card.dart';
 import 'adhkar_editors.dart';
 import 'adhkar_icons.dart';
@@ -305,7 +307,7 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
       // One at a time is for reading and counting the reader's own.
       final sequential = collection.isPersonal && _session.sequential.value;
 
-      return Scaffold(
+      final page = Scaffold(
         appBar: AtharAppBar(
           title: collection.name,
           subtitle: collection.isPersonal ? 'adhkar_mine'.tr : null,
@@ -313,72 +315,81 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
             // The reader's own collections only: their reminders, whose
             // notification opens them.
             if (collection.isPersonal)
-              Obx(() {
-                final reminders = Get.find<AdhkarReminders>();
-                reminders.reminders.length;
-                final has = reminders
-                    .forCollection(collection)
-                    .any((r) => r.enabled);
-                return AtharIconButton(
-                  icon: has
-                      ? Icons.notifications_active_rounded
-                      : Icons.notifications_none_rounded,
-                  tooltip: 'adhkar_reminders'.tr,
-                  onPressed: () => AdhkarRemindersSheet.show(
-                    context,
-                    collection: collection,
-                  ),
-                );
-              }),
+              TourTarget(
+                id: TourTargets.adhkarCollectionReminders,
+                child: Obx(() {
+                  final reminders = Get.find<AdhkarReminders>();
+                  reminders.reminders.length;
+                  final has = reminders
+                      .forCollection(collection)
+                      .any((r) => r.enabled);
+                  return AtharIconButton(
+                    icon: has
+                        ? Icons.notifications_active_rounded
+                        : Icons.notifications_none_rounded,
+                    tooltip: 'adhkar_reminders'.tr,
+                    onPressed: () => AdhkarRemindersSheet.show(
+                      context,
+                      collection: collection,
+                    ),
+                  );
+                }),
+              ),
             if (collection.isPersonal && _items.isNotEmpty)
-              AtharIconButton(
-                icon: sequential
-                    ? Icons.view_agenda_rounded
-                    : Icons.view_carousel_rounded,
-                tooltip: sequential
-                    ? 'adhkar_mode_list'.tr
-                    : 'adhkar_mode_sequential'.tr,
-                onPressed: () {
-                  _session.sequential.value = !sequential;
-                  // Open the other view on the item being read.
-                  final at = _session.current.value;
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (at < 0) return;
-                    if (_session.sequential.value) {
-                      if (_pages.hasClients) _pages.jumpToPage(at);
-                    } else {
-                      _goTo(at);
-                    }
-                  });
-                },
+              TourTarget(
+                id: TourTargets.adhkarView,
+                child: AtharIconButton(
+                  icon: sequential
+                      ? Icons.view_agenda_rounded
+                      : Icons.view_carousel_rounded,
+                  tooltip: sequential
+                      ? 'adhkar_mode_list'.tr
+                      : 'adhkar_mode_sequential'.tr,
+                  onPressed: () {
+                    _session.sequential.value = !sequential;
+                    // Open the other view on the item being read.
+                    final at = _session.current.value;
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (at < 0) return;
+                      if (_session.sequential.value) {
+                        if (_pages.hasClients) _pages.jumpToPage(at);
+                      } else {
+                        _goTo(at);
+                      }
+                    });
+                  },
+                ),
               ),
             if (collection.isPersonal)
-              PopupMenuButton<String>(
-                tooltip: 'adhkar_more'.tr,
-                onSelected: _onMenu,
-                itemBuilder: (_) => [
-                  PopupMenuItem(
-                    value: 'add',
-                    child: Text(adhkarWord('adhkar_new', collection.type)),
-                  ),
-                  PopupMenuItem(
-                    value: 'edit',
-                    child: Text('adhkar_edit_collection'.tr),
-                  ),
-                  if (_session.completed > 0 ||
-                      _items.any((i) => _session.countOf(i) > 0))
+              TourTarget(
+                id: TourTargets.adhkarMenu,
+                child: PopupMenuButton<String>(
+                  tooltip: 'adhkar_more'.tr,
+                  onSelected: _onMenu,
+                  itemBuilder: (_) => [
                     PopupMenuItem(
-                      value: 'reset',
-                      child: Text('adhkar_reset_all'.tr),
+                      value: 'add',
+                      child: Text(adhkarWord('adhkar_new', collection.type)),
                     ),
-                  PopupMenuItem(
-                    value: 'delete',
-                    child: Text(
-                      'adhkar_delete_collection'.tr,
-                      style: TextStyle(color: context.colors.error),
+                    PopupMenuItem(
+                      value: 'edit',
+                      child: Text('adhkar_edit_collection'.tr),
                     ),
-                  ),
-                ],
+                    if (_session.completed > 0 ||
+                        _items.any((i) => _session.countOf(i) > 0))
+                      PopupMenuItem(
+                        value: 'reset',
+                        child: Text('adhkar_reset_all'.tr),
+                      ),
+                    PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'adhkar_delete_collection'.tr,
+                        style: TextStyle(color: context.colors.error),
+                      ),
+                    ),
+                  ],
+                ),
               ),
           ],
         ),
@@ -425,6 +436,10 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
           ],
         ),
       );
+      // The tour of counting, reminders and the menu: the reader's own only.
+      return collection.isPersonal
+          ? TourAutoStart(pageId: TourPages.adhkarCollection, child: page)
+          : page;
     });
   }
 
@@ -475,7 +490,7 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
     // Public categories are read here, not counted.
     final counting = _session.collection.isPersonal;
     final count = counting ? _session.countOf(item) : 0;
-    return AdhkarCard(
+    final card = AdhkarCard(
       // The list scrolls to cards by key; a page needs none.
       key: large ? null : _keyFor(item),
       large: large,
@@ -491,6 +506,10 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
       selected: _selected.contains(item.key),
       onSelect: counting ? null : (on) => _toggle(item, on),
     );
+    // The tour shows counting on the first card of the list.
+    return counting && index == 0 && !large
+        ? TourTarget(id: TourTargets.adhkarCount, child: card)
+        : card;
   }
 
   Widget _list(AdhkarCollection collection) {

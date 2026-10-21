@@ -158,7 +158,10 @@ class _ContinueCard extends GetView<QuranController> {
                         earned: controller.rewardedTodayCount,
                         limit: controller.dailyRewardPages.value,
                       ),
-                      _WerdChip(pages: controller.werdPages.value),
+                      TourTarget(
+                        id: TourTargets.quranWerd,
+                        child: _WerdChip(pages: controller.werdPages.value),
+                      ),
                     ],
                   ),
                   const SizedBox(height: AtharSpace.md),

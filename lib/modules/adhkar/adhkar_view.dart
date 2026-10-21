@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/ui/athar_ui.dart';
+import '../../core/tour/tour_widgets.dart';
+import '../tour/app_tours.dart';
 import 'adhkar_collection_view.dart';
 import 'adhkar_editors.dart';
 import 'adhkar_icons.dart';
@@ -67,27 +69,43 @@ class _AdhkarViewState extends State<AdhkarView> {
     _query.value = '';
   }
 
-  PreferredSizeWidget _tabs() => TabBar(
-    tabs: [
-      Tab(text: 'adhkar_tab_adhkar'.tr),
-      Tab(text: 'adhkar_tab_duas'.tr),
-    ],
-  );
+  PreferredSizeWidget _tabs() {
+    final bar = TabBar(
+      tabs: [
+        Tab(text: 'adhkar_tab_adhkar'.tr),
+        Tab(text: 'adhkar_tab_duas'.tr),
+      ],
+    );
+    return PreferredSize(
+      preferredSize: bar.preferredSize,
+      child: TourTarget(id: TourTargets.adhkarTabs, child: bar),
+    );
+  }
 
   PreferredSizeWidget _appBar(BuildContext context) {
     if (!_searching) {
       return AtharAppBar(
         title: 'adhkar_title'.tr,
         actions: [
-          AtharIconButton(
-            icon: Icons.search_rounded,
-            tooltip: 'adhkar_search'.tr,
-            onPressed: () => setState(() => _searching = true),
+          TourTarget(
+            id: TourTargets.adhkarSearch,
+            child: AtharIconButton(
+              icon: Icons.search_rounded,
+              tooltip: 'adhkar_search'.tr,
+              onPressed: () => setState(() => _searching = true),
+            ),
           ),
-          AtharIconButton(
-            icon: Icons.notifications_active_rounded,
-            tooltip: 'adhkar_reminders'.tr,
-            onPressed: () => AdhkarRemindersSheet.show(context),
+          TourTarget(
+            id: TourTargets.adhkarReminders,
+            child: AtharIconButton(
+              icon: Icons.notifications_active_rounded,
+              tooltip: 'adhkar_reminders'.tr,
+              onPressed: () => AdhkarRemindersSheet.show(context),
+            ),
+          ),
+          const TourHelpButton(
+            pageId: TourPages.adhkar,
+            style: TourHelpStyle.appBar,
           ),
         ],
         bottom: _tabs(),
@@ -155,18 +173,21 @@ class _AdhkarViewState extends State<AdhkarView> {
               }
               return const AtharLoadingState();
             }
-            return Column(
-              children: [
-                if (_store.offline.value) const _OfflineBanner(),
-                Expanded(
-                  child: TabBarView(
-                    children: [
-                      _Tab(type: AdhkarType.adhkar, query: _query),
-                      _Tab(type: AdhkarType.dua, query: _query),
-                    ],
+            return TourAutoStart(
+              pageId: TourPages.adhkar,
+              child: Column(
+                children: [
+                  if (_store.offline.value) const _OfflineBanner(),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        _Tab(type: AdhkarType.adhkar, query: _query),
+                        _Tab(type: AdhkarType.dua, query: _query),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             );
           }),
         ),
@@ -227,6 +248,11 @@ class _TabState extends State<_Tab> with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
+  /// A tour target on the Adhkar tab only — both tabs stay built, and an id
+  /// must belong to one widget.
+  Widget _tourTarget(String id, Widget child) =>
+      _isDua ? child : TourTarget(id: id, child: child);
+
   List<AdhkarCollection> _mine() =>
       _store.mine.where((c) => c.type == widget.type).toList();
 
@@ -273,10 +299,13 @@ class _TabState extends State<_Tab> with AutomaticKeepAliveClientMixin {
     List<AdhkarCollection> categories,
   ) {
     return [
-      AtharSectionHeader(
-        title: _isDua ? 'adhkar_my_duas'.tr : 'adhkar_my_adhkar'.tr,
-        actionLabel: 'adhkar_new_collection'.tr,
-        onAction: _newCollection,
+      _tourTarget(
+        TourTargets.adhkarMine,
+        AtharSectionHeader(
+          title: _isDua ? 'adhkar_my_duas'.tr : 'adhkar_my_adhkar'.tr,
+          actionLabel: 'adhkar_new_collection'.tr,
+          onAction: _newCollection,
+        ),
       ),
       if (mine.isEmpty)
         AtharCard(
@@ -291,8 +320,11 @@ class _TabState extends State<_Tab> with AutomaticKeepAliveClientMixin {
       else
         for (final c in mine) _CollectionTile(collection: c),
       const SizedBox(height: AtharSpace.lg),
-      AtharSectionHeader(
-        title: _isDua ? 'adhkar_dua_categories'.tr : 'adhkar_categories'.tr,
+      _tourTarget(
+        TourTargets.adhkarCategories,
+        AtharSectionHeader(
+          title: _isDua ? 'adhkar_dua_categories'.tr : 'adhkar_categories'.tr,
+        ),
       ),
       if (categories.isEmpty)
         AtharEmptyState(

@@ -12,6 +12,8 @@ abstract final class TourPages {
   static const settings = 'settings';
   static const dhikr = 'dhikr';
   static const quran = 'quran';
+  static const adhkar = 'adhkar';
+  static const adhkarCollection = 'adhkar_collection';
 
   /// The shell's IndexedStack order — index → page id.
   static const shellTabs = [home, friends, leaderboard, stats, settings];
@@ -52,6 +54,8 @@ abstract final class TourTargets {
   static const profileLogout = 'profile.logout';
 
   // Settings
+  static const settingsProfile = 'settings.profile';
+  static const settingsCalcMethod = 'settings.calcMethod';
   static const settingsLocation = 'settings.location';
   static const settingsLanguage = 'settings.language';
   static const settingsTheme = 'settings.theme';
@@ -68,6 +72,20 @@ abstract final class TourTargets {
   static const quranContinue = 'quran.continue';
   static const quranStats = 'quran.stats';
   static const quranWays = 'quran.ways';
+  static const quranWerd = 'quran.werd';
+
+  // Adhkar & Duas
+  static const adhkarSearch = 'adhkar.search';
+  static const adhkarReminders = 'adhkar.reminders';
+  static const adhkarTabs = 'adhkar.tabs';
+  static const adhkarMine = 'adhkar.mine';
+  static const adhkarCategories = 'adhkar.categories';
+
+  // One of the reader's own Adhkar & Duas collections
+  static const adhkarCount = 'adhkarCollection.count';
+  static const adhkarCollectionReminders = 'adhkarCollection.reminders';
+  static const adhkarView = 'adhkarCollection.view';
+  static const adhkarMenu = 'adhkarCollection.menu';
 
   /// The Help (?) button of a page (see `TourHelpButton.targetId`).
   static String help(String pageId) => '$pageId.help';
@@ -86,6 +104,8 @@ abstract final class AppTours {
         settings,
         dhikr,
         quran,
+        adhkar,
+        adhkarCollection,
       ];
 
   static final home = PageTour(
@@ -98,6 +118,14 @@ abstract final class AppTours {
         bodyKey: 'tour_home_profile_body',
         icon: Icons.person_rounded,
         padding: 6,
+      ),
+      const TourStep(
+        target: TourTargets.homeSettings,
+        titleKey: 'tour_home_settings_title',
+        bodyKey: 'tour_home_settings_body',
+        icon: Icons.settings_outlined,
+        shape: TourShape.circle,
+        padding: 4,
       ),
       const TourStep(
         target: TourTargets.homeNextPrayer,
@@ -134,14 +162,6 @@ abstract final class AppTours {
         bodyKey: 'tour_home_nav_body',
         icon: Icons.explore_outlined,
         radius: 30,
-        padding: 4,
-      ),
-      const TourStep(
-        target: TourTargets.homeSettings,
-        titleKey: 'tour_home_settings_title',
-        bodyKey: 'tour_home_settings_body',
-        icon: Icons.settings_outlined,
-        shape: TourShape.circle,
         padding: 4,
       ),
       TourStep(
@@ -239,7 +259,6 @@ abstract final class AppTours {
 
   static const profile = PageTour(
     pageId: TourPages.profile,
-    isTab: true,
     steps: [
       TourStep(
         target: TourTargets.profileAvatar,
@@ -265,12 +284,20 @@ abstract final class AppTours {
 
   static const settings = PageTour(
     pageId: TourPages.settings,
+    isTab: true,
     steps: [
       TourStep(
-        target: TourTargets.settingsLocation,
-        titleKey: 'tour_settings_location_title',
-        bodyKey: 'tour_settings_location_body',
-        icon: Icons.location_on_outlined,
+        target: TourTargets.settingsProfile,
+        titleKey: 'tour_settings_profile_title',
+        bodyKey: 'tour_settings_profile_body',
+        icon: Icons.person_outline_rounded,
+        padding: 4,
+      ),
+      TourStep(
+        target: TourTargets.settingsTheme,
+        titleKey: 'tour_settings_theme_title',
+        bodyKey: 'tour_settings_theme_body',
+        icon: Icons.palette_outlined,
         padding: 4,
       ),
       TourStep(
@@ -281,10 +308,17 @@ abstract final class AppTours {
         padding: 4,
       ),
       TourStep(
-        target: TourTargets.settingsTheme,
-        titleKey: 'tour_settings_theme_title',
-        bodyKey: 'tour_settings_theme_body',
-        icon: Icons.dark_mode_outlined,
+        target: TourTargets.settingsLocation,
+        titleKey: 'tour_settings_location_title',
+        bodyKey: 'tour_settings_location_body',
+        icon: Icons.location_on_outlined,
+        padding: 4,
+      ),
+      TourStep(
+        target: TourTargets.settingsCalcMethod,
+        titleKey: 'tour_settings_calc_title',
+        bodyKey: 'tour_settings_calc_body',
+        icon: Icons.calculate_outlined,
         padding: 4,
       ),
       TourStep(
@@ -351,16 +385,110 @@ abstract final class AppTours {
         icon: Icons.bookmark_outline_rounded,
       ),
       TourStep(
-        target: TourTargets.quranStats,
-        titleKey: 'tour_quran_stats_title',
-        bodyKey: 'tour_quran_stats_body',
-        icon: Icons.insights_outlined,
+        target: TourTargets.quranWerd,
+        titleKey: 'tour_quran_werd_title',
+        bodyKey: 'tour_quran_werd_body',
+        icon: Icons.menu_book_outlined,
+        radius: 20,
+        padding: 4,
       ),
       TourStep(
         target: TourTargets.quranWays,
         titleKey: 'tour_quran_ways_title',
         bodyKey: 'tour_quran_ways_body',
-        icon: Icons.menu_book_outlined,
+        icon: Icons.explore_outlined,
+      ),
+      TourStep(
+        target: TourTargets.quranStats,
+        titleKey: 'tour_quran_stats_title',
+        bodyKey: 'tour_quran_stats_body',
+        icon: Icons.insights_outlined,
+      ),
+    ],
+  );
+
+  static final adhkar = PageTour(
+    pageId: TourPages.adhkar,
+    steps: [
+      const TourStep(
+        target: TourTargets.adhkarSearch,
+        titleKey: 'tour_adhkar_search_title',
+        bodyKey: 'tour_adhkar_search_body',
+        icon: Icons.search_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+      const TourStep(
+        target: TourTargets.adhkarReminders,
+        titleKey: 'tour_adhkar_reminders_title',
+        bodyKey: 'tour_adhkar_reminders_body',
+        icon: Icons.notifications_outlined,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+      const TourStep(
+        target: TourTargets.adhkarTabs,
+        titleKey: 'tour_adhkar_tabs_title',
+        bodyKey: 'tour_adhkar_tabs_body',
+        icon: Icons.tab_outlined,
+      ),
+      const TourStep(
+        target: TourTargets.adhkarMine,
+        titleKey: 'tour_adhkar_mine_title',
+        bodyKey: 'tour_adhkar_mine_body',
+        icon: Icons.collections_bookmark_outlined,
+        padding: 4,
+      ),
+      const TourStep(
+        target: TourTargets.adhkarCategories,
+        titleKey: 'tour_adhkar_categories_title',
+        bodyKey: 'tour_adhkar_categories_body',
+        icon: Icons.library_add_outlined,
+        padding: 4,
+      ),
+      TourStep(
+        target: TourTargets.help(TourPages.adhkar),
+        titleKey: 'tour_help_title',
+        bodyKey: 'tour_help_body',
+        icon: Icons.help_outline_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+    ],
+  );
+
+  static const adhkarCollection = PageTour(
+    pageId: TourPages.adhkarCollection,
+    steps: [
+      TourStep(
+        target: TourTargets.adhkarCount,
+        titleKey: 'tour_adhkar_count_title',
+        bodyKey: 'tour_adhkar_count_body',
+        icon: Icons.touch_app_outlined,
+      ),
+      TourStep(
+        target: TourTargets.adhkarCollectionReminders,
+        titleKey: 'tour_adhkar_col_reminders_title',
+        bodyKey: 'tour_adhkar_col_reminders_body',
+        icon: Icons.alarm_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+      TourStep(
+        target: TourTargets.adhkarView,
+        titleKey: 'tour_adhkar_view_title',
+        bodyKey: 'tour_adhkar_view_body',
+        icon: Icons.view_carousel_outlined,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+      TourStep(
+        target: TourTargets.adhkarMenu,
+        titleKey: 'tour_adhkar_menu_title',
+        bodyKey: 'tour_adhkar_menu_body',
+        icon: Icons.more_vert_rounded,
+        shape: TourShape.circle,
+        padding: 4,
       ),
     ],
   );
