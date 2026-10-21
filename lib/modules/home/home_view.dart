@@ -1,7 +1,7 @@
-import 'package:athar/core/ui/athar_grid.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollCacheExtent;
 import 'package:flutter/services.dart' show SystemUiOverlayStyle;
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart' show DateFormat;
 
@@ -15,7 +15,7 @@ import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
-import '../settings/settings_view.dart';
+import '../profile/profile_view.dart';
 import '../shell/shell_view.dart';
 import '../tour/app_tours.dart';
 import 'home_controller.dart';
@@ -149,8 +149,8 @@ class _Header extends GetView<HomeController> {
                 button: true,
                 label: 'profile'.tr,
                 child: InkWell(
-                  // The avatar and name open the Profile tab.
-                  onTap: () => Get.find<ShellController>().index.value = 4,
+                  // The avatar and name open the profile.
+                  onTap: ProfileView.open,
                   borderRadius: BorderRadius.circular(AtharRadius.pill),
                   child: Padding(
                     padding: const EdgeInsetsDirectional.fromSTEB(0, AtharSpace.xxs, AtharSpace.sm, AtharSpace.xxs),
@@ -210,7 +210,7 @@ class _Header extends GetView<HomeController> {
             icon: Icons.settings_rounded,
             tooltip: 'settings'.tr,
             color: onSky,
-            onPressed: () => Get.to(() => const SettingsView()),
+            onPressed: () => Get.find<ShellController>().index.value = ShellController.settingsTabIndex,
           ),
         ),
       ],
@@ -279,7 +279,7 @@ class _TodaySummary extends GetView<HomeController> {
                             shape: const StadiumBorder(),
                             clipBehavior: Clip.antiAlias,
                             child: InkWell(
-                              onTap: () => Get.to(() => const SettingsView()),
+                              onTap: () => Get.find<ShellController>().index.value = ShellController.settingsTabIndex,
                               child: ConstrainedBox(
                                 constraints: const BoxConstraints(minHeight: 36),
                                 child: Padding(
@@ -569,39 +569,164 @@ class _PointsPill extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Today's practices: dhikr and the Quran, compact enough to sit on screen
+// Today's practices: tasbeeh, the Quran and adhkar, side by side in one row
 // ─────────────────────────────────────────────────────────────────────────
 class _Practices extends StatelessWidget {
   const _Practices();
 
   @override
   Widget build(BuildContext context) {
+    final athar = context.athar;
     final lastPage = Get.find<StorageProvider>().quranLastPageOrNull;
 
-    return AtharGridGroup(
-      // title: 'home_practices'.tr,
-      children: [
-        AtharGridTile(
-          icon: Icons.all_inclusive_rounded,
-          isStart: true,
-          title: 'dhikr_home_card_title'.tr,
-          subtitle: 'dhikr_home_card_sub'.tr,
-          onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
-        ),
-        AtharGridTile(
-          icon: Icons.menu_book_rounded,
-          title: 'quran_home_card_title'.tr,
-          subtitle: 'quran_home_card_sub'.tr,
-          onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
-        ),
-        AtharGridTile(
-          icon: Icons.auto_stories_rounded,
-          isStart: true,
-          title: 'adhkar_title'.tr,
-          subtitle: 'adhkar_home_card_sub'.tr,
-          onTap: AdhkarView.open,
-        ),
-      ],
+    // All three in one row, so none sits alone on a row below the fold, and
+    // all as tall as the tallest title.
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: _PracticeTile(
+              icon: (size, color) => _AppIcon('tasbeeh', size: size, color: color),
+              accent: athar.gold,
+              title: 'dhikr_home_card_title'.tr,
+              onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
+            ),
+          ),
+          const SizedBox(width: AtharSpace.sm),
+          Expanded(
+            child: _PracticeTile(
+              icon: (size, color) => _AppIcon('quran', size: size, color: color),
+              accent: context.colors.primary,
+              title: 'quran_home_card_title'.tr,
+              // Where the reader stopped, once they have.
+              detail: lastPage == null ? null : 'quran_page_short'.trParams({'page': '$lastPage'}),
+              onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+            ),
+          ),
+          const SizedBox(width: AtharSpace.sm),
+          Expanded(
+            child: _PracticeTile(
+              icon: (size, color) => _AppIcon('dua_hands', size: size, color: color),
+              accent: athar.sage,
+              title: 'adhkar_title'.tr,
+              onTap: AdhkarView.open,
+            ),
+          ),
+        ],
+      ),
     );
   }
+}
+
+/// One practice: its icon in a coloured circle, its name centred under it,
+/// on a soft wash of the same colour.
+class _PracticeTile extends StatelessWidget {
+  const _PracticeTile({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    required this.onTap,
+    this.detail,
+  });
+
+  /// Draws the icon at a size, in a colour.
+  final Widget Function(double size, Color color) icon;
+  final Color accent;
+  final String title;
+  final VoidCallback onTap;
+
+  /// A short line under the title, e.g. the Quran page to resume from.
+  final String? detail;
+
+  @override
+  Widget build(BuildContext context) {
+    final athar = context.athar;
+    final scheme = context.colors;
+    final radius = BorderRadius.circular(AtharRadius.card);
+
+    return Semantics(
+      button: true,
+      label: detail == null ? title : '$title, $detail',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: radius,
+        clipBehavior: Clip.antiAlias,
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: radius,
+            border: Border.all(color: accent.withValues(alpha: 0.28)),
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [accent.withValues(alpha: 0.07), athar.card],
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            splashColor: accent.withValues(alpha: 0.18),
+            highlightColor: accent.withValues(alpha: 0.08),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(AtharSpace.xs, AtharSpace.md, AtharSpace.xs, AtharSpace.sm),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(child: icon(28, accent)),
+                  ),
+                  const SizedBox(height: AtharSpace.xs),
+                  Text(
+                    title,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.labelLarge?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.w700,
+                      height: 1.3,
+                    ),
+                  ),
+                  if (detail != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      detail!,
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: context.type.caption,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// One of the app's own icons (`assets/icons/{name}.svg`), tinted: a single
+/// filled shape, so it takes any colour and stays sharp at any size.
+class _AppIcon extends StatelessWidget {
+  const _AppIcon(this.name, {required this.size, required this.color});
+
+  final String name;
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => SvgPicture.asset(
+    'assets/icons/$name.svg',
+    width: size,
+    height: size,
+    colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+    excludeFromSemantics: true,
+  );
 }

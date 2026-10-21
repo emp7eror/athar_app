@@ -17,13 +17,22 @@ import '../tour/app_tours.dart';
 import 'appearance_view.dart';
 import 'credits_view.dart';
 import 'legal_document_view.dart';
+import '../profile/profile_view.dart';
 import 'notification_settings_view.dart';
 import 'prayer_calculation_sheet.dart';
 
 /// Settings, opened from Home: appearance & language, prayer & location, and
 /// about — each a group of rows rather than a card per setting.
 class SettingsView extends StatelessWidget {
-  const SettingsView({super.key});
+  const SettingsView({super.key, this.asTab = false});
+
+  /// Shown as a tab of the shell: room under it for the floating nav bar, and
+  /// its tour started by the shell when the tab is first opened (tabs are all
+  /// built at launch, so starting it here would run it on Home).
+  final bool asTab;
+
+  /// Room under the content for the floating nav bar.
+  static const _navClearance = 160.0;
 
   static String appearanceSummary(ThemeController t) {
     final mode = switch (t.appearance) {
@@ -40,9 +49,7 @@ class SettingsView extends StatelessWidget {
     final home = Get.find<HomeController>();
     final timezone = Get.find<TimezoneService>();
 
-    return TourAutoStart(
-      pageId: TourPages.settings,
-      child: Scaffold(
+    final page = Scaffold(
         appBar: AtharAppBar(
           title: 'settings'.tr,
           actions: const [
@@ -50,15 +57,29 @@ class SettingsView extends StatelessWidget {
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(
+          padding: EdgeInsets.fromLTRB(
             AtharSpace.screen,
             AtharSpace.xs,
             AtharSpace.screen,
-            AtharSpace.xxl,
+            asTab ? _navClearance : AtharSpace.xxl,
           ),
           // Keeps the whole page built so tour steps can scroll to any row.
           scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
           children: [
+            // The account — what the Profile tab used to hold.
+            AtharListGroup(
+              children: [
+                Obx(
+                  () => AtharListRow(
+                    icon: Icons.person_rounded,
+                    title: 'profile'.tr,
+                    subtitle: home.userName.value.isEmpty ? null : home.userName.value,
+                    onTap: ProfileView.open,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AtharSpace.lg),
             AtharListGroup(
               title: 'settings_group_appearance'.tr,
               children: [
@@ -184,8 +205,9 @@ class SettingsView extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
+      );
+
+    return asTab ? page : TourAutoStart(pageId: TourPages.settings, child: page);
   }
 }
 

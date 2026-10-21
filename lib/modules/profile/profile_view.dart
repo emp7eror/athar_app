@@ -5,43 +5,45 @@ import 'package:get/get.dart';
 import '../../core/tour/tour_widgets.dart';
 import '../../core/ui/athar_ui.dart';
 import '../../data/providers/storage_provider.dart';
-import '../../widgets/framed_avatar.dart';
 import '../../widgets/gender_selector.dart';
-import '../../widgets/level_progress_card.dart';
 import '../tour/app_tours.dart';
 import 'delete_account_dialog.dart';
+import 'profile_binding.dart';
 import 'profile_controller.dart';
 
 /// Profile: who you are in Athar — your framed photo, level and totals — then
-/// your details, editing them, and signing out.
+/// your details, editing them, and signing out. Opened from Settings and from
+/// the avatar on Home.
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
 
-  /// Room under the content for the floating nav bar.
-  static const _navClearance = 160.0;
+  /// Opens the profile with its own controller, made for the page and
+  /// removed when it closes — so every visit starts fresh.
+  static Future<void> open() async {
+    await Get.to(() => const ProfileView(), binding: ProfileBinding());
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return TourAutoStart(
+      pageId: TourPages.profile,
+      child: Scaffold(
+      appBar: AtharAppBar(
+        title: 'profile'.tr,
+        actions: const [
+          TourHelpButton(pageId: TourPages.profile, style: TourHelpStyle.appBar),
+        ],
+      ),
       body: SafeArea(
-        bottom: false,
+        top: false,
         child: Obx(
           () => RefreshIndicator(
             onRefresh: controller.refreshAll,
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, _navClearance),
+              padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, AtharSpace.xxl),
               // Keeps the whole page built so tour steps can scroll to any item.
               scrollCacheExtent: const ScrollCacheExtent.pixels(2000),
               children: [
-                AtharPageHeader(
-                  title: 'profile'.tr,
-                  trailing: const [TourHelpButton(pageId: TourPages.profile)],
-                ),
-                const SizedBox(height: AtharSpace.md),
-                _IdentityCard(controller: controller),
-                const SizedBox(height: AtharSpace.md),
-                LevelProgressCard(level: controller.user.value?.level),
-                const SizedBox(height: AtharSpace.xl),
                 if (controller.editing.value)
                   _EditForm(controller: controller)
                 else
@@ -76,6 +78,7 @@ class ProfileView extends GetView<ProfileController> {
           ),
         ),
       ),
+      ),
     );
   }
 
@@ -91,122 +94,104 @@ class ProfileView extends GetView<ProfileController> {
   }
 }
 
-/// The photo in its level frame, name, level title and totals, on the brand
-/// surface.
-class _IdentityCard extends StatelessWidget {
-  const _IdentityCard({required this.controller});
+/// The first row of the details: the photo — plain, without the level frame
+/// — and changing it.
+class _PhotoRow extends StatelessWidget {
+  const _PhotoRow({required this.controller});
 
   final ProfileController controller;
 
+  static const _size = 60.0;
+
   @override
   Widget build(BuildContext context) {
-    final onBrand =  context.colors.onSurface;
     final u = controller.user.value;
-    final isAr = Get.locale?.languageCode == 'ar';
     final avatarUrl = (Get.find<StorageProvider>().cachedUser ?? {})['avatar_url'] as String?;
+    final scheme = context.colors;
+    final name = u?.name ?? '';
 
-    return AtharCard(
-      // tone: AtharCardTone.surface,
-      padding: const EdgeInsets.fromLTRB(AtharSpace.lg, AtharSpace.xl, AtharSpace.lg, AtharSpace.lg),
-      child: Column(
-        children: [
-          // Targets the avatar itself so the tour spotlight hugs the photo and
-          // its camera button.
-          TourTarget(
-            id: TourTargets.profileAvatar,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Obx(
-                  () => controller.uploading.value
-                      ?  SizedBox.square(
-                          dimension: 122,
-                          child: Center(child: CircularProgressIndicator(strokeWidth: 2, color: onBrand)),
-                        )
-                      : FramedAvatar(
-                          name: u?.name ?? '',
-                          avatarUrl: avatarUrl,
-                          frameAsset: u?.level?.frame,
-                          frameUrl: u?.level?.frameUrl,
-                          level: u?.level?.level,
-                          radius: 34,
-                        ),
-                ),
-                PositionedDirectional(
-                  bottom: -4,
-                  end: -4,
-                  child: AtharIconButton(
-                    icon: Icons.photo_camera_rounded,
-                    tooltip: 'profile_change_photo'.tr,
-                    variant: AtharIconButtonVariant.filled,
-                    onPressed: controller.pickAndUploadAvatar,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AtharSpace.md),
-          Text(
-            u?.name ?? '',
-            textAlign: TextAlign.center,
-            style: context.text.headlineSmall?.copyWith(color: onBrand),
-          ),
-          if (u?.level != null) ...[
-            const SizedBox(height: AtharSpace.xxs),
-            Text(
-              u!.level!.displayName(isAr),
-              textAlign: TextAlign.center,
-              style: context.text.titleSmall?.copyWith(color: context.colors.onSurface),
-            ),
-          ],
-          const SizedBox(height: AtharSpace.lg),
-          Row(
-            children: [
-              Expanded(child: _HeroStat(icon: Icons.star_rounded, value: '${u?.totalPoints ?? 0}', label: 'points'.tr)),
-              Expanded(
-                child: _HeroStat(
-                  icon: Icons.local_fire_department_rounded,
-                  value: '${u?.currentStreak ?? 0}',
-                  label: 'streak'.tr,
-                ),
-              ),
-              Expanded(child: _HeroStat(icon: Icons.military_tech_rounded, value: '${u?.bestScore ?? 0}', label: 'best_score'.tr)),
-            ],
-          ),
-        ],
+    // The photo cut to a circle, filling it whatever its own shape, inside a
+    // ring of the same circle; the initial when there is no photo.
+    final initial = Center(
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: context.type.sectionTitle.copyWith(color: scheme.onPrimary),
       ),
     );
-  }
-}
+    final photo = Container(
+      width: _size,
+      height: _size,
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: scheme.primary, width: 2),
+      ),
+      child: ClipOval(
+        child: ColoredBox(
+          color: scheme.primary,
+          child: (avatarUrl == null || avatarUrl.isEmpty)
+              ? initial
+              : Image.network(
+                  avatarUrl,
+                  width: _size,
+                  height: _size,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, _, _) => initial,
+                ),
+        ),
+      ),
+    );
 
-class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.icon, required this.value, required this.label});
-
-  final IconData icon;
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final onBrand = context.colors.onSurface;
-
-    return MergeSemantics(
-      child: Column(
-        children: [
-          Icon(icon, size: AtharSize.icon),
-          const SizedBox(height: AtharSpace.xxs),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(value, maxLines: 1, style: context.type.statValue.copyWith(color: onBrand)),
-          ),
-          Text(
-            label,
-            maxLines: 2,
-            textAlign: TextAlign.center,
-            overflow: TextOverflow.ellipsis,
-            style: context.text.bodySmall?.copyWith(color: onBrand.withValues(alpha: 0.8)),
-          ),
-        ],
+    return InkWell(
+      onTap: controller.pickAndUploadAvatar,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AtharSpace.md, vertical: AtharSpace.sm),
+        child: Row(
+          children: [
+            // Targets the avatar itself so the tour spotlight hugs the photo
+            // and its camera button.
+            TourTarget(
+              id: TourTargets.profileAvatar,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Obx(
+                    () => controller.uploading.value
+                        ? const SizedBox.square(
+                            dimension: _size,
+                            child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                          )
+                        : photo,
+                  ),
+                  PositionedDirectional(
+                    bottom: -2,
+                    end: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
+                      decoration: BoxDecoration(
+                        color: context.colors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: context.athar.card, width: 2),
+                      ),
+                      child: Icon(Icons.photo_camera_rounded, size: 14, color: context.colors.onPrimary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AtharSpace.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('profile_photo'.tr, style: context.type.cardTitle),
+                  const SizedBox(height: 2),
+                  Text('profile_change_photo'.tr, style: context.type.caption),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -225,6 +210,7 @@ class _Details extends StatelessWidget {
     return AtharListGroup(
       title: 'profile_details'.tr,
       children: [
+        _PhotoRow(controller: controller),
         AtharListRow(icon: Icons.person_rounded, title: 'name'.tr, value: u?.name ?? '-', showChevron: false),
         AtharListRow(icon: Icons.email_rounded, title: 'email'.tr, value: u?.email ?? '-', showChevron: false),
         AtharListRow(

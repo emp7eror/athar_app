@@ -53,6 +53,8 @@ flutter:
     - assets/images/
     - assets/audio/
     - assets/frames/
+    # Practice icons on Home (SVG): tasbeeh, the Quran, hands in dua.
+    - assets/icons/
 
   # Bundled so text renders offline and at once (see AtharFonts).
   fonts:

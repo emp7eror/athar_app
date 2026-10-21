@@ -13,14 +13,16 @@ import '../home/home_binding.dart';
 import '../home/home_view.dart';
 import '../leaderboard/leaderboard_binding.dart';
 import '../leaderboard/leaderboard_view.dart';
-import '../profile/profile_binding.dart';
-import '../profile/profile_view.dart';
+import '../settings/settings_view.dart';
 import '../stats/stats_binding.dart';
 import '../stats/stats_view.dart';
 import '../tour/app_tours.dart';
 
 class ShellController extends GetxController {
   final index = 0.obs;
+
+  /// The Settings tab — what Home's settings buttons switch to.
+  static const settingsTabIndex = 4;
 
   /// Index of the tab we consider "root" for the back-button contract.
   /// Back from any other tab returns here first; a second back then exits.
@@ -37,11 +39,11 @@ class ShellView extends StatelessWidget {
     FriendsBinding().dependencies();
     LeaderboardBinding().dependencies();
     StatsBinding().dependencies();
-    ProfileBinding().dependencies();
     final c = Get.put(ShellController());
 
-    // Settings is a pushed screen, opened from Home.
-    const pages = [HomeView(), FriendsView(), LeaderboardView(), StatsView(), ProfileView()];
+    // Profile is a pushed screen (ProfileView.open, from Settings and Home's
+    // avatar), with a controller of its own for each visit.
+    const pages = [HomeView(), FriendsView(), LeaderboardView(), StatsView(), SettingsView(asTab: true)];
 
     return Obx(() {
       // ── Android back-button contract ──
@@ -117,7 +119,7 @@ class _FloatingNavBar extends StatelessWidget {
       (Icons.people_alt_rounded, 'friends'.tr),
       (Icons.leaderboard_rounded, 'leaderboard'.tr),
       (Icons.bar_chart_rounded, 'stats'.tr),
-      (Icons.person_rounded, 'profile'.tr),
+      (Icons.settings_rounded, 'settings'.tr),
     ];
 
     return SafeArea(
