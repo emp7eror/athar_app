@@ -576,7 +576,6 @@ class _Practices extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final athar = context.athar;
     final lastPage = Get.find<StorageProvider>().quranLastPageOrNull;
 
     // All three in one row, so none sits alone on a row below the fold, and
@@ -588,7 +587,6 @@ class _Practices extends StatelessWidget {
           Expanded(
             child: _PracticeTile(
               icon: (size, color) => _AppIcon('tasbeeh', size: size, color: color),
-              accent: athar.gold,
               title: 'dhikr_home_card_title'.tr,
               onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
             ),
@@ -597,10 +595,9 @@ class _Practices extends StatelessWidget {
           Expanded(
             child: _PracticeTile(
               icon: (size, color) => _AppIcon('quran', size: size, color: color),
-              accent: context.colors.primary,
               title: 'quran_home_card_title'.tr,
               // Where the reader stopped, once they have.
-              detail: lastPage == null ? null : 'quran_page_short'.trParams({'page': '$lastPage'}),
+              // detail: lastPage == null ? null : 'quran_page_short'.trParams({'page': '$lastPage'}),
               onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
             ),
           ),
@@ -608,7 +605,6 @@ class _Practices extends StatelessWidget {
           Expanded(
             child: _PracticeTile(
               icon: (size, color) => _AppIcon('dua_hands', size: size, color: color),
-              accent: athar.sage,
               title: 'adhkar_title'.tr,
               onTap: AdhkarView.open,
             ),
@@ -624,7 +620,6 @@ class _Practices extends StatelessWidget {
 class _PracticeTile extends StatelessWidget {
   const _PracticeTile({
     required this.icon,
-    required this.accent,
     required this.title,
     required this.onTap,
     this.detail,
@@ -632,7 +627,6 @@ class _PracticeTile extends StatelessWidget {
 
   /// Draws the icon at a size, in a colour.
   final Widget Function(double size, Color color) icon;
-  final Color accent;
   final String title;
   final VoidCallback onTap;
 
@@ -641,6 +635,8 @@ class _PracticeTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The app's icon colours: the brand tone, as in every list row.
+    final accent = AtharTone.brand.foreground(context);
     final athar = context.athar;
     final scheme = context.colors;
     final radius = BorderRadius.circular(AtharRadius.card);
@@ -656,12 +652,9 @@ class _PracticeTile extends StatelessWidget {
         child: Ink(
           decoration: BoxDecoration(
             borderRadius: radius,
-            border: Border.all(color: accent.withValues(alpha: 0.28)),
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [accent.withValues(alpha: 0.07), athar.card],
-            ),
+            // The same surface as the prayer list above.
+            color: athar.card,
+            border: Border.all(color: scheme.outlineVariant),
           ),
           child: InkWell(
             onTap: onTap,
@@ -676,7 +669,7 @@ class _PracticeTile extends StatelessWidget {
                     width: 46,
                     height: 46,
                     decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.18),
+                      color: AtharTone.brand.background(context),
                       shape: BoxShape.circle,
                     ),
                     child: Center(child: icon(28, accent)),
