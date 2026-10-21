@@ -18,6 +18,7 @@ import 'appearance_view.dart';
 import 'credits_view.dart';
 import 'legal_document_view.dart';
 import 'notification_settings_view.dart';
+import 'prayer_calculation_sheet.dart';
 
 /// Settings, opened from Home: appearance & language, prayer & location, and
 /// about — each a group of rows rather than a card per setting.
@@ -120,6 +121,7 @@ class SettingsView extends StatelessWidget {
                     onTap: () => timezone.syncIfChanged(),
                   ),
                 ),
+                const PrayerCalculationRow(),
                 TourTarget(
                   id: TourTargets.settingsReminders,
                   child: AtharListRow(

@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 
 import '../../core/constants/quran_surahs.dart';
 import '../../core/utils/error_reporter.dart';
+import '../../core/utils/snackbar.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
@@ -13,6 +14,7 @@ import '../level_up/level_up_popup.dart';
 import 'khatma_popup.dart';
 import 'quran_ayah_geometry.dart';
 import 'quran_page_cache.dart';
+import 'werd_picker_sheet.dart';
 
 /// Quran Werd — reading state, page caching and the page-completion reward.
 ///
@@ -43,7 +45,8 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   /// Seconds spent on the current page, for the subtle reading indicator.
   final elapsed = 0.obs;
 
-  /// Pages that have earned their reward — they can't earn again.
+  /// Pages rewarded too recently to earn again yet. A page earns again when
+  /// it is read again later (the server sets how much later).
   final completed = <int>{}.obs;
 
   /// Every page ever counted as read, rewarded or not.
@@ -98,12 +101,32 @@ class QuranController extends GetxController with WidgetsBindingObserver {
   final dailyRewardPages = 5.obs;
   final rewardedToday = 0.obs;
 
+  /// The reader's daily werd in pages — null until they choose one — and the
+  /// sizes on offer. The day's [dailyPoints] are split across the werd, so
+  /// [pagePoints] follows it.
+  final werdPages = RxnInt();
+  final werdOptions = <int>[1, 2, 5, 10].obs;
+  final dailyPoints = 50.obs;
+
+  /// Quran points earned today. The daily cap is in points, so a werd changed
+  /// during the day can't earn past it. Null from older servers.
+  final pointsToday = RxnInt();
+
+  /// The werd picker opens by itself once, the first time the Mushaf loads
+  /// without a werd.
+  bool _werdPrompted = false;
+
   /// The day [rewardedToday] was counted on. Once the date changes the reward
   /// is open again, even before the server has said so.
   DateTime _countsDay = _today();
 
-  bool get dailyRewardDone =>
-      _countsDay == _today() && rewardedToday.value >= dailyRewardPages.value;
+  bool get dailyRewardDone {
+    if (_countsDay != _today()) return false;
+    final points = pointsToday.value;
+    return points != null
+        ? points >= dailyPoints.value
+        : rewardedToday.value >= dailyRewardPages.value;
+  }
 
   /// Pages that have earned today — zero once the date has moved on, even
   /// before the server has said so.
@@ -293,8 +316,7 @@ class QuranController extends GetxController with WidgetsBindingObserver {
               requiredSeconds.value,
             ),
       });
-      pagePoints.value = _asInt(res['page_points'], 10);
-      dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], 5);
+      _applyWerd(res);
       _maxCreditedSeconds = _asInt(res['max_credited_seconds'], 1800);
       pageEdition.value = res['page_edition']?.toString() ?? '';
 
@@ -346,10 +368,52 @@ class QuranController extends GetxController with WidgetsBindingObserver {
       // A one-off inventory of what this device already holds, so an offline
       // report can be read straight off the log.
       unawaited(QuranPageCache.logHeld(totalPages.value, imageUrlFor));
+
+      // No werd yet: ask for one, once, before reading starts. Older servers
+      // don't send werd_options and have no werd to set.
+      if (werdPages.value == null && res['werd_options'] is List && !_werdPrompted) {
+        _werdPrompted = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final context = Get.context;
+          if (!isClosed && context != null && werdPages.value == null) {
+            WerdPickerSheet.show(context, firstTime: true);
+          }
+        });
+      }
     } catch (e) {
       ErrorReporter.report(e, StackTrace.current);
       failed.value = true;
       loading.value = false;
+    }
+  }
+
+  /// The werd fields every werd-related answer carries.
+  void _applyWerd(Map<String, dynamic> res) {
+    pagePoints.value = _asInt(res['page_points'], pagePoints.value);
+    dailyRewardPages.value = _asInt(res['daily_rewarded_pages'], dailyRewardPages.value);
+    dailyPoints.value = _asInt(res['daily_points'], dailyPoints.value);
+    final options = res['werd_options'];
+    if (options is List && options.isNotEmpty) {
+      werdOptions.assignAll(options.map((e) => _asInt(e, 0)).where((e) => e > 0));
+    }
+    if (res.containsKey('werd_pages')) {
+      final pages = res['werd_pages'];
+      werdPages.value = pages == null ? null : _asInt(pages, 0);
+    }
+  }
+
+  /// Saves the daily werd. Reports failure to the reader and returns false.
+  Future<bool> setWerd(int pages) async {
+    try {
+      final res = await _api.quranSetWerd(pages);
+      _applyWerd(res);
+      final progress = res['progress'];
+      if (progress is Map) _applyProgress(progress);
+      return true;
+    } catch (e) {
+      ErrorReporter.report(e, StackTrace.current);
+      AppSnackbar.error('werd_pick_title'.tr, 'werd_save_failed'.tr);
+      return false;
     }
   }
 
@@ -508,10 +572,7 @@ class QuranController extends GetxController with WidgetsBindingObserver {
     try {
       final res = await _api.quranPageComplete(p, seconds);
 
-      dailyRewardPages.value = _asInt(
-        res['daily_rewarded_pages'],
-        dailyRewardPages.value,
-      );
+      _applyWerd(res);
       // Every answer carries the totals and today's count, whether or not
       // this page earned anything.
       final progress = res['progress'];
@@ -566,6 +627,8 @@ class QuranController extends GetxController with WidgetsBindingObserver {
       progress['rewarded_today'],
       rewardedToday.value,
     );
+    final points = progress['points_today'];
+    if (points is num) pointsToday.value = points.round();
     wordsRead.value = _asInt(progress['words_read'], wordsRead.value);
     lettersRead.value = _asInt(progress['letters_read'], lettersRead.value);
     wordCountsAvailable.value = progress['word_counts_available'] == true;

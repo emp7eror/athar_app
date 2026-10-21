@@ -354,7 +354,7 @@ class _QuranSection extends GetView<StatsController> {
             child: Column(
               children: [
                 pair(
-                  AtharStat(icon: Icons.auto_stories_rounded, value: value('pages_read'), label: 'quran_stat_pages'.tr, center: true),
+                  AtharStat(icon: Icons.auto_stories_rounded, value: value(q.containsKey('times_read') ? 'times_read' : 'pages_read'), label: 'quran_stat_pages'.tr, center: true),
                   AtharStat(icon: Icons.timer_rounded, value: value('minutes'), label: 'quran_stat_minutes'.tr, center: true),
                 ),
                 if (q['word_counts_available'] == true) ...[

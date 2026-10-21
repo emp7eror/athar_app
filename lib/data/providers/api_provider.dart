@@ -79,6 +79,10 @@ class ApiProvider {
   /// Claims today's reward for [page], read for [seconds]. The only reading
   /// call: sent once a day, when the reward is due. The server checks the
   /// daily limit and whether the page still owes points.
+  /// Sets the daily werd — pages a day — which splits the day's points.
+  Future<Map<String, dynamic>> quranSetWerd(int pages) async =>
+      _unwrap(await _dio.post(ApiEndpoints.quranWerd, data: {'pages': pages}));
+
   Future<Map<String, dynamic>> quranPageComplete(int page, int seconds) async =>
       _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page, 'seconds': seconds}));
 

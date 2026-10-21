@@ -12,24 +12,54 @@ class AdhanService extends GetxService {
     return Coordinates(lat, lng);
   }
 
+  /// The calculation methods offered in settings, in the order shown.
+  /// `other` is left out: it has no angles of its own.
+  static const methods = [
+    CalculationMethod.egyptian,
+    CalculationMethod.muslim_world_league,
+    CalculationMethod.umm_al_qura,
+    CalculationMethod.karachi,
+    CalculationMethod.dubai,
+    CalculationMethod.kuwait,
+    CalculationMethod.qatar,
+    CalculationMethod.turkey,
+    CalculationMethod.singapore,
+    CalculationMethod.north_america,
+    CalculationMethod.moon_sighting_committee,
+    CalculationMethod.tehran,
+  ];
+
+  static const _methodKey = 'prayer_calc_method';
+  static const _madhabKey = 'prayer_madhab';
+
+  /// The reader's chosen method — Egyptian General Authority by default.
+  CalculationMethod get method {
+    final saved = _box.read(_methodKey) as String?;
+    return methods.firstWhere((m) => m.name == saved, orElse: () => CalculationMethod.egyptian);
+  }
+
+  /// Shafi'i (the majority view) unless Hanafi was chosen; only Asr differs.
+  Madhab get madhab => _box.read(_madhabKey) == Madhab.hanafi.name ? Madhab.hanafi : Madhab.shafi;
+
+  /// Saves the method and madhab. Callers refresh what was computed from the
+  /// old ones (home times, scheduled reminders).
+  Future<void> setCalculation({CalculationMethod? method, Madhab? madhab}) async {
+    if (method != null) await _box.write(_methodKey, method.name);
+    if (madhab != null) await _box.write(_madhabKey, madhab.name);
+  }
+
   CalculationParameters get _params {
-    final params = CalculationMethod.egyptian.getParameters();
-    params.madhab = Madhab.shafi;
+    final params = method.getParameters();
+    params.madhab = madhab;
     return params;
   }
 
   PrayerTimes getTodayPrayerTimes({DateTime? date}) {
-    final lat = (_box.read('lat') as num?)?.toDouble() ?? 21.4225;
-    final lng = (_box.read('lng') as num?)?.toDouble() ?? 39.8262;
-    final coordinates = Coordinates(lat, lng);
-    final params = CalculationMethod.muslim_world_league.getParameters();
-    params.madhab = Madhab.shafi;
-
     if (date != null) {
       final c = DateComponents(date.year, date.month, date.day);
-      return PrayerTimes(coordinates, c, params);
+      return PrayerTimes(_coordinates, c, _params);
     }
-    return PrayerTimes.today(coordinates, params);
+    return PrayerTimes.today(_coordinates, _params);
   }
 
   /// Prayer times for an arbitrary calendar date (same coordinates / method).

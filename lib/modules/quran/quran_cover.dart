@@ -10,6 +10,7 @@ import 'khatma_progress_view.dart';
 import 'quran_controller.dart';
 import 'quran_index_view.dart';
 import 'quran_mood_view.dart';
+import 'werd_picker_sheet.dart';
 
 /// "Page 0" — what the Mushaf opens on: where the reader left off and the
 /// khatma so far, their Quran journey in numbers, and the ways in.
@@ -147,11 +148,18 @@ class _ContinueCard extends GetView<QuranController> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _RewardBadge(
-                    done: controller.dailyRewardDone,
-                    points: controller.pagePoints.value,
-                    earned: controller.rewardedTodayCount,
-                    limit: controller.dailyRewardPages.value,
+                  Wrap(
+                    spacing: AtharSpace.xs,
+                    runSpacing: AtharSpace.xs,
+                    children: [
+                      _RewardBadge(
+                        done: controller.dailyRewardDone,
+                        points: controller.pagePoints.value,
+                        earned: controller.rewardedTodayCount,
+                        limit: controller.dailyRewardPages.value,
+                      ),
+                      _WerdChip(pages: controller.werdPages.value),
+                    ],
                   ),
                   const SizedBox(height: AtharSpace.md),
                   Row(
@@ -312,6 +320,52 @@ class _RewardBadge extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The daily werd, tappable to change it. Says so when none is set yet.
+class _WerdChip extends StatelessWidget {
+  const _WerdChip({required this.pages});
+
+  final int? pages;
+
+  @override
+  Widget build(BuildContext context) {
+    const onBrand = Colors.white;
+    final pages = this.pages;
+
+    return Semantics(
+      button: true,
+      child: Material(
+        color: onBrand.withValues(alpha: 0.16),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AtharRadius.pill),
+          side: BorderSide(color: onBrand.withValues(alpha: 0.35)),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => WerdPickerSheet.show(context),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AtharSpace.sm, vertical: AtharSpace.xxs + 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.menu_book_rounded, size: AtharSize.iconSm, color: onBrand),
+                const SizedBox(width: AtharSpace.xs),
+                Text(
+                  pages == null
+                      ? 'werd_set'.tr
+                      : 'werd_daily'.trParams({'pages': werdPagesLabel(pages)}),
+                  style: context.text.labelMedium?.copyWith(color: onBrand),
+                ),
+                const SizedBox(width: AtharSpace.xxs),
+                const Icon(Icons.edit_rounded, size: 14, color: onBrand),
+              ],
+            ),
+          ),
         ),
       ),
     );
