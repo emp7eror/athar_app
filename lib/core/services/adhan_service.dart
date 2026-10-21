@@ -15,8 +15,8 @@ class AdhanService extends GetxService {
   /// The calculation methods offered in settings, in the order shown.
   /// `other` is left out: it has no angles of its own.
   static const methods = [
-    CalculationMethod.egyptian,
     CalculationMethod.muslim_world_league,
+    CalculationMethod.egyptian,
     CalculationMethod.umm_al_qura,
     CalculationMethod.karachi,
     CalculationMethod.dubai,
@@ -32,10 +32,10 @@ class AdhanService extends GetxService {
   static const _methodKey = 'prayer_calc_method';
   static const _madhabKey = 'prayer_madhab';
 
-  /// The reader's chosen method — Egyptian General Authority by default.
+  /// The reader's chosen method — Muslim World League by default.
   CalculationMethod get method {
     final saved = _box.read(_methodKey) as String?;
-    return methods.firstWhere((m) => m.name == saved, orElse: () => CalculationMethod.egyptian);
+    return methods.firstWhere((m) => m.name == saved, orElse: () => CalculationMethod.muslim_world_league);
   }
 
   /// Shafi'i (the majority view) unless Hanafi was chosen; only Asr differs.

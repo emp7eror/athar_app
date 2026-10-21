@@ -10,6 +10,7 @@ import '../../core/ui/athar_ui.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/providers/storage_provider.dart';
 import '../../widgets/framed_avatar.dart';
+import '../adhkar/adhkar_view.dart';
 import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
@@ -592,6 +593,13 @@ class _Practices extends StatelessWidget {
           title: 'quran_home_card_title'.tr,
           subtitle: 'quran_home_card_sub'.tr,
           onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+        ),
+        AtharGridTile(
+          icon: Icons.auto_stories_rounded,
+          isStart: true,
+          title: 'adhkar_title'.tr,
+          subtitle: 'adhkar_home_card_sub'.tr,
+          onTap: AdhkarView.open,
         ),
       ],
     );

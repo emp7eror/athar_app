@@ -24,6 +24,18 @@ class ApiEndpoints {
   static const String dhikrIncrement = '/dhikr/increment';
 
   static const String quranWerd = '/quran/werd';
+
+  // Adhkar & Duas (separate from the tasbeeh counters).
+  static const String adhkarLibrary = '/adhkar/library';
+  static const String adhkarMine = '/adhkar/mine';
+  static const String adhkarMyCollections = '/adhkar/my/collections';
+  static const String adhkarCopyCollection = '/adhkar/my/collections/copy';
+  static String adhkarMyCollection(int id) => '/adhkar/my/collections/$id';
+  static String adhkarMyCollectionOrder(int id) => '/adhkar/my/collections/$id/order';
+  static String adhkarMyCollectionItems(int id) => '/adhkar/my/collections/$id/items';
+  static String adhkarMyItem(int id) => '/adhkar/my/items/$id';
+  static const String adhkarProgress = '/adhkar/progress';
+  static const String adhkarSync = '/adhkar/progress/sync';
   static const String quranTafsirs = '/quran/tafsirs';
   static const String quranReciters = '/quran/reciters';
   static String quranAyah(int surah, int ayah) => '/quran/ayahs/$surah/$ayah';

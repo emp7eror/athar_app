@@ -83,6 +83,53 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranSetWerd(int pages) async =>
       _unwrap(await _dio.post(ApiEndpoints.quranWerd, data: {'pages': pages}));
 
+  // --- Adhkar & Duas ---
+
+  /// The public library: collections and Dua categories, with their items.
+  Future<Map<String, dynamic>> adhkarLibrary() async =>
+      _unwrap(await _dio.get(ApiEndpoints.adhkarLibrary));
+
+  /// The signed-in user's own collections.
+  Future<Map<String, dynamic>> adhkarMine() async =>
+      _unwrap(await _dio.get(ApiEndpoints.adhkarMine));
+
+  Future<Map<String, dynamic>> adhkarCreateCollection(Map<String, dynamic> data) async =>
+      _unwrap(await _dio.post(ApiEndpoints.adhkarMyCollections, data: data));
+
+  /// A personal copy of a public collection ([collectionId]) or Dua category ([categoryId]).
+  Future<Map<String, dynamic>> adhkarCopyCollection({int? collectionId, int? categoryId}) async =>
+      _unwrap(await _dio.post(ApiEndpoints.adhkarCopyCollection, data: {
+        'collection_id': ?collectionId,
+        'category_id': ?categoryId,
+      }));
+
+  Future<Map<String, dynamic>> adhkarUpdateCollection(int id, Map<String, dynamic> data) async =>
+      _unwrap(await _dio.put(ApiEndpoints.adhkarMyCollection(id), data: data));
+
+  Future<Map<String, dynamic>> adhkarDeleteCollection(int id) async =>
+      _unwrap(await _dio.delete(ApiEndpoints.adhkarMyCollection(id)));
+
+  Future<Map<String, dynamic>> adhkarReorder(int id, List<int> itemIds) async =>
+      _unwrap(await _dio.put(ApiEndpoints.adhkarMyCollectionOrder(id), data: {'item_ids': itemIds}));
+
+  /// A new item written by the user, or a copy of a public one (`source_item_id`).
+  Future<Map<String, dynamic>> adhkarAddItem(int collectionId, Map<String, dynamic> data) async =>
+      _unwrap(await _dio.post(ApiEndpoints.adhkarMyCollectionItems(collectionId), data: data));
+
+  Future<Map<String, dynamic>> adhkarUpdateItem(int id, Map<String, dynamic> data) async =>
+      _unwrap(await _dio.put(ApiEndpoints.adhkarMyItem(id), data: data));
+
+  Future<Map<String, dynamic>> adhkarDeleteItem(int id) async =>
+      _unwrap(await _dio.delete(ApiEndpoints.adhkarMyItem(id)));
+
+  Future<Map<String, dynamic>> adhkarProgress(String timezone) async =>
+      _unwrap(await _dio.get(ApiEndpoints.adhkarProgress, queryParameters: {'timezone': timezone}));
+
+  /// Counter operations made on the device, each with its own id, so a retry
+  /// of one already applied is skipped by the server.
+  Future<Map<String, dynamic>> adhkarSync(List<Map<String, dynamic>> ops, String timezone) async =>
+      _unwrap(await _dio.post(ApiEndpoints.adhkarSync, data: {'ops': ops, 'timezone': timezone}));
+
   Future<Map<String, dynamic>> quranPageComplete(int page, int seconds) async =>
       _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page, 'seconds': seconds}));
 

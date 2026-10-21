@@ -17,6 +17,8 @@ import 'core/localization/localization_controller.dart';
 import 'core/services/notification_router.dart';
 import 'core/services/prayer_notification_scheduler.dart';
 import 'core/services/timezone_service.dart';
+import 'modules/adhkar/adhkar_reminders.dart';
+import 'modules/adhkar/adhkar_store.dart';
 import 'data/providers/storage_provider.dart';
 import 'core/design/athar_scale.dart';
 import 'core/theme/theme_controller.dart';
@@ -87,6 +89,9 @@ Future<void> main() async {
   // Lay out the first batch of prayer notifications. Self-guards on
   // permission, so it's safe even before the user grants it.
   unawaited(Get.find<PrayerNotificationScheduler>().reschedule());
+  // Adhkar reminders at the current local time; counts left from last time.
+  unawaited(Get.find<AdhkarReminders>().reschedule());
+  unawaited(Get.find<AdhkarStore>().sync());
 
   // Tap routing for a background (app in memory) or cold-started (terminated)
   // FCM notification tap. Foreground taps are handled separately by
@@ -129,6 +134,8 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed &&
         Get.isRegistered<PrayerNotificationScheduler>()) {
       Get.find<PrayerNotificationScheduler>().reschedule();
+      // Follows a timezone change, like the prayer schedule.
+      if (Get.isRegistered<AdhkarReminders>()) Get.find<AdhkarReminders>().reschedule();
 
       // Catches a timezone change that happened while backgrounded (travel).
       // Guarded on an active session — an unauthenticated call would 401 and

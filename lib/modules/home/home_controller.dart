@@ -6,6 +6,7 @@ import 'package:athar/modules/home/prayer_confirm_dialog.dart';
 import 'package:athar/modules/home/prayer_done_dialog.dart';
 import 'package:get/get.dart';
 
+import '../../core/services/notification_router.dart';
 import '../../core/services/adhan_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/prayer_notification_scheduler.dart';
@@ -92,6 +93,13 @@ class HomeController extends GetxController {
     // Pin/refresh the server-side timezone. Safe here: this controller only
     // exists once the user is authenticated.
     unawaited(Get.find<TimezoneService>().syncIfChanged());
+  }
+
+  @override
+  void onReady() {
+    super.onReady();
+    // A reminder tapped while the app was closed opens once home is up.
+    NotificationRouter.consumePendingAdhkar();
   }
 
   Future<void> refreshAll() async {

@@ -67,6 +67,15 @@ class NotificationService extends GetxService {
 
     await _createAndroidChannels();
     _bindForegroundMessages();
+
+    // The app was opened by tapping one of our notifications while it was
+    // closed: the tap callback doesn't fire for that, so pick it up here.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    final launchPayload = launch?.notificationResponse?.payload;
+    if ((launch?.didNotificationLaunchApp ?? false) &&
+        NotificationRouter.isAdhkarPayload(launchPayload)) {
+      NotificationRouter.openAdhkar(launchPayload!);
+    }
     return this;
   }
 
@@ -184,6 +193,44 @@ class NotificationService extends GetxService {
       scheduledDate: tz.TZDateTime.from(when, tz.local),
       notificationDetails: _detailsFor(prayerSound: prayerSound),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      payload: payload,
+    );
+  }
+
+  static const adhkarChannelId = 'ATHAR_ADHKAR';
+
+  /// A notification repeating every day at [hour]:[minute] local time — the
+  /// Adhkar & Duas reminders the reader sets. Inexact: a reminder a minute
+  /// late is fine, and it needs no exact-alarm permission.
+  Future<void> scheduleDaily({
+    required int id,
+    required int hour,
+    required int minute,
+    required String title,
+    required String body,
+    String? payload,
+  }) async {
+    final now = tz.TZDateTime.now(tz.local);
+    var at = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
+    if (!at.isAfter(now)) at = at.add(const Duration(days: 1));
+
+    await _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: at,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          adhkarChannelId,
+          'Adhkar reminders',
+          channelDescription: 'Reminders you set for your Adhkar and Duas',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
       payload: payload,
     );
   }
@@ -320,6 +367,10 @@ class NotificationService extends GetxService {
   void _onAction(NotificationResponse r) {
     debugPrint('Notification action: ${r.actionId} payload=${r.payload}');
     final payload = r.payload;
+    if (NotificationRouter.isAdhkarPayload(payload)) {
+      NotificationRouter.openAdhkar(payload!);
+      return;
+    }
     if (payload == null || !payload.startsWith('level_up:')) return;
     final id = int.tryParse(payload.substring('level_up:'.length));
     if (id != null) NotificationRouter.openLevelUpProfile(id);

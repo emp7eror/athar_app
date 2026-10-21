@@ -12,6 +12,7 @@ import '../services/prayer_notification_scheduler.dart';
 import '../services/sound_service.dart';
 import '../services/timezone_service.dart';
 import '../tour/tour_service.dart';
+import '../../modules/adhkar/adhkar_view.dart';
 import '../../modules/tour/app_tours.dart';
 
 /// Registered once at app start (from `main()`, before `runApp`).
@@ -42,5 +43,8 @@ class InitialBinding extends Bindings {
     await Get.putAsync(() => TimezoneService().init(), permanent: true);
     // Scheduler depends on NotificationService + AdhanService being ready.
     Get.put(PrayerNotificationScheduler(), permanent: true);
+    // Adhkar & Duas: counters counted offline are synced from launch, and the
+    // reader's reminders need NotificationService.
+    AdhkarView.ensureServices();
   }
 }

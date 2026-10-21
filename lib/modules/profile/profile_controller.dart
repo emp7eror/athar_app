@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/prayer_notification_scheduler.dart';
+import '../adhkar/adhkar_reminders.dart';
 import '../../core/utils/error_reporter.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/user_model.dart';
@@ -132,6 +133,7 @@ class ProfileController extends GetxController {
     try {
       await _api.deleteAccount();
       await Get.find<PrayerNotificationScheduler>().cancelAll();
+      if (Get.isRegistered<AdhkarReminders>()) await Get.find<AdhkarReminders>().cancelAll();
       await _storage.eraseAll();
       deleting.value = false;
       Get.offAllNamed('/auth');
