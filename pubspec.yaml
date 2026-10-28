@@ -55,6 +55,13 @@ flutter:
     - assets/frames/
     # Practice icons on Home (SVG): tasbeeh, the Quran, hands in dua.
     - assets/icons/
+    # My World globe: the amCharts continents map (Robinson). The app turns
+    # it into the globe's land mask on first open. Only this file is bundled.
+    - assets/globe/continents.svg
+
+  # The My World globe, drawn per pixel (lib/modules/my_world/my_world_globe.dart).
+  shaders:
+    - shaders/globe.frag
 
   # Bundled so text renders offline and at once (see AtharFonts).
   fonts:

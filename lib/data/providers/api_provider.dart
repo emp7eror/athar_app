@@ -148,6 +148,41 @@ class ApiProvider {
   Future<Map<String, dynamic>> sadaqahRecord(int deedId) async =>
       _unwrap(await _dio.post(ApiEndpoints.sadaqahRecord(deedId)));
 
+  /// My World: the user's activity as clusters for a zoom [level]. Filters
+  /// go as the server's category ids; a superseded call is cancelled.
+  Future<Map<String, dynamic>> myWorld({
+    required List<String> categories,
+    required int level,
+    CancelToken? cancelToken,
+  }) async =>
+      _unwrap(await _dio.get(
+        ApiEndpoints.myWorld,
+        queryParameters: {'categories[]': categories, 'level': level},
+        cancelToken: cancelToken,
+      ));
+
+  /// One cluster's place, total and breakdown for the same filters.
+  Future<Map<String, dynamic>> myWorldCluster(
+    String id, {
+    required List<String> categories,
+  }) async =>
+      _unwrap(await _dio.get(
+        ApiEndpoints.myWorldCluster(id),
+        queryParameters: {'categories[]': categories},
+      ));
+
+  /// A page of one cluster's records, newest first.
+  Future<Map<String, dynamic>> myWorldClusterRecords(
+    String id, {
+    required List<String> categories,
+    required int page,
+    int perPage = 20,
+  }) async =>
+      _unwrap(await _dio.get(
+        ApiEndpoints.myWorldClusterRecords(id),
+        queryParameters: {'categories[]': categories, 'page': page, 'per_page': perPage},
+      ));
+
   /// The "read by how you feel" index: sections, their feelings, and the
   /// passages for each, in both languages. Small enough to fetch whole.
   Future<Map<String, dynamic>> quranMoods() async =>

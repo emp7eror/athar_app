@@ -15,6 +15,7 @@ import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
+import '../my_world/my_world_view.dart';
 import '../sadaqah/sadaqah_view.dart';
 import '../profile/profile_view.dart';
 import '../shell/shell_view.dart';
@@ -629,9 +630,15 @@ class _Practices extends StatelessWidget {
                   onTap: SadaqahView.open,
                 ),
               ),
-              // The row's empty columns, keeping the tile one column wide.
               const SizedBox(width: AtharSpace.sm),
-              const Spacer(),
+              Expanded(
+                child: _PracticeTile(
+                  icon: (size, color) => Icon(Icons.public_rounded, size: size, color: color),
+                  title: 'my_world_title'.tr,
+                  onTap: MyWorldView.open,
+                ),
+              ),
+              // The row's empty column, keeping the tiles one column wide.
               const SizedBox(width: AtharSpace.sm),
               const Spacer(),
             ],

@@ -49,6 +49,9 @@ class ApiEndpoints {
   static const String sadaqahMine = '/sadaqah/mine';
   static String sadaqahDeed(int id) => '/sadaqah/deeds/$id';
   static String sadaqahRecord(int id) => '/sadaqah/deeds/$id/record';
+  static const String myWorld = '/my-world';
+  static String myWorldCluster(String id) => '/my-world/clusters/$id';
+  static String myWorldClusterRecords(String id) => '/my-world/clusters/$id/records';
 
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';
