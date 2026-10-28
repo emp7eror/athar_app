@@ -45,6 +45,10 @@ class ApiEndpoints {
   static const String quranMoodSuggestions = '/quran/moods/more';
   static const String quranFeelings = '/quran/feelings';
   static const String quranFeelingPersonal = '/quran/feelings/personal';
+  static const String sadaqah = '/sadaqah';
+  static const String sadaqahMine = '/sadaqah/mine';
+  static String sadaqahDeed(int id) => '/sadaqah/deeds/$id';
+  static String sadaqahRecord(int id) => '/sadaqah/deeds/$id/record';
 
   static const String friends = '/friends';
   static const String addFriend = '/friends/add';

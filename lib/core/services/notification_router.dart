@@ -14,8 +14,9 @@ import '../../modules/profile_preview/profile_preview_modal.dart';
 ///   * terminated (cold start)     → FirebaseMessaging.instance.getInitialMessage()
 class NotificationRouter {
   /// Friend activity whose notification opens that friend's profile: a level
-  /// reached, the day's Quran reward taken, a khatma completed.
-  static const profileTypes = {'level_up', 'quran_reward', 'quran_khatma'};
+  /// reached, the day's Quran reward taken, a khatma completed, the day's
+  /// first صدقة recorded.
+  static const profileTypes = {'level_up', 'quran_reward', 'quran_khatma', 'sadaqah'};
 
   /// Inspects a raw FCM [data] payload and navigates if it recognizes the
   /// `type`. Unknown/missing types are ignored.

@@ -15,6 +15,7 @@ import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
+import '../sadaqah/sadaqah_section.dart';
 import '../profile/profile_view.dart';
 import '../shell/shell_view.dart';
 import '../tour/app_tours.dart';
@@ -56,6 +57,9 @@ class HomeView extends GetView<HomeController> {
                     TourTarget(id: TourTargets.homePrayers, child: _PrayerList()),
                     SizedBox(height: AtharSpace.md),
                     TourTarget(id: TourTargets.homePractices, child: _Practices()),
+                    SizedBox(height: AtharSpace.lg),
+                    // صدقة: good deeds to record, under the adhkar.
+                    SadaqahSection(),
                   ],
                 ),
               ),

@@ -19,6 +19,7 @@ import '../../data/models/user_model.dart';
 import '../../data/providers/api_provider.dart';
 import '../../data/providers/storage_provider.dart';
 import '../level_up/level_up_popup.dart';
+import '../sadaqah/sadaqah_controller.dart';
 
 class HomeController extends GetxController {
   final _api = Get.find<ApiProvider>();
@@ -104,7 +105,11 @@ class HomeController extends GetxController {
 
   Future<void> refreshAll() async {
     loading.value = true;
-    await Future.wait([_loadToday(), _loadQuote()]);
+    await Future.wait([
+      _loadToday(),
+      _loadQuote(),
+      if (Get.isRegistered<SadaqahController>()) Get.find<SadaqahController>().load(),
+    ]);
     loading.value = false;
   }
 
@@ -351,6 +356,25 @@ class HomeController extends GetxController {
       locationLabel.value = '${s.lat!.toStringAsFixed(3)}, ${s.lng!.toStringAsFixed(3)}';
     }
   }
+
+  /// Points earned outside the prayer list — a recorded صدقة: the balance and
+  /// level from the server's response, kept in the cached user as well.
+  void applyPointsAward(Map<String, dynamic> res) {
+    totalPoints.value = (res['total_points'] as num?)?.toInt() ?? totalPoints.value;
+    if (res['level'] is Map) level.value = LevelInfo.fromJson(Map<String, dynamic>.from(res['level'] as Map));
+
+    final cached = _storage.cachedUser;
+    if (cached == null) return;
+    _storage.cachedUser = {
+      ...cached,
+      if (res['total_points'] != null) 'total_points': res['total_points'],
+      if (res['score'] != null) 'score': res['score'],
+      if (res['level'] is Map) 'level': res['level'],
+    };
+  }
+
+  /// The level-up celebration for a response from elsewhere, when it reports one.
+  Future<void> celebrateLevelUp(Map<String, dynamic> res) => _maybeShowLevelUp(res);
 
   /// Shows the full-screen celebration popup when [res] (the raw markPrayer
   /// response) reports a level promotion. Guarded against duplicate/stacked

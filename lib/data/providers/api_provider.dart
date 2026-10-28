@@ -138,6 +138,16 @@ class ApiProvider {
   Future<Map<String, dynamic>> quranPageTime(int page, int seconds) async =>
       _unwrap(await _dio.post(ApiEndpoints.quranPageTime, data: {'page': page, 'seconds': seconds}));
 
+  /// صدقة: the categories, every deed, and what was recorded today.
+  Future<Map<String, dynamic>> sadaqah() async =>
+      _unwrap(await _dio.get(ApiEndpoints.sadaqah));
+
+  /// Records a good deed. Only the id is sent: the server decides the points,
+  /// the day and whose deed it is, and answers a repeat with
+  /// `already_recorded` instead of awarding twice.
+  Future<Map<String, dynamic>> sadaqahRecord(int deedId) async =>
+      _unwrap(await _dio.post(ApiEndpoints.sadaqahRecord(deedId)));
+
   /// The "read by how you feel" index: sections, their feelings, and the
   /// passages for each, in both languages. Small enough to fetch whole.
   Future<Map<String, dynamic>> quranMoods() async =>
