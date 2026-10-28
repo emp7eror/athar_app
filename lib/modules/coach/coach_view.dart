@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../core/services/coach_insight_engine.dart';
+import '../../core/tour/tour_widgets.dart';
 import '../../core/ui/athar_ui.dart';
 import '../../data/models/prayer_insights_model.dart';
 import '../../data/models/user_model.dart';
 import '../../data/providers/storage_provider.dart';
+import '../tour/app_tours.dart';
 import 'coach_controller.dart';
 
 /// The AI coaching page — reached from the button raised on the nav bar.
@@ -17,7 +19,12 @@ class CoachView extends GetView<CoachController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AtharAppBar(title: 'coach_title'.tr),
+      appBar: AtharAppBar(
+        title: 'coach_title'.tr,
+        actions: const [
+          TourHelpButton(pageId: TourPages.coach, style: TourHelpStyle.appBar),
+        ],
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: controller.load,
@@ -51,30 +58,39 @@ class CoachView extends GetView<CoachController> {
             final isAiGenerated = (section?.cards ?? const []).isNotEmpty;
             final userTitle = section?.userTitle;
 
-            return ListView(
-              padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, AtharSpace.xxl),
-              children: [
-                if (isAiGenerated) ...[
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: AtharBadge(
-                      label: 'ai_powered_badge'.tr,
-                      icon: Icons.auto_awesome_rounded,
-                      tone: AtharTone.brand,
+            // The tour starts once there is advice on screen to point at.
+            return TourAutoStart(
+              pageId: TourPages.coach,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(AtharSpace.screen, AtharSpace.xs, AtharSpace.screen, AtharSpace.xxl),
+                children: [
+                  if (isAiGenerated) ...[
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: TourTarget(
+                        id: TourTargets.coachBadge,
+                        child: AtharBadge(
+                          label: 'ai_powered_badge'.tr,
+                          icon: Icons.auto_awesome_rounded,
+                          tone: AtharTone.brand,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: AtharSpace.md),
+                    const SizedBox(height: AtharSpace.md),
+                  ],
+                  if (userTitle != null && userTitle.label.isNotEmpty) ...[
+                    TourTarget(id: TourTargets.coachTitle, child: _UserTitleCard(title: userTitle)),
+                    const SizedBox(height: AtharSpace.lg),
+                  ],
+                  for (var i = 0; i < cards.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: AtharSpace.sm),
+                      child: i == 0
+                          ? TourTarget(id: TourTargets.coachFirstCard, child: _InsightCard(insight: cards[i]))
+                          : _InsightCard(insight: cards[i]),
+                    ),
                 ],
-                if (userTitle != null && userTitle.label.isNotEmpty) ...[
-                  _UserTitleCard(title: userTitle),
-                  const SizedBox(height: AtharSpace.lg),
-                ],
-                for (final c in cards)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AtharSpace.sm),
-                    child: _InsightCard(insight: c),
-                  ),
-              ],
+              ),
             );
           }),
         ),

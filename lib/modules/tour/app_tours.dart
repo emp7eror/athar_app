@@ -13,6 +13,7 @@ abstract final class TourPages {
   static const dhikr = 'dhikr';
   static const quran = 'quran';
   static const adhkar = 'adhkar';
+  static const coach = 'coach';
   static const adhkarCollection = 'adhkar_collection';
 
   /// The shell's IndexedStack order — index → page id.
@@ -74,6 +75,11 @@ abstract final class TourTargets {
   static const quranWays = 'quran.ways';
   static const quranWerd = 'quran.werd';
 
+  // AI coach
+  static const coachBadge = 'coach.badge';
+  static const coachTitle = 'coach.title';
+  static const coachFirstCard = 'coach.firstCard';
+
   // Adhkar & Duas
   static const adhkarSearch = 'adhkar.search';
   static const adhkarReminders = 'adhkar.reminders';
@@ -106,6 +112,7 @@ abstract final class AppTours {
         quran,
         adhkar,
         adhkarCollection,
+        coach,
       ];
 
   static final home = PageTour(
@@ -487,6 +494,40 @@ abstract final class AppTours {
         titleKey: 'tour_adhkar_menu_title',
         bodyKey: 'tour_adhkar_menu_body',
         icon: Icons.more_vert_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+    ],
+  );
+
+  static final coach = PageTour(
+    pageId: TourPages.coach,
+    steps: [
+      const TourStep(
+        target: TourTargets.coachBadge,
+        titleKey: 'tour_coach_badge_title',
+        bodyKey: 'tour_coach_badge_body',
+        icon: Icons.auto_awesome_rounded,
+        radius: 20,
+        padding: 4,
+      ),
+      const TourStep(
+        target: TourTargets.coachTitle,
+        titleKey: 'tour_coach_title_title',
+        bodyKey: 'tour_coach_title_body',
+        icon: Icons.workspace_premium_outlined,
+      ),
+      const TourStep(
+        target: TourTargets.coachFirstCard,
+        titleKey: 'tour_coach_card_title',
+        bodyKey: 'tour_coach_card_body',
+        icon: Icons.insights_outlined,
+      ),
+      TourStep(
+        target: TourTargets.help(TourPages.coach),
+        titleKey: 'tour_help_title',
+        bodyKey: 'tour_help_body',
+        icon: Icons.help_outline_rounded,
         shape: TourShape.circle,
         padding: 4,
       ),
