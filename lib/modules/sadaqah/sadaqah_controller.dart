@@ -9,19 +9,16 @@ import 'sadaqah_models.dart';
 /// What recording a deed came to, as the server decided it.
 class SadaqahRecordResult {
   const SadaqahRecordResult({
-    required this.status,
     required this.pointsAwarded,
     required this.response,
   });
 
-  /// recorded | daily_limit (recorded, no points left today) | already_recorded
-  final String status;
+  /// The deed's points when it was the day's first sadaqah; 0 when today's
+  /// points were already taken.
   final int pointsAwarded;
 
   /// The raw response — the new balance and level, for Home.
   final Map<String, dynamic> response;
-
-  bool get alreadyRecorded => status == 'already_recorded';
 }
 
 /// Recording failed; [message] is translated and safe to show.
@@ -34,15 +31,14 @@ class SadaqahRecordException implements Exception {
   String toString() => message;
 }
 
-/// The صدقة section on Home: the catalog from the server, the chosen
-/// category, and the deeds recorded today. Points are never computed here —
-/// only what the server returns is shown.
+/// صدقة: the catalog from the server and what was recorded today. Deeds can
+/// be recorded as often as they are done; only the day's first earns points.
+/// Points are never computed here — only what the server returns is shown.
 class SadaqahController extends GetxController {
   final _api = Get.find<ApiProvider>();
 
   final categories = <SadaqahCategory>[].obs;
   final deeds = <SadaqahDeed>[].obs;
-  final selectedKey = RxnString();
 
   final loading = true.obs;
 
@@ -51,19 +47,21 @@ class SadaqahController extends GetxController {
 
   /// Deed ids recorded today, in the user's day as the server counts it.
   final recordedToday = <int>{}.obs;
+
+  /// Points today's sadaqah earned, and whether they're taken yet.
   final pointsToday = 0.obs;
-  final dailyPoints = 0.obs;
+  final rewardedToday = false.obs;
+
+  /// The user's totals; null until the first load.
+  final stats = Rxn<SadaqahStats>();
 
   /// The deed being recorded right now. While set, every other attempt is
   /// ignored, so a double tap sends one request.
   final recording = RxnInt();
 
-  SadaqahCategory? get selected =>
-      categories.firstWhereOrNull((c) => c.key == selectedKey.value);
-
-  /// The chosen category's deeds, in the catalog's order.
-  List<SadaqahDeed> get visibleDeeds =>
-      deeds.where((d) => d.category == selectedKey.value).toList();
+  /// [key]'s deeds, in the catalog's order.
+  List<SadaqahDeed> deedsOf(String key) =>
+      deeds.where((d) => d.category == key).toList();
 
   SadaqahCategory? categoryOf(SadaqahDeed deed) =>
       categories.firstWhereOrNull((c) => c.key == deed.category);
@@ -97,8 +95,8 @@ class SadaqahController extends GetxController {
         for (final d in (res['deeds'] as List? ?? const []))
           SadaqahDeed.fromJson(Map<String, dynamic>.from(d as Map)),
       ]);
-      if (selected == null) selectedKey.value = categories.firstOrNull?.key;
       _applyToday(res['today']);
+      _applyStats(res['stats']);
     } catch (e, st) {
       ErrorReporter.report(e, st);
       if (deeds.isEmpty) loadError.value = _messageFor(e);
@@ -106,8 +104,6 @@ class SadaqahController extends GetxController {
       loading.value = false;
     }
   }
-
-  void select(String key) => selectedKey.value = key;
 
   /// Records [deed] for the signed-in user (تصدقت). Returns the server's
   /// result, or null when another deed is still being recorded. Throws a
@@ -118,12 +114,12 @@ class SadaqahController extends GetxController {
     try {
       final res = await _api.sadaqahRecord(deed.id);
       _applyToday(res['today']);
+      _applyStats(res['stats']);
       // The new balance comes from the server, never from adding up here.
       if (Get.isRegistered<HomeController>()) {
         Get.find<HomeController>().applyPointsAward(res);
       }
       return SadaqahRecordResult(
-        status: (res['status'] as String?) ?? 'recorded',
         pointsAwarded: (res['points_awarded'] as num?)?.toInt() ?? 0,
         response: res,
       );
@@ -144,7 +140,13 @@ class SadaqahController extends GetxController {
           (id as num).toInt(),
       ]);
     pointsToday.value = (today['points_today'] as num?)?.toInt() ?? 0;
-    dailyPoints.value = (today['daily_points'] as num?)?.toInt() ?? 0;
+    rewardedToday.value = today['rewarded'] == true;
+  }
+
+  void _applyStats(dynamic json) {
+    if (json is Map) {
+      stats.value = SadaqahStats.fromJson(Map<String, dynamic>.from(json));
+    }
   }
 
   /// A message the user can act on, in their language.

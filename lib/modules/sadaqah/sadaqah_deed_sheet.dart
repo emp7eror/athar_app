@@ -5,32 +5,31 @@ import 'package:get/get.dart';
 import '../../core/ui/athar_ui.dart';
 import '../home/home_controller.dart';
 import 'sadaqah_controller.dart';
+import 'sadaqah_done_dialog.dart';
 import 'sadaqah_models.dart';
-import 'sadaqah_section.dart';
+import 'sadaqah_widgets.dart';
 
 /// One deed in full — what to do, its points, its source and its benefit —
-/// with the تصدقت button that records it. The success message appears only
-/// once the server has recorded the deed, with the points it actually gave.
+/// with the تصدقت button that records it. Once the server has recorded the
+/// deed the sheet closes and the done popup shows, with the points it actually
+/// gave; a failure keeps the sheet open to try again.
 class SadaqahDeedSheet extends StatefulWidget {
-  const SadaqahDeedSheet._(this.deed, this.onRecorded);
+  const SadaqahDeedSheet._(this.deed);
 
   final SadaqahDeed deed;
 
-  /// Told as soon as the server has recorded the deed — the sheet may then be
-  /// closed by a swipe as well as by its button.
-  final ValueChanged<SadaqahRecordResult> onRecorded;
-
-  /// Opens [deed]; a level reached by recording it is celebrated once the
-  /// sheet has closed, so the two never stack.
+  /// Opens [deed]. After a recording: the done popup, then a level reached by
+  /// it — one after the other, never stacked.
   static Future<void> open(BuildContext context, SadaqahDeed deed) async {
-    SadaqahRecordResult? result;
-    await showAtharSheet<void>(
+    final result = await showAtharSheet<SadaqahRecordResult>(
       context: context,
-      builder: (_) => SadaqahDeedSheet._(deed, (r) => result = r),
+      builder: (_) => SadaqahDeedSheet._(deed),
     );
-    final recorded = result;
-    if (recorded != null && Get.isRegistered<HomeController>()) {
-      await Get.find<HomeController>().celebrateLevelUp(recorded.response);
+    if (result == null) return;
+
+    await SadaqahDoneDialog.show(result.pointsAwarded);
+    if (Get.isRegistered<HomeController>()) {
+      await Get.find<HomeController>().celebrateLevelUp(result.response);
     }
   }
 
@@ -41,7 +40,6 @@ class SadaqahDeedSheet extends StatefulWidget {
 class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
   final controller = Get.find<SadaqahController>();
 
-  SadaqahRecordResult? _result;
   String? _error;
 
   SadaqahDeed get deed => widget.deed;
@@ -52,8 +50,7 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
       final result = await controller.record(deed);
       if (result == null || !mounted) return;
       HapticFeedback.mediumImpact();
-      widget.onRecorded(result);
-      setState(() => _result = result);
+      Navigator.of(context).pop(result);
     } on SadaqahRecordException catch (e) {
       // Nothing was recorded or awarded; the button stays for a safe retry.
       if (mounted) setState(() => _error = e.message);
@@ -62,7 +59,8 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final color = controller.categoryOf(deed)?.color ?? context.colors.primary;
+    final category = controller.categoryOf(deed);
+    final color = category?.color ?? context.colors.primary;
     final maxHeight = MediaQuery.sizeOf(context).height * 0.85;
 
     return ConstrainedBox(
@@ -82,11 +80,7 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _TitleBlock(
-                    deed: deed,
-                    color: color,
-                    category: controller.categoryOf(deed),
-                  ),
+                  _TitleBlock(deed: deed, color: color, category: category),
                   const SizedBox(height: AtharSpace.lg),
                   _Section(
                     title: 'sadaqah_description'.tr,
@@ -129,13 +123,7 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
                 AtharSpace.lg,
                 AtharSpace.md,
               ),
-              child: AnimatedSize(
-                duration: AtharMotion.base,
-                curve: AtharMotion.standard,
-                child: _result != null
-                    ? _Success(result: _result!, deed: deed)
-                    : _actions(context),
-              ),
+              child: _actions(context),
             ),
           ),
         ],
@@ -147,7 +135,6 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
     return Obx(() {
       final busy = controller.recording.value == deed.id;
       final otherBusy = controller.recording.value != null && !busy;
-      final recorded = controller.isRecorded(deed.id);
 
       return Column(
         mainAxisSize: MainAxisSize.min,
@@ -177,28 +164,25 @@ class _SadaqahDeedSheetState extends State<SadaqahDeedSheet> {
               ),
             ),
             const SizedBox(height: AtharSpace.sm),
-          ],
-          if (recorded)
-            // Once a day per deed; the server would answer a repeat with
-            // "already recorded", so the button isn't offered.
-            AtharButton(
-              label: 'sadaqah_recorded_today'.tr,
-              icon: Icons.check_circle_rounded,
-              variant: AtharButtonVariant.tonal,
-              expand: true,
-              onPressed: null,
-            )
-          else
-            AtharButton(
-              label: _error == null ? 'sadaqah_confirm'.tr : 'retry'.tr,
-              icon: _error == null
-                  ? Icons.volunteer_activism_rounded
-                  : Icons.refresh_rounded,
-              expand: true,
-              loading: busy,
-              // Disabled while any deed is being recorded: one request at a time.
-              onPressed: busy || otherBusy ? null : _record,
+          ] else if (controller.rewardedToday.value) ...[
+            // Recording again is welcome; it just won't add points today.
+            Text(
+              'sadaqah_points_taken_note'.tr,
+              textAlign: TextAlign.center,
+              style: context.type.caption,
             ),
+            const SizedBox(height: AtharSpace.xs),
+          ],
+          AtharButton(
+            label: _error == null ? 'sadaqah_confirm'.tr : 'retry'.tr,
+            icon: _error == null
+                ? Icons.volunteer_activism_rounded
+                : Icons.refresh_rounded,
+            expand: true,
+            loading: busy,
+            // Disabled while any deed is being recorded: one request at a time.
+            onPressed: busy || otherBusy ? null : _record,
+          ),
         ],
       );
     });
@@ -409,73 +393,6 @@ class _Note extends StatelessWidget {
           child: Text(text, style: context.type.caption.copyWith(color: c)),
         ),
       ],
-    );
-  }
-}
-
-/// تقبّل الله منك — with what the server actually recorded and awarded.
-class _Success extends StatelessWidget {
-  const _Success({required this.result, required this.deed});
-
-  final SadaqahRecordResult result;
-  final SadaqahDeed deed;
-
-  @override
-  Widget build(BuildContext context) {
-    final success = context.athar.success;
-    final message = switch (result.status) {
-      'already_recorded' => 'sadaqah_already_recorded'.tr,
-      _ when result.pointsAwarded > 0 => 'sadaqah_success_points'.trParams({
-        'points': '${result.pointsAwarded}',
-      }),
-      _ => 'sadaqah_success_limit'.tr,
-    };
-
-    return Semantics(
-      liveRegion: true,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AtharSpace.md),
-            decoration: BoxDecoration(
-              color: success.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(AtharRadius.card),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  result.alreadyRecorded
-                      ? Icons.check_circle_rounded
-                      : Icons.volunteer_activism_rounded,
-                  size: AtharSize.iconXl,
-                  color: success,
-                ),
-                const SizedBox(height: AtharSpace.xs),
-                if (!result.alreadyRecorded)
-                  Text(
-                    'sadaqah_success_title'.tr,
-                    textAlign: TextAlign.center,
-                    style: context.type.sectionTitle.copyWith(color: success),
-                  ),
-                const SizedBox(height: AtharSpace.xxs),
-                Text(
-                  message,
-                  textAlign: TextAlign.center,
-                  style: context.type.body,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: AtharSpace.sm),
-          AtharButton(
-            label: 'sadaqah_done'.tr,
-            expand: true,
-            onPressed: () => Navigator.of(context).maybePop(),
-          ),
-        ],
-      ),
     );
   }
 }

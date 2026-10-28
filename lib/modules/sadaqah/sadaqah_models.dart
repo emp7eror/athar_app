@@ -137,6 +137,22 @@ class SadaqahDeed {
   );
 }
 
+/// The user's sadaqah totals, as the server counts them.
+class SadaqahStats {
+  const SadaqahStats({required this.total, required this.points});
+
+  /// Every sadaqah recorded.
+  final int total;
+
+  /// The points they earned (one sadaqah a day earns its points).
+  final int points;
+
+  factory SadaqahStats.fromJson(Map<String, dynamic> j) => SadaqahStats(
+    total: (j['total'] as num?)?.toInt() ?? 0,
+    points: (j['points'] as num?)?.toInt() ?? 0,
+  );
+}
+
 /// The catalog's icon keys as Material icons. A key the app doesn't know yet
 /// falls back to the section's own icon.
 abstract final class SadaqahIcons {

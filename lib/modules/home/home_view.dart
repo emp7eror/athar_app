@@ -15,7 +15,7 @@ import '../dhikr/dhikr_binding.dart';
 import '../dhikr/dhikr_view.dart';
 import '../quran/quran_binding.dart';
 import '../quran/quran_view.dart';
-import '../sadaqah/sadaqah_section.dart';
+import '../sadaqah/sadaqah_view.dart';
 import '../profile/profile_view.dart';
 import '../shell/shell_view.dart';
 import '../tour/app_tours.dart';
@@ -57,9 +57,6 @@ class HomeView extends GetView<HomeController> {
                     TourTarget(id: TourTargets.homePrayers, child: _PrayerList()),
                     SizedBox(height: AtharSpace.md),
                     TourTarget(id: TourTargets.homePractices, child: _Practices()),
-                    SizedBox(height: AtharSpace.lg),
-                    // صدقة: good deeds to record, under the adhkar.
-                    SadaqahSection(),
                   ],
                 ),
               ),
@@ -573,7 +570,8 @@ class _PointsPill extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Today's practices: tasbeeh, the Quran and adhkar, side by side in one row
+// Today's practices: tasbeeh, the Quran and adhkar, then sadaqah — a grid of
+// three columns
 // ─────────────────────────────────────────────────────────────────────────
 class _Practices extends StatelessWidget {
   const _Practices();
@@ -582,39 +580,64 @@ class _Practices extends StatelessWidget {
   Widget build(BuildContext context) {
     final lastPage = Get.find<StorageProvider>().quranLastPageOrNull;
 
-    // All three in one row, so none sits alone on a row below the fold, and
-    // all as tall as the tallest title.
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: _PracticeTile(
-              icon: (size, color) => _AppIcon('tasbeeh', size: size, color: color),
-              title: 'dhikr_home_card_title'.tr,
-              onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
-            ),
+    // Three columns: the first three side by side, each row as tall as its
+    // tallest title, and sadaqah starting the next row at the same width.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _PracticeTile(
+                  icon: (size, color) => _AppIcon('tasbeeh', size: size, color: color),
+                  title: 'dhikr_home_card_title'.tr,
+                  onTap: () => Get.to(() => const DhikrView(), binding: DhikrBinding()),
+                ),
+              ),
+              const SizedBox(width: AtharSpace.sm),
+              Expanded(
+                child: _PracticeTile(
+                  icon: (size, color) => _AppIcon('quran', size: size, color: color),
+                  title: 'quran_home_card_title'.tr,
+                  // Where the reader stopped, once they have.
+                  // detail: lastPage == null ? null : 'quran_page_short'.trParams({'page': '$lastPage'}),
+                  onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
+                ),
+              ),
+              const SizedBox(width: AtharSpace.sm),
+              Expanded(
+                child: _PracticeTile(
+                  icon: (size, color) => _AppIcon('dua_hands', size: size, color: color),
+                  title: 'adhkar_title'.tr,
+                  onTap: AdhkarView.open,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AtharSpace.sm),
-          Expanded(
-            child: _PracticeTile(
-              icon: (size, color) => _AppIcon('quran', size: size, color: color),
-              title: 'quran_home_card_title'.tr,
-              // Where the reader stopped, once they have.
-              // detail: lastPage == null ? null : 'quran_page_short'.trParams({'page': '$lastPage'}),
-              onTap: () => Get.to(() => const QuranView(), binding: QuranBinding()),
-            ),
+        ),
+        const SizedBox(height: AtharSpace.sm),
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _PracticeTile(
+                  icon: (size, color) => Icon(Icons.volunteer_activism_rounded, size: size, color: color),
+                  title: 'sadaqah_title'.tr,
+                  onTap: SadaqahView.open,
+                ),
+              ),
+              // The row's empty columns, keeping the tile one column wide.
+              const SizedBox(width: AtharSpace.sm),
+              const Spacer(),
+              const SizedBox(width: AtharSpace.sm),
+              const Spacer(),
+            ],
           ),
-          const SizedBox(width: AtharSpace.sm),
-          Expanded(
-            child: _PracticeTile(
-              icon: (size, color) => _AppIcon('dua_hands', size: size, color: color),
-              title: 'adhkar_title'.tr,
-              onTap: AdhkarView.open,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
