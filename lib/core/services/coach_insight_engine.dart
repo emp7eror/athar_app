@@ -18,7 +18,7 @@ class CoachInsight {
 /// Turns the numeric [PrayerInsights] payload into a short, prioritized list
 /// of worded coaching cards. Pure/stateless — every rule only fires when the
 /// underlying numbers clear a real threshold, so the result reflects this
-/// specific user's actual last 30 days rather than generic filler advice.
+/// specific user's actual last 7 days rather than generic filler advice.
 class CoachInsightEngine {
   static const _weakPrayerRateCeiling = 60;
   static const _weakPrayerGap = 20;
