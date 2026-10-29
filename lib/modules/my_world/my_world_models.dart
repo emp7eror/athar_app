@@ -3,22 +3,18 @@ import 'package:flutter/material.dart';
 /// An activity category, by the id the server uses. Labels and icons are the
 /// app's; filtering always sends [id].
 class WorldCategory {
-  const WorldCategory(this.id, this.labelKey, this.icon, this.color);
+  const WorldCategory(this.id, this.labelKey, this.icon);
 
   final String id;
   final String labelKey;
   final IconData icon;
 
-  /// Its segment in a pillar on the globe: light enough to read on the
-  /// night side, and distinct from the other four.
-  final Color color;
-
   static const all = [
-    WorldCategory('prayer', 'my_world_cat_prayer', Icons.mosque_rounded, Color(0xFF4FD1B5)),
-    WorldCategory('tasbih', 'my_world_cat_tasbih', Icons.blur_circular_rounded, Color(0xFFF6C453)),
-    WorldCategory('istighfar', 'my_world_cat_istighfar', Icons.spa_rounded, Color(0xFFC3A3F7)),
-    WorldCategory('sadaqah', 'my_world_cat_sadaqah', Icons.volunteer_activism_rounded, Color(0xFFFF8F7A)),
-    WorldCategory('quran', 'my_world_cat_quran', Icons.menu_book_rounded, Color(0xFF9BE07A)),
+    WorldCategory('prayer', 'my_world_cat_prayer', Icons.mosque_rounded),
+    WorldCategory('tasbih', 'my_world_cat_tasbih', Icons.blur_circular_rounded),
+    WorldCategory('istighfar', 'my_world_cat_istighfar', Icons.spa_rounded),
+    WorldCategory('sadaqah', 'my_world_cat_sadaqah', Icons.volunteer_activism_rounded),
+    WorldCategory('quran', 'my_world_cat_quran', Icons.menu_book_rounded),
   ];
 
   static List<String> get ids => [for (final c in all) c.id];

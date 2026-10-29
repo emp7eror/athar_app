@@ -13,6 +13,7 @@ import '../../core/services/prayer_notification_scheduler.dart';
 import '../../core/services/sound_service.dart';
 import '../../core/services/timezone_service.dart';
 import '../../core/utils/error_reporter.dart';
+import '../../core/services/log_location.dart';
 import '../../core/utils/snackbar.dart';
 import '../../data/models/prayer_log_model.dart';
 import '../../data/models/user_model.dart';
@@ -94,6 +95,8 @@ class HomeController extends GetxController {
     // Pin/refresh the server-side timezone. Safe here: this controller only
     // exists once the user is authenticated.
     unawaited(Get.find<TimezoneService>().syncIfChanged());
+    // A live position ready before the first log, in the background.
+    unawaited(LogLocation.refresh(force: true));
   }
 
   @override

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile, Response;
 import '../../core/constants/api_endpoints.dart';
 import '../../core/network/dio_client.dart';
+import '../../core/services/log_location.dart';
 import '../../core/utils/error_reporter.dart';
 
 /// Central typed access to the Laravel API. Returns decoded maps; controllers
@@ -131,7 +132,12 @@ class ApiProvider {
       _unwrap(await _dio.post(ApiEndpoints.adhkarSync, data: {'ops': ops, 'timezone': timezone}));
 
   Future<Map<String, dynamic>> quranPageComplete(int page, int seconds) async =>
-      _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {'page': page, 'seconds': seconds}));
+      _unwrap(await _dio.post(ApiEndpoints.quranPageComplete, data: {
+        'page': page,
+        'seconds': seconds,
+        // Where it was read, for My World; from memory, never waits on GPS.
+        ...LogLocation.fields(),
+      }));
 
   /// Extra reading time on a page already counted as read — the reader stayed
   /// on it. Adds time only: no second read, no points.
@@ -146,7 +152,7 @@ class ApiProvider {
   /// the day and whose deed it is, and answers a repeat with
   /// `already_recorded` instead of awarding twice.
   Future<Map<String, dynamic>> sadaqahRecord(int deedId) async =>
-      _unwrap(await _dio.post(ApiEndpoints.sadaqahRecord(deedId)));
+      _unwrap(await _dio.post(ApiEndpoints.sadaqahRecord(deedId), data: LogLocation.fields()));
 
   /// My World: the user's activity as clusters for a zoom [level]. Filters
   /// go as the server's category ids; a superseded call is cancelled.
@@ -264,6 +270,8 @@ class ApiProvider {
         'increments': increments,
         'timezone': timezone,
         if (date != null) 'dhikr_date': date,
+        // Where it was said; the server keeps the day's first.
+        ...LogLocation.fields(),
       }));
 
   // --- Auth ---
@@ -375,6 +383,8 @@ class ApiProvider {
             if (note != null && note.isNotEmpty)     'note':        note,
             if (performedOutsideTime == true)        'performed_outside_time': true,
             if (reason != null && reason.isNotEmpty) 'reason':      reason,
+            // Where it was prayed, for My World.
+            if (completed) ...LogLocation.fields(),
           },
         ),
       );

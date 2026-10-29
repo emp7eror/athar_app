@@ -15,6 +15,7 @@ import 'core/bindings/initial_binding.dart';
 import 'core/localization/app_translations.dart';
 import 'core/localization/localization_controller.dart';
 import 'core/services/notification_router.dart';
+import 'core/services/log_location.dart';
 import 'core/services/prayer_notification_scheduler.dart';
 import 'core/services/timezone_service.dart';
 import 'modules/adhkar/adhkar_reminders.dart';
@@ -145,6 +146,8 @@ class _AtharAppState extends State<AtharApp> with WidgetsBindingObserver {
           Get.find<StorageProvider>().isLoggedIn) {
         Get.find<TimezoneService>().syncIfChanged();
       }
+      // Where logs are made may have changed while away (throttled).
+      LogLocation.refresh();
     }
   }
 

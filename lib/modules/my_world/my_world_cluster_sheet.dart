@@ -8,7 +8,7 @@ import 'my_world_controller.dart';
 import 'my_world_models.dart';
 import 'my_world_records_view.dart';
 
-/// A tapped pillar: where it is, how many records, which kinds, and whether
+/// A tapped hotspot: where it is, how many records, which kinds, and whether
 /// the place is only approximate. Details come from the server for the same
 /// filters the globe is showing.
 class MyWorldClusterSheet extends StatefulWidget {
@@ -46,7 +46,7 @@ class _MyWorldClusterSheetState extends State<MyWorldClusterSheet> {
   @override
   Widget build(BuildContext context) {
     final d = _details;
-    // Until the details land, the pillar's own numbers stand in.
+    // Until the details land, the hotspot's own numbers stand in.
     final total = d?.total ?? widget.cluster.total;
     final counts = d?.counts ?? widget.cluster.counts;
     final approximate = d?.approximate ?? widget.cluster.approximate;

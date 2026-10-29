@@ -10,13 +10,14 @@ import 'package:get/get.dart';
 import '../../core/ui/athar_ui.dart';
 import 'globe_land_raster.dart';
 import 'globe_land_texture.dart';
+import 'my_world_hotspots.dart';
 import 'my_world_models.dart';
 
 /// Where the globe is looked at from. [yaw] turns it about the poles,
 /// [pitch] is the latitude facing the viewer, [zoom] scales its radius.
 ///
-/// The shader (shaders/globe.frag) and the pillar painter both read this,
-/// with the same projection, so pillars stand exactly on their places.
+/// The shader (shaders/globe.frag) and the hotspot painter both read this,
+/// with the same projection, so hotspots sit exactly on their places.
 class GlobeCamera extends ChangeNotifier {
   GlobeCamera({this.yaw = 0, this.pitch = 0.3, this.zoom = 1});
 
@@ -52,6 +53,14 @@ class GlobeCamera extends ChangeNotifier {
   /// The globe's radius in a canvas of [size].
   double radiusIn(Size size) => size.shortestSide * 0.42 * zoom;
 
+  /// How far above the middle of the canvas the globe sits, as a share of
+  /// its height: clear of the card at the bottom.
+  static const lift = 0.08;
+
+  /// The globe's centre in a canvas of [size]. Everything drawn on or over
+  /// the globe (the shader, glows, taps, the count card, sharing) uses this.
+  static Offset centerIn(Size size) => Offset(size.width / 2, size.height * (0.5 - lift));
+
   /// Projects [lat]/[lng] (degrees) into a canvas of [size]. `z` is how much
   /// the point faces the viewer: negative is behind the globe.
   ({Offset offset, double z}) project(double lat, double lng, Size size) {
@@ -70,7 +79,7 @@ class GlobeCamera extends ChangeNotifier {
     final z2 = y * sp + z1 * cp;
 
     final r = radiusIn(size);
-    final c = size.center(Offset.zero);
+    final c = centerIn(size);
     return (offset: Offset(c.dx + x1 * r, c.dy - y2 * r), z: z2);
   }
 
@@ -93,7 +102,7 @@ class _GlobeAssets {
     try {
       program = await ui.FragmentProgram.fromAsset('shaders/globe.frag');
     } catch (_) {
-      // Drawn with the plain fallback below; the pillars still work.
+      // Drawn with the plain fallback below; the hotspots still work.
     }
     final result = (program: program, image: await image);
     // Tried again next open if either failed.
@@ -103,9 +112,8 @@ class _GlobeAssets {
 }
 
 /// The interactive globe: drag to turn, pinch or scroll to zoom. Each place
-/// with activity stands a pillar, one coloured segment per category. Tapping
-/// a pillar shows its count above it; tapping it again, or the count, opens
-/// its details. It turns slowly on its own unless [autoRotate] is off; a drag
+/// with activity glows (see HotspotStyle). Tapping a hotspot shows its count
+/// above it; tapping it again, or the count, opens its details. It turns slowly on its own unless [autoRotate] is off; a drag
 /// pauses that and it resumes after a few seconds of no touch.
 class MyWorldGlobe extends StatefulWidget {
   const MyWorldGlobe({
@@ -114,8 +122,10 @@ class MyWorldGlobe extends StatefulWidget {
     required this.clusters,
     required this.autoRotate,
     required this.atmosphere,
+    required this.highlight,
     required this.onClusterTap,
     required this.onZoomChanged,
+    this.captureKey,
   });
 
   final GlobeCamera camera;
@@ -125,9 +135,16 @@ class MyWorldGlobe extends StatefulWidget {
   /// The glow around the globe: the app theme's colour.
   final Color atmosphere;
 
-  /// Opens a pillar's details.
+  /// The theme's highlight colour: the ring round the selected place.
+  final Color highlight;
+
+  /// Opens a hotspot's details.
   final ValueChanged<WorldCluster> onClusterTap;
   final ValueChanged<double> onZoomChanged;
+
+  /// Set on the globe's own layer (the Earth, its glows and the stars, not
+  /// the panels over it), so it can be captured for sharing.
+  final GlobalKey? captureKey;
 
   @override
   State<MyWorldGlobe> createState() => _MyWorldGlobeState();
@@ -146,8 +163,16 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
   /// The platform's "reduce motion", read in build.
   bool _reduced = false;
 
-  /// The pillar whose count is showing.
+  /// The hotspot whose count is showing.
   String? _selectedId;
+
+  /// The clusters, prepared for drawing; rebuilt only when they change.
+  HotspotField? _fieldCache;
+  HotspotField get _field {
+    final cached = _fieldCache;
+    if (cached != null && identical(cached.clusters, widget.clusters)) return cached;
+    return _fieldCache = HotspotField(widget.clusters);
+  }
 
   /// A sharp mask of the area in view, while zoomed in; see [_checkDetail].
   GlobeLandDetail? _detail;
@@ -183,7 +208,7 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
   @override
   void didUpdateWidget(MyWorldGlobe old) {
     super.didUpdateWidget(old);
-    // New filters or a new zoom level make new pillars; the old one is gone.
+    // New filters or a new zoom level make new hotspots; the old one is gone.
     if (_selectedId != null && _selected == null) _selectedId = null;
   }
 
@@ -215,7 +240,7 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
     final dt = _last == Duration.zero ? 0.0 : math.min(0.1, (elapsed - _last).inMicroseconds / 1e6);
     _last = elapsed;
     final reduced = _reduced;
-    // A pillar's count stays put while it is read.
+    // A hotspot's count stays put while it is read.
     final spin = widget.autoRotate && !_interacting && _resumed && _selectedId == null;
     if (spin) {
       // The same pace on screen at any zoom.
@@ -282,7 +307,15 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
 
     // How far from the centre of the view the screen reaches, as an angle on
     // the sphere (a point d from the centre sits asin(d/R) away).
-    final reach = _size.center(Offset.zero).distance / radius;
+    final c = GlobeCamera.centerIn(_size);
+    final reach =
+        [
+          c,
+          Offset(_size.width - c.dx, c.dy),
+          Offset(c.dx, _size.height - c.dy),
+          Offset(_size.width - c.dx, _size.height - c.dy),
+        ].map((o) => o.distance).reduce(math.max) /
+        radius;
     if (reach >= 0.95) return null;
     final theta = math.asin(reach) * 180 / math.pi;
     final lat = cam.pitch * 180 / math.pi;
@@ -365,26 +398,12 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
     }
   }
 
-  /// The pillar under the finger, its column or its base. Taps win over drags
-  /// since the tap recogniser only fires when the finger didn't travel.
+  /// The hotspot under the finger. Taps win over drags since the tap
+  /// recogniser only fires when the finger didn't travel.
   WorldCluster? _hit(Offset position) {
-    WorldCluster? best;
-    var bestDistance = double.infinity;
-    for (final c in widget.clusters) {
-      final g = PillarStyle.geometry(c, widget.camera, _size);
-      if (g == null) continue;
-      // At least a finger's width to aim at, however thin the pillar.
-      final reach = math.max(22.0, g.width) / 2 + 6;
-      final dx = (position.dx - g.base.dx).abs();
-      final withinColumn = dx <= reach && position.dy >= g.top.dy - 10 && position.dy <= g.base.dy + 12;
-      if (!withinColumn) continue;
-      final distance = (position - g.base).distance;
-      if (distance < bestDistance) {
-        best = c;
-        bestDistance = distance;
-      }
-    }
-    return best;
+    final field = _field..project(widget.camera, _size);
+    final k = field.hit(position, widget.camera, _size);
+    return k < 0 ? null : field.clusters[k];
   }
 
   void _onTapUp(TapUpDetails d) {
@@ -423,16 +442,18 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
                   onScaleEnd: _onScaleEnd,
                   onTapUp: _onTapUp,
                   child: RepaintBoundary(
+                    key: widget.captureKey,
                     child: CustomPaint(
                       size: Size.infinite,
                       painter: _GlobePainter(
                         camera: widget.camera,
                         shader: _shader,
                         image: _image,
-                        clusters: widget.clusters,
+                        field: _field,
                         selectedId: _selectedId,
                         detail: _detail,
                         atmosphere: widget.atmosphere,
+                        highlight: widget.highlight,
                       ),
                     ),
                   ),
@@ -440,21 +461,27 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
               ),
             ),
             if (selected != null)
-              // Follows the pillar as the globe turns; above the gestures, so a
-              // tap on it opens the details.
+              // Follows the hotspot as the globe turns, just above its glow;
+              // above the gestures, so a tap on it opens the details.
               AnimatedBuilder(
                 animation: widget.camera,
                 builder: (context, _) {
-                  final g = PillarStyle.geometry(selected, widget.camera, _size);
-                  if (g == null) return const SizedBox.shrink();
+                  final p = widget.camera.project(selected.lat, selected.lng, _size);
+                  final facing = ((p.z - 0.02) / 0.18).clamp(0.0, 1.0);
+                  if (facing <= 0) return const SizedBox.shrink();
+                  final reach =
+                      (HotspotStyle.sigma(selected.intensity) *
+                              HotspotStyle.spread(widget.camera.zoom) *
+                              widget.camera.radiusIn(_size))
+                          .clamp(12.0, 80.0);
                   return Positioned(
-                    left: g.top.dx,
-                    top: g.top.dy - 8,
+                    left: p.offset.dx,
+                    top: p.offset.dy - reach - 6,
                     child: FractionalTranslation(
                       translation: const Offset(-0.5, -1),
                       child: _CountLabel(
                         total: selected.total,
-                        opacity: g.facing,
+                        opacity: facing,
                         onTap: () => widget.onClusterTap(selected),
                       ),
                     ),
@@ -468,7 +495,7 @@ class _MyWorldGlobeState extends State<MyWorldGlobe> with SingleTickerProviderSt
   }
 }
 
-/// The count above a tapped pillar, with a chevron: tapping it opens the
+/// The count above a tapped hotspot, with a chevron: tapping it opens the
 /// place's details.
 class _CountLabel extends StatelessWidget {
   const _CountLabel({required this.total, required this.opacity, required this.onTap});
@@ -519,69 +546,37 @@ class _CountLabel extends StatelessWidget {
   }
 }
 
-/// Where a pillar is drawn on screen this frame.
-typedef PillarGeometry = ({Offset base, Offset top, double width, double height, double facing});
-
-/// Pillar sizes. Height follows the server's 0..1 log-scaled intensity, so a
-/// place with one record still shows and the largest never dwarfs the rest.
-///
-/// Pillars stand upright on the screen from their place on the surface. A
-/// pillar pointing straight out of the sphere would shrink to a dot when its
-/// place faces the viewer — which the home view does for the main place.
-abstract final class PillarStyle {
-  static const minHeight = 14.0;
-  static const maxHeight = 84.0;
-
-  static double _zoomScale(double zoom) => math.sqrt(zoom).clamp(1.0, 1.6);
-
-  static double height(double intensity, double zoom) =>
-      (minHeight + (maxHeight - minHeight) * intensity) * _zoomScale(zoom);
-
-  static double width(double zoom) => 9 * _zoomScale(zoom);
-
-  /// [c]'s pillar this frame, or null when its place is behind the globe.
-  static PillarGeometry? geometry(WorldCluster c, GlobeCamera camera, Size size) {
-    final p = camera.project(c.lat, c.lng, size);
-    // Fades out towards the limb, gone behind the globe.
-    final facing = ((p.z - 0.02) / 0.18).clamp(0.0, 1.0);
-    if (facing <= 0) return null;
-    final h = height(c.intensity, camera.zoom);
-    return (base: p.offset, top: p.offset - Offset(0, h), width: width(camera.zoom), height: h, facing: facing);
-  }
-}
-
 class _GlobePainter extends CustomPainter {
   _GlobePainter({
     required this.camera,
     required this.shader,
     required this.image,
-    required this.clusters,
+    required this.field,
     required this.selectedId,
     required this.detail,
     required this.atmosphere,
+    required this.highlight,
   }) : super(repaint: camera);
 
   final GlobeCamera camera;
   final ui.FragmentShader? shader;
   final ui.Image? image;
-  final List<WorldCluster> clusters;
+  final HotspotField field;
   final String? selectedId;
   final GlobeLandDetail? detail;
   final Color atmosphere;
-
-  /// [atmosphere] at full brightness, keeping its hue: a dark theme colour
-  /// would otherwise barely glow against the night sky.
-  List<double> get _glow {
-    final c = [atmosphere.r, atmosphere.g, atmosphere.b];
-    final peak = c.reduce(math.max);
-    return peak < 0.01 ? [1, 1, 1] : [for (final v in c) v / peak];
-  }
+  final Color highlight;
 
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final center = size.center(Offset.zero);
+    final center = GlobeCamera.centerIn(size);
     final radius = camera.radiusIn(size);
+
+    // The atmosphere and the activity glow, at full brightness: a dark
+    // theme colour would otherwise barely light the night side.
+    final glow = HotspotStyle.lit(atmosphere);
+    field.project(camera, size);
 
     final s = shader;
     final img = image;
@@ -595,9 +590,9 @@ class _GlobePainter extends CustomPainter {
         ..setFloat(5, camera.yaw)
         ..setFloat(6, camera.pitch)
         ..setFloat(7, camera.time)
-        ..setFloat(8, _glow[0])
-        ..setFloat(9, _glow[1])
-        ..setFloat(10, _glow[2]);
+        ..setFloat(8, glow.r)
+        ..setFloat(9, glow.g)
+        ..setFloat(10, glow.b);
       final d = detail;
       s
         ..setFloat(11, d?.area.u0 ?? 0)
@@ -610,12 +605,15 @@ class _GlobePainter extends CustomPainter {
         ..setImageSampler(0, img, filterQuality: FilterQuality.medium)
         // Every sampler must be set: the world stands in when there's no detail.
         ..setImageSampler(1, d?.image ?? img, filterQuality: FilterQuality.low);
+      // The activity glow is drawn by the shader, on the sphere.
+      field.writeUniforms(s, 16, camera, selected: field.indexOf(selectedId), glow: glow, highlight: highlight);
       canvas.drawRect(rect, Paint()..shader = s);
     } else {
       _fallback(canvas, rect, center, radius);
+      field.paintFallback(canvas, camera, size, glow);
     }
 
-    _pillars(canvas, size);
+    field.paintApproximate(canvas, camera, size, highlight);
   }
 
   /// A plain globe while the shader loads, or if it can't run here.
@@ -643,123 +641,12 @@ class _GlobePainter extends CustomPainter {
     );
   }
 
-  void _pillars(Canvas canvas, Size size) {
-    final placed = <(WorldCluster, PillarGeometry)>[
-      for (final c in clusters)
-        if (PillarStyle.geometry(c, camera, size) case final g?) (c, g),
-    ];
-    // Farther up the screen is farther back: those draw first.
-    placed.sort((a, b) => a.$2.base.dy.compareTo(b.$2.base.dy));
-    for (final (c, g) in placed) {
-      _pillar(canvas, c, g, selected: c.id == selectedId);
-    }
-  }
-
-  void _pillar(Canvas canvas, WorldCluster c, PillarGeometry g, {required bool selected}) {
-    // Approximate places (country only) stand fainter.
-    final alpha = g.facing * (c.approximate ? 0.6 : 1.0);
-    final w = g.width;
-    final half = w / 2;
-    final capHeight = w * 0.45;
-
-    // A shadow where it meets the ground.
-    canvas.drawOval(
-      Rect.fromCenter(center: g.base, width: w * 2.2, height: w * 0.8),
-      Paint()
-        ..color = Color.fromRGBO(0, 0, 0, 0.45 * alpha)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-    );
-    if (c.approximate) {
-      _dashedOval(canvas, Rect.fromCenter(center: g.base, width: w * 3.2, height: w * 1.2), alpha);
-    }
-
-    // Segments bottom-up in the categories' order, each its share of the height.
-    final segments = [
-      for (final cat in WorldCategory.all)
-        if ((c.counts[cat.id] ?? 0) > 0) (cat.color, c.counts[cat.id]!),
-    ];
-    final sum = segments.fold<int>(0, (a, s) => a + s.$2);
-    if (sum == 0) return;
-
-    final body = Path()
-      ..addRRect(
-        RRect.fromRectAndCorners(
-          Rect.fromLTRB(g.base.dx - half, g.top.dy, g.base.dx + half, g.base.dy),
-          bottomLeft: Radius.elliptical(half, capHeight / 2),
-          bottomRight: Radius.elliptical(half, capHeight / 2),
-        ),
-      );
-
-    canvas.save();
-    canvas.clipPath(body);
-    var y = g.base.dy;
-    Color topColor = segments.last.$1;
-    for (final (color, n) in segments) {
-      final h = g.height * n / sum;
-      final rect = Rect.fromLTRB(g.base.dx - half, y - h, g.base.dx + half, y);
-      // Lit from the upper left like the globe: a round column, not a flat bar.
-      canvas.drawRect(
-        rect,
-        Paint()
-          ..shader = ui.Gradient.linear(
-            rect.centerLeft,
-            rect.centerRight,
-            [
-              Color.lerp(color, const Color(0xFFFFFFFF), 0.25)!.withValues(alpha: alpha),
-              color.withValues(alpha: alpha),
-              Color.lerp(color, const Color(0xFF000000), 0.45)!.withValues(alpha: alpha),
-            ],
-            [0.0, 0.45, 1.0],
-          ),
-      );
-      // A hairline between segments.
-      if (y < g.base.dy) {
-        canvas.drawLine(
-          Offset(rect.left, y),
-          Offset(rect.right, y),
-          Paint()
-            ..color = Color.fromRGBO(4, 8, 23, 0.55 * alpha)
-            ..strokeWidth = 1,
-        );
-      }
-      y -= h;
-      topColor = color;
-    }
-    canvas.restore();
-
-    // The top cap: the column seen slightly from above.
-    canvas.drawOval(
-      Rect.fromCenter(center: g.top, width: w, height: capHeight),
-      Paint()..color = Color.lerp(topColor, const Color(0xFFFFFFFF), 0.35)!.withValues(alpha: alpha),
-    );
-
-    if (selected) {
-      final outline = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = Color.fromRGBO(255, 255, 255, 0.9 * g.facing);
-      canvas.drawPath(body, outline);
-      canvas.drawOval(Rect.fromCenter(center: g.top, width: w, height: capHeight), outline);
-    }
-  }
-
-  void _dashedOval(Canvas canvas, Rect oval, double alpha) {
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2
-      ..color = Color.fromRGBO(230, 236, 255, 0.6 * alpha);
-    const dashes = 14;
-    const sweep = math.pi / dashes;
-    for (var i = 0; i < dashes; i++) {
-      canvas.drawArc(oval, i * 2 * sweep, sweep, false, paint);
-    }
-  }
-
   @override
   bool shouldRepaint(_GlobePainter old) =>
       old.shader != shader ||
       old.image != image ||
-      old.clusters != clusters ||
+      old.field != field ||
+      old.highlight != highlight ||
       old.selectedId != selectedId ||
       old.detail != detail ||
       old.atmosphere != atmosphere;
