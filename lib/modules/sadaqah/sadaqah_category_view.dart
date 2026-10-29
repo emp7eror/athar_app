@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/tour/tour_widgets.dart';
 import '../../core/ui/athar_ui.dart';
+import '../tour/app_tours.dart';
 import 'sadaqah_controller.dart';
 import 'sadaqah_models.dart';
 import 'sadaqah_widgets.dart';
@@ -20,7 +22,10 @@ class SadaqahCategoryView extends GetView<SadaqahController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AtharAppBar(title: category.name),
+      appBar: AtharAppBar(
+        title: category.name,
+        actions: const [TourHelpButton(pageId: TourPages.sadaqahCategory, style: TourHelpStyle.appBar)],
+      ),
       body: RefreshIndicator(
         onRefresh: controller.load,
         child: Obx(() {
@@ -46,21 +51,33 @@ class SadaqahCategoryView extends GetView<SadaqahController> {
                   ),
                 )
               else
-                for (final deed in deeds)
+                for (final (i, deed) in deeds.indexed)
                   Padding(
                     padding: const EdgeInsets.only(bottom: AtharSpace.xs),
-                    child: SadaqahDeedCard(
-                      deed: deed,
-                      color: category.color,
-                      recorded: recorded.contains(deed.id),
+                    child: _first(
+                      i == 0,
+                      SadaqahDeedCard(
+                        deed: deed,
+                        color: category.color,
+                        recorded: recorded.contains(deed.id),
+                      ),
                     ),
                   ),
               const SizedBox(height: AtharSpace.sm),
-              const SadaqahPointsNote(),
+              const TourTarget(id: TourTargets.sadaqahCategoryPoints, child: SadaqahPointsNote()),
             ],
           );
         }),
       ),
     );
   }
+
+  /// The first deed is what the tour points at, and it starts the tour once
+  /// there is one to point at.
+  Widget _first(bool first, Widget card) => first
+      ? TourAutoStart(
+          pageId: TourPages.sadaqahCategory,
+          child: TourTarget(id: TourTargets.sadaqahDeed, child: card),
+        )
+      : card;
 }

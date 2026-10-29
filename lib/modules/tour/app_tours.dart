@@ -15,6 +15,8 @@ abstract final class TourPages {
   static const adhkar = 'adhkar';
   static const coach = 'coach';
   static const adhkarCollection = 'adhkar_collection';
+  static const sadaqah = 'sadaqah';
+  static const sadaqahCategory = 'sadaqah_category';
 
   /// The shell's IndexedStack order — index → page id.
   static const shellTabs = [home, friends, leaderboard, stats, settings];
@@ -93,6 +95,15 @@ abstract final class TourTargets {
   static const adhkarView = 'adhkarCollection.view';
   static const adhkarMenu = 'adhkarCollection.menu';
 
+  // Sadaqah
+  static const sadaqahHero = 'sadaqah.hero';
+  static const sadaqahCategories = 'sadaqah.categories';
+  static const sadaqahPoints = 'sadaqah.points';
+
+  // One sadaqah category's deeds
+  static const sadaqahDeed = 'sadaqahCategory.deed';
+  static const sadaqahCategoryPoints = 'sadaqahCategory.points';
+
   /// The Help (?) button of a page (see `TourHelpButton.targetId`).
   static String help(String pageId) => '$pageId.help';
 }
@@ -113,7 +124,69 @@ abstract final class AppTours {
         adhkar,
         adhkarCollection,
         coach,
+        sadaqah,
+        sadaqahCategory,
       ];
+
+  static final sadaqah = PageTour(
+    pageId: TourPages.sadaqah,
+    steps: [
+      const TourStep(
+        target: TourTargets.sadaqahHero,
+        titleKey: 'tour_sadaqah_hero_title',
+        bodyKey: 'tour_sadaqah_hero_body',
+        icon: Icons.volunteer_activism_outlined,
+      ),
+      const TourStep(
+        target: TourTargets.sadaqahCategories,
+        titleKey: 'tour_sadaqah_categories_title',
+        bodyKey: 'tour_sadaqah_categories_body',
+        icon: Icons.grid_view_rounded,
+      ),
+      const TourStep(
+        target: TourTargets.sadaqahPoints,
+        titleKey: 'tour_sadaqah_points_title',
+        bodyKey: 'tour_sadaqah_points_body',
+        icon: Icons.star_outline_rounded,
+        padding: 6,
+      ),
+      TourStep(
+        target: TourTargets.help(TourPages.sadaqah),
+        titleKey: 'tour_help_title',
+        bodyKey: 'tour_help_body',
+        icon: Icons.help_outline_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+    ],
+  );
+
+  static final sadaqahCategory = PageTour(
+    pageId: TourPages.sadaqahCategory,
+    steps: [
+      const TourStep(
+        target: TourTargets.sadaqahDeed,
+        titleKey: 'tour_sadaqah_deed_title',
+        bodyKey: 'tour_sadaqah_deed_body',
+        icon: Icons.touch_app_outlined,
+      ),
+      const TourStep(
+        target: TourTargets.sadaqahCategoryPoints,
+        titleKey: 'tour_sadaqah_points_title',
+        bodyKey: 'tour_sadaqah_points_body',
+        icon: Icons.star_outline_rounded,
+        padding: 6,
+      ),
+      TourStep(
+        target: TourTargets.help(TourPages.sadaqahCategory),
+        titleKey: 'tour_help_title',
+        bodyKey: 'tour_help_body',
+        icon: Icons.help_outline_rounded,
+        shape: TourShape.circle,
+        padding: 4,
+      ),
+    ],
+  );
 
   static final home = PageTour(
     pageId: TourPages.home,

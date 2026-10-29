@@ -161,7 +161,9 @@ class _AdhkarCollectionViewState extends State<AdhkarCollectionView> {
 
   String _snippet(AdhkarItem item) {
     final t = item.text.replaceAll(RegExp(r'\s+'), ' ');
-    return t.length <= 60 ? t : '${t.substring(0, 60)}…';
+    // Cut by whole characters, so an emoji is never split in half.
+    final chars = t.characters;
+    return chars.length <= 60 ? t : '${chars.take(60)}…';
   }
 
   Future<void> _onAction(

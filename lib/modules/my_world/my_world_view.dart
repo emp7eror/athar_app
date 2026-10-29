@@ -544,8 +544,8 @@ class _Legend extends StatelessWidget {
 
 /// The page's title at the head of the bottom card: a gold sparkle, the
 /// first line strong, the second in a soft gradient from the theme colour to
-/// gold, and a fine gold rule beneath that fades out. Share sits on the
-/// right of the first line.
+/// gold, and a fine gold rule beneath that fades out. Share sits at the end
+/// of the first line.
 class _Title extends StatelessWidget {
   const _Title({required this.sharing, required this.onShare});
 
@@ -593,11 +593,9 @@ class _Title extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
-          // Share on the right in both languages: a row starts on the right
-          // in Arabic, so there it comes first.
-          children: rtl
-              ? [share, const SizedBox(width: AtharSpace.xs), ...title]
-              : [...title, const SizedBox(width: AtharSpace.xs), share],
+          // Share at the end of the line: on the left in Arabic, the right
+          // in English.
+          children: [...title, const SizedBox(width: AtharSpace.xs), share],
         ),
         const SizedBox(height: AtharSpace.xxs),
         // Text in white, coloured by the gradient laid over it.

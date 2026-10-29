@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../core/tour/tour_widgets.dart';
 import '../../core/ui/athar_ui.dart';
+import '../tour/app_tours.dart';
 import 'sadaqah_category_view.dart';
 import 'sadaqah_controller.dart';
 import 'sadaqah_models.dart';
@@ -23,7 +25,10 @@ class SadaqahView extends GetView<SadaqahController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AtharAppBar(title: 'sadaqah_title'.tr),
+      appBar: AtharAppBar(
+        title: 'sadaqah_title'.tr,
+        actions: const [TourHelpButton(pageId: TourPages.sadaqah, style: TourHelpStyle.appBar)],
+      ),
       body: RefreshIndicator(
         onRefresh: controller.load,
         child: ListView(
@@ -37,7 +42,7 @@ class SadaqahView extends GetView<SadaqahController> {
           ),
           children: [
             // Totals first, then the categories.
-            const _HeroCard(),
+            const TourTarget(id: TourTargets.sadaqahHero, child: _HeroCard()),
             const SizedBox(height: AtharSpace.lg),
             AtharSectionHeader(title: 'sadaqah_categories_title'.tr),
             Obx(() {
@@ -64,16 +69,23 @@ class SadaqahView extends GetView<SadaqahController> {
                 );
               }
 
-              return _Grid(
-                columns: _columns,
-                children: [
-                  for (final c in controller.categories)
-                    _CategoryTile(category: c),
-                ],
+              // The tour starts once the categories have loaded.
+              return TourAutoStart(
+                pageId: TourPages.sadaqah,
+                child: TourTarget(
+                  id: TourTargets.sadaqahCategories,
+                  child: _Grid(
+                    columns: _columns,
+                    children: [
+                      for (final c in controller.categories)
+                        _CategoryTile(category: c),
+                    ],
+                  ),
+                ),
               );
             }),
             const SizedBox(height: AtharSpace.md),
-            const SadaqahPointsNote(),
+            const TourTarget(id: TourTargets.sadaqahPoints, child: SadaqahPointsNote()),
           ],
         ),
       ),

@@ -114,7 +114,8 @@ class _PhotoRow extends StatelessWidget {
     // ring of the same circle; the initial when there is no photo.
     final initial = Center(
       child: Text(
-        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        // The first whole character, not the first UTF-16 unit (see FramedAvatar).
+        name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
         style: context.type.sectionTitle.copyWith(color: scheme.onPrimary),
       ),
     );

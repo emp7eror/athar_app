@@ -113,7 +113,9 @@ class FramedAvatar extends StatelessWidget {
                   radius: finalRadius,
                   backgroundColor: bg,
                   child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : '?',
+                    // The first whole character: name[0] is half of one that
+                    // takes two UTF-16 units (an emoji), and won't render.
+                    name.isNotEmpty ? name.characters.first.toUpperCase() : '?',
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
