@@ -30,6 +30,9 @@ class PermissionGateView extends GetView<PermissionController> {
           builder: (context) => Scaffold(
             body: SafeArea(
               child: Obx(() {
+                // Just the ground until the first check decides, so a step
+                // that is already satisfied never flashes by.
+                if (!controller.resolved.value) return const SizedBox.expand();
                 final step = controller.step.value;
                 final state = controller.state.value;
                 final isLocation = step == PermStep.location;

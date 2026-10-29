@@ -1,7 +1,7 @@
 name: athar
 description: "Athar (أثر) — offline-first bilingual prayer habit tracker."
 publish_to: 'none'
-version: 1.0.9+9
+version: 1.0.10+10
 
 environment:
   sdk: ">=3.10.7 <4.0.0"
@@ -41,6 +41,7 @@ dependencies:
   flutter_svg:
   flutter_cache_manager:
   sensors_plus: ^7.1.0
+  lottie: ^3.7.0
 
 dev_dependencies:
   flutter_test:
@@ -51,6 +52,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    # The animated logo on the splash screen (Lottie).
+    - assets/lottie/athar_logo.json
     - assets/audio/
     - assets/frames/
     # Practice icons on Home (SVG): tasbeeh, the Quran, hands in dua.

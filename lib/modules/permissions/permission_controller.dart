@@ -37,6 +37,45 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
   final Rx<PermState> state = PermState.denied.obs;
   final RxBool busy = false.obs;
 
+  /// Whether the first check has decided which step to show. Until then the
+  /// view shows only its ground, so a step that turns out to be satisfied
+  /// (location already set) never flashes on screen.
+  final RxBool resolved = false.obs;
+
+  /// The first permission that still needs the user, or null when there is
+  /// nothing to ask. One rule for the gate and for the splash, which uses it
+  /// to skip the gate entirely when everything is already in place.
+  static Future<({PermStep step, PermState state})?> pending(
+    PermissionService perms,
+    StorageProvider storage,
+  ) async {
+    final loc = await perms.locationStatus();
+    if (!loc.isGranted && !storage.locationSetBefore) {
+      return (step: PermStep.location, state: loc);
+    }
+
+    final notif = await perms.notificationStatus();
+    // Once turned down on a platform where the step is optional, it is not
+    // raised again; Settings → Notifications remains the way back in.
+    final asked = notificationStepSkippable && storage.notifPromptDeclined;
+    if (!notif.isGranted && !asked) {
+      return (step: PermStep.notification, state: notif);
+    }
+    return null;
+  }
+
+  /// Into the app — what passing the gate does, whether from the gate or
+  /// straight from the splash when there was nothing to ask.
+  static void enterApp(StorageProvider storage) {
+    storage.seenOnboarding = true; // reached the app; onboarding is done
+    // Notification permission is resolved — (re)build the prayer schedule
+    // now instead of waiting for the next foreground resume.
+    if (Get.isRegistered<PrayerNotificationScheduler>()) {
+      Get.find<PrayerNotificationScheduler>().reschedule();
+    }
+    Get.offAllNamed(storage.isLoggedIn ? '/home' : '/auth');
+  }
+
   /// The gate routes away exactly once. A system permission dialog closing
   /// sends the app through `resumed`, and that can land *after* the gate has
   /// already left for /auth — re-running the walk would fire a second
@@ -75,27 +114,14 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
     if (_finished) return;
     busy.value = true;
 
-    final loc = await _perms.locationStatus();
-
-    if (!loc.isGranted && !_storage.locationSetBefore) {
-      step.value = PermStep.location;
-      state.value = loc;
-      busy.value = false;
-      return;
-    }
-
-    final notif = await _perms.notificationStatus();
-    // Once turned down on a platform where the step is optional, it is not
-    // raised again; Settings → Notifications remains the way back in.
-    final asked = notificationStepSkippable && _storage.notifPromptDeclined;
-    if (!notif.isGranted && !asked) {
-      step.value = PermStep.notification;
-      state.value = notif;
-      busy.value = false;
-      return;
-    }
-
+    final next = await pending(_perms, _storage);
     busy.value = false;
+    if (next != null) {
+      step.value = next.step;
+      state.value = next.state;
+      resolved.value = true;
+      return;
+    }
     _finish();
   }
 
@@ -157,13 +183,6 @@ class PermissionController extends GetxController with WidgetsBindingObserver {
     _finished = true;
     // Nothing more to react to; stop listening before the route changes.
     WidgetsBinding.instance.removeObserver(this);
-
-    _storage.seenOnboarding = true; // reached the app; onboarding is done
-    // Notification permission was just resolved — (re)build the prayer schedule
-    // now instead of waiting for the next foreground resume.
-    if (Get.isRegistered<PrayerNotificationScheduler>()) {
-      Get.find<PrayerNotificationScheduler>().reschedule();
-    }
-    Get.offAllNamed(_storage.isLoggedIn ? '/home' : '/auth');
+    enterApp(_storage);
   }
 }
